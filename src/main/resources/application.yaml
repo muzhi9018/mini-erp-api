@@ -1,0 +1,32 @@
+server:
+  port: 8081
+
+spring:
+  lifecycle:
+    # 配置优雅停机宽限时间，即项目在 15s 都没处理完，则进行强制关闭
+    timeout-per-shutdown-phase: 15s
+  application:
+    name: mini-erp
+  profiles:
+    active: dev
+
+
+
+# Mybatis Plus 打印日志
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      logic-delete-value: true
+      logic-not-delete-value: false
+
+# 设置日志等级
+logging:
+  level:
+    com.muzhi.user.mapper: debug
+
+security:
+  jwt:
+    issuer: https://www.muzhi.store
+    secret: HaOB/RCKCb2VQyH8T72rryAGhGsdzrQDlAbMge8F93A2xrgswcxI+c0hI1UMbgYm
