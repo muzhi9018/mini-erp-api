@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.muzhi</groupId>
-    <artifactId>mini-erp</artifactId>
+    <artifactId>mini-erp-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>mini-erp</name>
     <description>mini-erp</description>
