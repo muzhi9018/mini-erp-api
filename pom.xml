@@ -11,21 +11,9 @@
     <groupId>com.muzhi</groupId>
     <artifactId>mini-erp-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>mini-erp</name>
-    <description>mini-erp</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
+    <name>mini-erp-api</name>
+    <description>mini-erp-api</description>
+
     <properties>
         <!-- 编译配置 -->
         <java.version>21</java.version>
