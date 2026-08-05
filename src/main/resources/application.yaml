@@ -2,6 +2,10 @@ server:
   port: 8081
 
 spring:
+  messages:
+    basename: messages
+    encoding: UTF-8
+    fallback-to-system-locale: false
   lifecycle:
     # 配置优雅停机宽限时间，即项目在 15s 都没处理完，则进行强制关闭
     timeout-per-shutdown-phase: 15s

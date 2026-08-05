@@ -1,6 +1,7 @@
 package com.muzhi.minierp.config;
 
 import com.muzhi.minierp.annotation.OpenApi;
+import com.muzhi.minierp.i18n.I18nHelper;
 import com.muzhi.minierp.security.*;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -57,13 +58,15 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, ObjectMapper objectMapper) {
-        return new JwtAuthenticationFilter(jwtTokenProvider, objectMapper);
+    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider,
+                                                            ObjectMapper objectMapper,
+                                                            I18nHelper i18nHelper) {
+        return new JwtAuthenticationFilter(jwtTokenProvider, objectMapper, i18nHelper);
     }
 
     @Bean
-    public JwtAuthenticationEntryPoint authenticationEntryPoint(ObjectMapper objectMapper) {
-        return new JwtAuthenticationEntryPoint(objectMapper);
+    public JwtAuthenticationEntryPoint authenticationEntryPoint(ObjectMapper objectMapper, I18nHelper i18nHelper) {
+        return new JwtAuthenticationEntryPoint(objectMapper, i18nHelper);
     }
 
     @Bean

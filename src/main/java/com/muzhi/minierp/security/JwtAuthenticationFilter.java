@@ -1,6 +1,7 @@
 package com.muzhi.minierp.security;
 
 import com.muzhi.minierp.enums.HttpStatus;
+import com.muzhi.minierp.i18n.I18nHelper;
 import com.muzhi.minierp.model.JsonResult;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,10 +21,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final ObjectMapper objectMapper;
+    private final I18nHelper i18nHelper;
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, ObjectMapper objectMapper) {
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, ObjectMapper objectMapper, I18nHelper i18nHelper) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.objectMapper = objectMapper;
+        this.i18nHelper = i18nHelper;
     }
 
     @Override
@@ -33,7 +36,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (!jwtTokenProvider.validateToken(token)) {
                 response.setStatus(HttpServletResponse.SC_OK);
                 response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                JsonResult<?> result = JsonResult.error(HttpStatus.UNAUTHORIZED.value(), HttpStatus.UNAUTHORIZED.getReasonPhrase());
+                String message = this.i18nHelper.getMessage(HttpStatus.UNAUTHORIZED, request);
+                JsonResult<?> result = JsonResult.error(HttpStatus.UNAUTHORIZED.value(), message);
                 response.setCharacterEncoding(StandardCharsets.UTF_8.displayName());
                 response.getWriter().write(objectMapper.writeValueAsString(result));
                 return;

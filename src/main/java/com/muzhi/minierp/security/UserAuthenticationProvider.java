@@ -46,14 +46,14 @@ public class UserAuthenticationProvider implements AuthenticationProvider {
     private LoginUser buildLoginUser(String username, String password) {
         SysUser user = sysUserService.findByUsername(username);
         if (user == null || !StringUtils.hasText(password) || !StringUtils.hasText(user.getPassword())) {
-            throw new BadCredentialsException("用户名或密码错误");
+            throw new BadCredentialsException("auth.invalid-credentials");
         }
         String presentedPassword = SecurityUtils.passwordSaltAddition(username, password);
         if (!passwordEncoder.matches(presentedPassword, user.getPassword())) {
-            throw new BadCredentialsException("用户名或密码错误");
+            throw new BadCredentialsException("auth.invalid-credentials");
         }
         if (!SysUserStatus.isEnabled(user.getStatus())) {
-            throw new DisabledException("用户已被禁用");
+            throw new DisabledException("auth.account-locked");
         }
 
         String roleCode = user.getCurrentRoleCode();

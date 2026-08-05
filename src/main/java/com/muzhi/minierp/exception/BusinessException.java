@@ -1,5 +1,7 @@
 package com.muzhi.minierp.exception;
 
+import lombok.Getter;
+
 import java.io.Serial;
 
 /**
@@ -17,19 +19,29 @@ public class BusinessException extends RuntimeException {
 
     protected final String message;
 
+    @Getter
+    private final String i18nCode;
+
     public BusinessException(String message){
-        super(message);
-        this.message = message;
+        this(null, message, null);
+    }
+
+    public BusinessException(String i18nCode, String message) {
+        this(i18nCode, message, null);
     }
 
     public BusinessException(String message, Throwable cause) {
-        super(cause);
-        this.message = message;
+        this(null, message, cause);
     }
 
     public BusinessException(Throwable cause) {
-        super(cause);
-        this.message = cause.getMessage();
+        this(null, cause.getMessage(), cause);
+    }
+
+    private BusinessException(String i18nCode, String message, Throwable cause) {
+        super(message, cause);
+        this.i18nCode = i18nCode;
+        this.message = message;
     }
 
     @Override

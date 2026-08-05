@@ -1,10 +1,14 @@
 package com.muzhi.minierp.exception;
 
 import com.muzhi.minierp.enums.HttpStatus;
+import com.muzhi.minierp.i18n.I18nHelper;
 import com.muzhi.minierp.model.JsonResult;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -24,7 +28,10 @@ import java.nio.file.AccessDeniedException;
  */
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final I18nHelper i18nHelper;
 
     /**
      * 500 未知异常
@@ -32,7 +39,33 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = Exception.class)
     public JsonResult<?> exceptionHandler(HttpServletRequest request, HttpServletResponse response, Exception e) {
         this.logError(request, e);
-        JsonResult<?> error = JsonResult.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase());
+        JsonResult<?> error = this.error(HttpStatus.INTERNAL_SERVER_ERROR, request);
+        this.feignCallHandler(request, response, error);
+        return error;
+    }
+
+    /**
+     *  401 登录错误
+     */
+    @ExceptionHandler(value = BadCredentialsException.class)
+    public JsonResult<?> badCredentialsExceptionHandler(HttpServletRequest request, HttpServletResponse response, BadCredentialsException e) {
+        this.logError(request, e);
+        String msg = e.getMessage();
+        String message = this.i18nHelper.getMessage(msg, msg, request);
+        JsonResult<?> error = JsonResult.error(HttpStatus.UNAUTHORIZED.value(), message);
+        this.feignCallHandler(request, response, error);
+        return error;
+    }
+
+    /**
+     *  403 登录用户被禁用
+     */
+    @ExceptionHandler(value = DisabledException.class)
+    public JsonResult<?> disabledExceptionHandler(HttpServletRequest request, HttpServletResponse response, DisabledException e) {
+        this.logError(request, e);
+        String msg = e.getMessage();
+        String message = this.i18nHelper.getMessage(msg, msg, request);
+        JsonResult<?> error = JsonResult.error(HttpStatus.FORBIDDEN.value(), message);
         this.feignCallHandler(request, response, error);
         return error;
     }
@@ -43,8 +76,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(value = BusinessException.class)
     public JsonResult<?> businessHandler(HttpServletRequest request, HttpServletResponse response, BusinessException e) {
-        this.logDebug(request, e);
-        JsonResult<?> error = JsonResult.error(e.getMessage());
+        String message = this.i18nHelper.getMessage(e, request);
+        JsonResult<?> error = JsonResult.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), message);
         this.feignCallHandler(request, response, error);
         return error;
     }
@@ -56,7 +89,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({MethodArgumentTypeMismatchException.class})
     public JsonResult<?> methodArgumentTypeMismatchHandler(HttpServletRequest request, HttpServletResponse response, MethodArgumentTypeMismatchException e) {
         this.logDebug(request, e);
-        JsonResult<?> error = JsonResult.error(HttpStatus.BAD_REQUEST_PARAM_TYPE_ERROR.value(), HttpStatus.BAD_REQUEST_PARAM_TYPE_ERROR.getReasonPhrase() + "[" + e.getName() + "]");
+        String i18nMessage = this.i18nHelper.getMessage(HttpStatus.BAD_REQUEST_PARAM_TYPE_ERROR, request);
+        JsonResult<?> error = JsonResult.error(HttpStatus.BAD_REQUEST_PARAM_TYPE_ERROR.value(),  i18nMessage + "[" + e.getName() + "]");
         this.feignCallHandler(request, response, error);
         return error;
     }
@@ -67,7 +101,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({MissingServletRequestParameterException.class})
     public JsonResult<?> missingServletRequestParameterHandler(HttpServletRequest request, HttpServletResponse response, MissingServletRequestParameterException e) {
         this.logDebug(request, e);
-        JsonResult<?> error = JsonResult.error(HttpStatus.BAD_REQUEST_MISSING_PARAM.value(), HttpStatus.BAD_REQUEST_MISSING_PARAM.getReasonPhrase() + "[" + e.getParameterName() + "]");
+        String i18nMessage = this.i18nHelper.getMessage(HttpStatus.BAD_REQUEST_MISSING_PARAM, request);
+        JsonResult<?> error = JsonResult.error(
+                HttpStatus.BAD_REQUEST_MISSING_PARAM.value(), i18nMessage + "[" + e.getParameterName() + "]"
+        );
         this.feignCallHandler(request, response, error);
         return error;
     }
@@ -78,7 +115,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public JsonResult<?> handleAccessDeniedException(HttpServletRequest request, HttpServletResponse response, AccessDeniedException e) {
         this.logDebug(request, e);
-        JsonResult<Object> error = JsonResult.error(HttpStatus.FORBIDDEN.value(), HttpStatus.FORBIDDEN.getReasonPhrase());
+        JsonResult<?> error = this.error(HttpStatus.FORBIDDEN, request);
         this.feignCallHandler(request, response, error);
         return error;
     }
@@ -89,7 +126,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({NoHandlerFoundException.class})
     public JsonResult<?> noHandlerFoundHandler(HttpServletRequest request, HttpServletResponse response, NoHandlerFoundException e) {
         this.logDebug(request, e);
-        JsonResult<Object> error = JsonResult.error(HttpStatus.NOT_FOUND.value(), HttpStatus.NOT_FOUND.getReasonPhrase());
+        JsonResult<?> error = this.error(HttpStatus.NOT_FOUND, request);
         this.feignCallHandler(request, response, error);
         return error;
     }
@@ -100,7 +137,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({HttpRequestMethodNotSupportedException.class})
     public JsonResult<?> httpRequestMethodNotSupportedHandler(HttpServletRequest request, HttpServletResponse response, HttpRequestMethodNotSupportedException e) {
         this.logDebug(request, e);
-        JsonResult<Object> error = JsonResult.error(HttpStatus.METHOD_NOT_ALLOWED.value(), HttpStatus.METHOD_NOT_ALLOWED.getReasonPhrase());
+        JsonResult<?> error = this.error(HttpStatus.METHOD_NOT_ALLOWED, request);
         this.feignCallHandler(request, response, error);
         return error;
     }
@@ -117,6 +154,10 @@ public class GlobalExceptionHandler {
         if (request.getServletPath().startsWith("/feign")) {
             response.setStatus(error.getCode());
         }
+    }
+
+    private JsonResult<?> error(HttpStatus status, HttpServletRequest request) {
+        return JsonResult.error(status.value(), this.i18nHelper.getMessage(status, request));
     }
 
     private void logError(HttpServletRequest request, Throwable throwable) {

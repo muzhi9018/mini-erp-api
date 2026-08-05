@@ -42,9 +42,13 @@ public final class JsonResult<T> implements Serializable {
     }
 
     private JsonResult(T data) {
+        this(data, HttpStatus.OK.getReasonPhrase());
+    }
+
+    private JsonResult(T data, String message) {
         this.data = data;
         this.code = HttpStatus.OK.value();
-        this.message = HttpStatus.OK.getReasonPhrase();
+        this.message = message;
         this.success = true;
     }
 
@@ -63,6 +67,10 @@ public final class JsonResult<T> implements Serializable {
 
     public static <T> JsonResult<T> success(T data) {
         return new JsonResult<>(data);
+    }
+
+    public static <T> JsonResult<T> success(T data, String message) {
+        return new JsonResult<>(data, message);
     }
 
     public static <T> JsonResult<T> success() {
