@@ -33,13 +33,14 @@ public class JwtTokenProvider {
         Instant expireAt = now.plus(properties.getExpireMinutes(), ChronoUnit.MINUTES);
 
         JwtBuilder jwtBuilder = Jwts.builder()
-            .subject(loginUser.getUsername())
-            .issuedAt(Date.from(now))
-            .expiration(Date.from(expireAt))
-            .claim("userId", loginUser.getId())
-            .claim("userNo", loginUser.getUserNo())
-            .claim("roleCode", loginUser.getRoleCode())
-            .signWith(this.getSigningKey());
+                .subject(loginUser.getUsername())
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expireAt))
+                .claim("userId", loginUser.getId())
+                .claim("userNo", loginUser.getUserNo())
+                .claim("roleCode", loginUser.getRoleCode())
+                .claim("tokenType", loginUser.getTokenType())
+                .signWith(this.getSigningKey());
 
         if (StringUtils.hasText(properties.getIssuer())) {
             jwtBuilder.issuer(properties.getIssuer());
@@ -63,9 +64,9 @@ public class JwtTokenProvider {
     public Authentication getAuthentication(String token) {
         LoginUser loginUser = this.getLoginUser(token);
         return new UsernamePasswordAuthenticationToken(
-            loginUser,
-            null,
-            loginUser.getAuthorities()
+                loginUser,
+                null,
+                loginUser.getAuthorities()
         );
     }
 
@@ -74,13 +75,14 @@ public class JwtTokenProvider {
         String roleCode = this.getStringClaim(claims, "roleCode");
 
         LoginUser loginUser = new LoginUser(
-            claims.getSubject(),
-            "",
-            true,
-            this.buildAuthorities(roleCode)
+                claims.getSubject(),
+                "",
+                true,
+                this.buildAuthorities(roleCode)
         );
         loginUser.setId(this.getLongClaim(claims, "userId"));
         loginUser.setUserNo(this.getStringClaim(claims, "userNo"));
+        loginUser.setTokenType(this.getStringClaim(claims, "tokenType"));
         loginUser.setRoleCode(roleCode);
         return loginUser;
     }
@@ -94,16 +96,16 @@ public class JwtTokenProvider {
 
     private Claims parseClaims(String token) {
         var parserBuilder = Jwts.parser()
-            .verifyWith(this.getSigningKey());
+                .verifyWith(this.getSigningKey());
 
         if (StringUtils.hasText(properties.getIssuer())) {
             parserBuilder.requireIssuer(properties.getIssuer());
         }
 
         return parserBuilder
-            .build()
-            .parseSignedClaims(token)
-            .getPayload();
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     private String getStringClaim(Claims claims, String name) {

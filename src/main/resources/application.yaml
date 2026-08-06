@@ -2,6 +2,9 @@ server:
   port: 8081
 
 spring:
+  web:
+    resources:
+      add-mappings: false
   messages:
     basename: messages
     encoding: UTF-8

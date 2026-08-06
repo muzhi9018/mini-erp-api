@@ -30,7 +30,10 @@ public class LoginUser extends User implements UserDetails, CredentialsContainer
     private final boolean accountNonLocked;
 
     private final Collection<? extends GrantedAuthority> authorities;
-    private  String token;
+
+    private  String accessToken;
+
+    private String tokenType;
 
 
     public LoginUser(String username, String password, boolean enabled, Collection<? extends GrantedAuthority> authorities) {
@@ -88,14 +91,22 @@ public class LoginUser extends User implements UserDetails, CredentialsContainer
         // 重写父类方法，不允许修改密码
     }
 
-    public String getToken() {
-        return this.token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
     private static void getAVoid() {
+    }
+
+    public String getTokenType() {
+        return this.tokenType;
+    }
+
+    public void setTokenType(String tokenType) {
+        this.tokenType = tokenType;
+    }
+
+    public String getAccessToken() {
+        return this.accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
     }
 }

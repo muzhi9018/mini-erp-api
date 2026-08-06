@@ -27,7 +27,7 @@ public class AuthController {
         return JsonResult.success(user, this.i18nHelper.getMessage(HttpStatus.OK, request));
     }
 
-    @GetMapping("/getCurrentUser")
+    @GetMapping("/currentUser")
     public JsonResult<LoginUser> getCurrentUser(HttpServletRequest request) {
         LoginUser currentUser = authenticate.getCurrentUser();
         return JsonResult.success(currentUser, this.i18nHelper.getMessage(HttpStatus.OK, request));

@@ -33,7 +33,7 @@ public class AuthServiceImpl implements IAuthService {
         Authentication authentication = authenticationManager.authenticate(authenticationToken);
         LoginUser user = (LoginUser) authentication.getPrincipal();
         String token = jwtTokenProvider.createToken(user);
-        user.setToken(token);
+        user.setAccessToken(token);
         return user;
     }
 

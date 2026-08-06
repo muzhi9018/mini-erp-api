@@ -68,6 +68,7 @@ public class UserAuthenticationProvider implements AuthenticationProvider {
         loginUser.setId(user.getId());
         loginUser.setUserNo(user.getUserNo());
         loginUser.setRoleCode(roleCode);
+        loginUser.setTokenType("Bearer");
         return loginUser;
     }
 }
