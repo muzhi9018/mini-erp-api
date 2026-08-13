@@ -1,8 +1,11 @@
 package com.muzhi.minierp;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.generator.FastAutoGenerator;
 import com.baomidou.mybatisplus.generator.engine.VelocityTemplateEngine;
+import com.baomidou.mybatisplus.generator.fill.Column;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.C;
 
 import java.nio.file.Paths;
 
@@ -36,6 +39,14 @@ public class CodeGenerator {
                         .entityBuilder()
                         .enableLombok()
                         .enableTableFieldAnnotation()
+                        .logicDeleteColumnName("is_deleted")
+                        .logicDeletePropertyName("deleted")
+                        .addTableFills(
+                                new Column("gmt_create", FieldFill.INSERT),
+                                new Column("gmt_modified", FieldFill.INSERT_UPDATE),
+                                new Column("create_user", FieldFill.INSERT),
+                                new Column("update_user", FieldFill.INSERT_UPDATE)
+                        )
                 )
                 .templateEngine(new VelocityTemplateEngine())
                 .execute();
