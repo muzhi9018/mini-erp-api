@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.io.Serial;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 
 /**
  * <p>
@@ -34,6 +35,8 @@ public class LoginUser extends User implements UserDetails, CredentialsContainer
     private  String accessToken;
 
     private String tokenType;
+
+    private List<String> permissionCodes;
 
 
     public LoginUser(String username, String password, boolean enabled, Collection<? extends GrantedAuthority> authorities) {
@@ -108,5 +111,13 @@ public class LoginUser extends User implements UserDetails, CredentialsContainer
 
     public void setAccessToken(String accessToken) {
         this.accessToken = accessToken;
+    }
+
+    public List<String> getPermissionCodes() {
+        return permissionCodes;
+    }
+
+    public void setPermissionCodes(List<String> permissionCodes) {
+        this.permissionCodes = permissionCodes;
     }
 }

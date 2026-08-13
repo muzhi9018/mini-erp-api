@@ -35,6 +35,7 @@ public class CodeGenerator {
                 .strategyConfig(builder -> builder
                         .entityBuilder()
                         .enableLombok()
+                        .enableTableFieldAnnotation()
                 )
                 .templateEngine(new VelocityTemplateEngine())
                 .execute();

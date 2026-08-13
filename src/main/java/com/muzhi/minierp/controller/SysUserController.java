@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SysUserController {
 
     private final ISysUserService sysUserService;
+
     private final I18nHelper i18nHelper;
 
     @PostMapping("/create")
@@ -38,7 +39,7 @@ public class SysUserController {
             );
         }
         sysUserService.create(user);
-        return JsonResult.success(null, this.i18nHelper.getMessage(HttpStatus.OK, request));
+        return JsonResult.success();
     }
 
 }
