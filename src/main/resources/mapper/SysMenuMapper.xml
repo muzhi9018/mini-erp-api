@@ -53,7 +53,7 @@
         <include refid="base_column_list"/>
         from sys_menu
         where parent_id = 0
-        and is_deleted = 0
+        and is_deleted = false
         order by sort, id
     </select>
     <select id="findByParentId" resultType="com.muzhi.minierp.entity.SysMenu">
@@ -61,7 +61,7 @@
         <include refid="base_column_list"/>
         from sys_menu
         where parent_id = #{parentId}
-        and is_deleted = 0
+        and is_deleted = false
         order by sort, id
     </select>
 
@@ -71,14 +71,14 @@
         from sys_menu
         where parent_id = #{parentId}
         and client_id = #{clientId}
-        and is_deleted = 0
+        and is_deleted = false
     </select>
 
     <select id="findByIds" resultType="com.muzhi.minierp.entity.SysMenu">
         select
         <include refid="base_column_list"/>
         from sys_menu
-        where is_deleted = 0
+        where is_deleted = false
         and id in
         <foreach collection="ids" item="id" index="index" open="(" separator="," close=")">
             #{id}

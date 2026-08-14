@@ -179,7 +179,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             permission.setRoleCode(role.getRoleCode());
             permission.setRoleId(role.getId());
             permission.setMenuId(menu.getId());
-            permission.setPermissionCode(menu.getPermissionCode());
+            permission.setPermissionCode(menu.getPermissionCode() == null ? "" : menu.getPermissionCode());
             permissions.add(permission);
             if (menu.getChildren() != null) {
                 this.builderPermissions(menu.getChildren(), permissions, role);

@@ -1,5 +1,7 @@
 package com.muzhi.minierp.config;
 
+import com.alibaba.fastjson2.JSONReader;
+import com.alibaba.fastjson2.JSONWriter;
 import com.alibaba.fastjson2.support.config.FastJsonConfig;
 import com.alibaba.fastjson2.support.spring6.http.converter.FastJsonHttpMessageConverter;
 import org.springframework.context.annotation.Configuration;
@@ -26,9 +28,12 @@ public class FastJsonWebMvcConfiguration implements WebMvcConfigurer {
     public void configureMessageConverters(HttpMessageConverters.ServerBuilder builder) {
         FastJsonHttpMessageConverter converter = new FastJsonHttpMessageConverter();
         FastJsonConfig config = new FastJsonConfig();
+        config.setReaderFeatures(JSONReader.Feature.FieldBased, JSONReader.Feature.SupportArrayToBean);
+        config.setWriterFeatures(JSONWriter.Feature.BrowserCompatible, JSONWriter.Feature.PrettyFormat);
+        config.setWriteContentLength(true);
         config.setCharset(StandardCharsets.UTF_8);
-        converter.setFastJsonConfig(config);
         List<MediaType> mediaTypes = List.of(MediaType.APPLICATION_JSON, MediaType.parseMediaType("application/*+json"));
+        converter.setFastJsonConfig(config);
         converter.setSupportedMediaTypes(mediaTypes);
         // 使用 withJsonConverter 方法替换默认的 JSON 转换器
         builder.withJsonConverter(converter);

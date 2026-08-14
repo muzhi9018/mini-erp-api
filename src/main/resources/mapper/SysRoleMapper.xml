@@ -37,7 +37,7 @@
         select
         <include refid="base_column_list"/>
         from sys_role
-        where is_deleted = 0
+        where is_deleted = false
         <include refid="base_condition"/>
         order by sort asc, id
     </select>
@@ -46,7 +46,7 @@
         select
         <include refid="base_column_list"/>
         from sys_role
-        where is_deleted = 0
+        where is_deleted = false
         and role_code in
         <foreach collection="roleCodes" item="roleCode" index="index" open="(" separator="," close=")">
             #{roleCode}

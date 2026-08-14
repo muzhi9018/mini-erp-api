@@ -16,7 +16,7 @@ public enum DefaultRoleEnum {
     /**
      * 超级管理员
      */
-    SUPER_ADMIN(1679771069714911233L, "超级管理员", "SUPER_ADMIN", "牧之云系统超级管理员"),
+    SUPER_ADMIN(1L, "超级管理员", "SUPER_ADMIN", " 建绿新材超级管理员"),
 
     /**
      * 系统监控管理员

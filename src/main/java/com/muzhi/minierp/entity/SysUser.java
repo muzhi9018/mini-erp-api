@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
  *   <tr><td>gmtModified</td><td>{@link LocalDateTime}</td><td>gmt_modified</td><td>DATETIME</td><td>更新时间</td></tr>
  *   <tr><td>createUser</td><td>{@link Long}</td><td>create_user</td><td>BIGINT</td><td>创建者</td></tr>
  *   <tr><td>updateUser</td><td>{@link Long}</td><td>update_user</td><td>BIGINT</td><td>更新者</td></tr>
- *   <tr><td>isDeleted</td><td>{@link Integer}</td><td>is_deleted</td><td>TINYINT UNSIGNED</td><td>是否删除(0:否; 1:是)</td></tr>
+ *   <tr><td>isDeleted</td><td>{@link Boolean}</td><td>is_deleted</td><td>TINYINT UNSIGNED</td><td>是否删除(0:否; 1:是)</td></tr>
  *   <tr><td>status</td><td>{@link Integer}</td><td>status</td><td>TINYINT UNSIGNED</td><td>状态(1:正常; 0:禁用)</td></tr>
  *   <tr><td>username</td><td>{@link String}</td><td>username</td><td>VARCHAR(32)</td><td>用户名</td></tr>
  *   <tr><td>password</td><td>{@link String}</td><td>password</td><td>VARCHAR(256)</td><td>密码</td></tr>
