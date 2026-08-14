@@ -38,7 +38,7 @@ public class SecurityConfig {
                                                    JwtAuthenticationEntryPoint authenticationEntryPoint,
                                                    JwtAuthenticationFilter jwtAuthenticationFilter,
                                                    UserAuthenticationProvider userAuthenticationProvider) throws Exception {
-        Set<String> openApiPatterns = this.getOpenApiPatterns(webApplicationContext);
+        Set<String> openApiPatterns = this.loadOpenApiPatterns(webApplicationContext);
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
@@ -80,7 +80,7 @@ public class SecurityConfig {
      * @since 2022/12/8 16:27
      * @return openApiPatterns
      */
-    private Set<String> getOpenApiPatterns(WebApplicationContext webApplicationContext) {
+    private Set<String> loadOpenApiPatterns(WebApplicationContext webApplicationContext) {
         Set<String> openApiPatterns = new HashSet<>(16);
         // 获取到所有 RequestMappingHandlerMapping
         ObjectProvider<RequestMappingHandlerMapping> handlerMappingProvider = webApplicationContext.getBeanProvider(RequestMappingHandlerMapping.class);

@@ -1,5 +1,6 @@
 package com.muzhi.minierp.security;
 
+import com.muzhi.minierp.enums.RedisKey;
 import com.muzhi.minierp.model.LoginUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
@@ -7,9 +8,10 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -24,6 +26,8 @@ import java.util.*;
 public class JwtTokenProvider {
 
     private final JwtProperties properties;
+
+    private final RedisTemplate<String, Collection<? extends GrantedAuthority>> redisTemplate;
 
 
     public String createToken(LoginUser loginUser) {
@@ -62,7 +66,7 @@ public class JwtTokenProvider {
     }
 
     public Authentication getAuthentication(String token) {
-        LoginUser loginUser = this.getLoginUser(token);
+        LoginUser loginUser = this.loadLoginUser(token);
         return new UsernamePasswordAuthenticationToken(
                 loginUser,
                 null,
@@ -70,15 +74,17 @@ public class JwtTokenProvider {
         );
     }
 
-    public LoginUser getLoginUser(String token) {
+    public LoginUser loadLoginUser(String token) {
         Claims claims = this.parseClaims(token);
         String roleCode = this.getStringClaim(claims, "roleCode");
 
+        RedisKey.User key = RedisKey.User.USER_AUTHORITIES;
+        Collection<? extends GrantedAuthority> authorities = redisTemplate.opsForValue().get(key.getKey(claims.getSubject()));
         LoginUser loginUser = new LoginUser(
                 claims.getSubject(),
                 "",
                 true,
-                this.buildAuthorities(roleCode)
+                authorities
         );
         loginUser.setId(this.getLongClaim(claims, "userId"));
         loginUser.setUserNo(this.getStringClaim(claims, "userNo"));
@@ -122,15 +128,6 @@ public class JwtTokenProvider {
             return Long.valueOf(text);
         }
         return null;
-    }
-
-    private Collection<SimpleGrantedAuthority> buildAuthorities(String roleCode) {
-        if (!StringUtils.hasText(roleCode)) {
-            return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
-        }
-
-        String authority = roleCode.startsWith("ROLE_") ? roleCode : "ROLE_" + roleCode;
-        return Collections.singletonList(new SimpleGrantedAuthority(authority));
     }
 
 }

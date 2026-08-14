@@ -18,3 +18,16 @@ spring:
       time-between-eviction-runs-millis: 60000
       min-evictable-idle-time-millis: 300000
       max-evictable-idle-time-millis: 900000
+  data:
+    redis:
+      host: 192.168.1.199
+      password: 'MYREDIS@123'
+      port: 6379
+      database: 0
+      timeout: 10s
+      jedis:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 10s
