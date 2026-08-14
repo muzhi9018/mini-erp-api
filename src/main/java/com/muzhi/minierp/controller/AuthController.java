@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final IAuthService authenticate;
+
     private final I18nHelper i18nHelper;
 
     @OpenApi

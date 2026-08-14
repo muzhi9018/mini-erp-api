@@ -9,7 +9,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * <p>
@@ -39,6 +44,13 @@ public class AuthServiceImpl implements IAuthService {
 
     @Override
     public LoginUser getCurrentUser() {
-        return SecurityUtils.getCurrentUser();
+        LoginUser currentUser = SecurityUtils.getCurrentUser();
+        Collection<? extends GrantedAuthority> authorities = currentUser.getAuthorities();
+        List<String> permissionCodes = new ArrayList<>(16);
+        for (GrantedAuthority authority : authorities) {
+            permissionCodes.add(authority.getAuthority());
+        }
+        currentUser.setPermissionCodes(permissionCodes);
+        return currentUser;
     }
 }

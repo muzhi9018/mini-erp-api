@@ -5,6 +5,9 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.muzhi.minierp.vo.SysMenuVO;
+import io.github.linpeilie.annotations.AutoMapper;
+import io.github.linpeilie.annotations.AutoMappers;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -24,6 +27,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
+@AutoMappers({@AutoMapper(target = SysMenuVO.class)})
 @TableName("sys_menu")
 public class SysMenu implements Serializable {
 

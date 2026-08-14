@@ -1,12 +1,13 @@
 package com.muzhi.minierp.controller;
 
 import com.muzhi.minierp.entity.SysUser;
-import com.muzhi.minierp.enums.HttpStatus;
+import com.muzhi.minierp.exception.BusinessException;
 import com.muzhi.minierp.i18n.I18nHelper;
 import com.muzhi.minierp.model.JsonResult;
 import com.muzhi.minierp.service.ISysUserService;
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,8 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Mr.Muzhi
  * @since 2026-04-23
  */
+@Slf4j
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/system/user")
 @RequiredArgsConstructor
 public class SysUserController {
 
@@ -33,10 +35,7 @@ public class SysUserController {
     @PostMapping("/create")
     public JsonResult<Boolean> create(@RequestBody SysUser user, HttpServletRequest request) {
         if (user == null || !StringUtils.hasText(user.getUsername()) || !StringUtils.hasText(user.getPassword())) {
-            return JsonResult.error(
-                    HttpStatus.BAD_REQUEST_MISSING_PARAM.value(),
-                    this.i18nHelper.getMessage("user.username-password-required", "用户名和密码不能为空", request)
-            );
+            throw new BusinessException("user.username-password-required", "用户名和密码不能为空");
         }
         sysUserService.create(user);
         return JsonResult.success();
