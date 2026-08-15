@@ -14,7 +14,7 @@ public class I18nConfig {
     @Bean
     public LocaleResolver localeResolver() {
         AcceptHeaderLocaleResolver localeResolver = new AcceptHeaderLocaleResolver();
-        // 简体中文，繁体中文，英文
+        // 当前版本支持 简体中文，繁体中文，英文
         List<Locale> locales = List.of(Locale.SIMPLIFIED_CHINESE, Locale.TRADITIONAL_CHINESE, Locale.US);
         localeResolver.setSupportedLocales(locales);
         localeResolver.setDefaultLocale(Locale.SIMPLIFIED_CHINESE);
