@@ -1,12 +1,12 @@
 package com.muzhi.minierp.security;
 
-import com.muzhi.minierp.entity.SysRolePermission;
-import com.muzhi.minierp.entity.SysUser;
+import com.muzhi.minierp.entity.system.SysRolePermission;
+import com.muzhi.minierp.entity.system.SysUser;
 import com.muzhi.minierp.enums.RedisKey;
 import com.muzhi.minierp.enums.SysUserStatus;
 import com.muzhi.minierp.model.LoginUser;
-import com.muzhi.minierp.service.ISysRoleService;
-import com.muzhi.minierp.service.ISysUserService;
+import com.muzhi.minierp.service.system.ISysRoleService;
+import com.muzhi.minierp.service.system.ISysUserService;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.RedisTemplate;

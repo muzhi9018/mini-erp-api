@@ -1,6 +1,6 @@
 package com.muzhi.minierp.vo;
 
-import com.muzhi.minierp.entity.SysRole;
+import com.muzhi.minierp.entity.system.SysRole;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
