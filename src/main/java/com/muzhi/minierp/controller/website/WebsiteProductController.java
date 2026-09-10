@@ -1,16 +1,15 @@
 package com.muzhi.minierp.controller.website;
 
-import com.muzhi.minierp.dto.website.WebsiteProductCreateDTO;
-import com.muzhi.minierp.dto.website.WebsiteProductI18nDTO;
+import com.muzhi.minierp.vo.website.WebsiteProductI18nVO;
 import com.muzhi.minierp.entity.website.WebsiteProductDetailItem;
 import com.muzhi.minierp.entity.website.WebsiteProductMediaItem;
 import com.muzhi.minierp.enums.SysLocale;
 import com.muzhi.minierp.enums.WebsiteProductEnum;
-import com.muzhi.minierp.exception.BusinessException;
 import com.muzhi.minierp.model.JsonResult;
 import com.muzhi.minierp.service.website.IWebsiteProductService;
 import com.muzhi.minierp.util.Assert;
 import com.muzhi.minierp.vo.website.WebsiteProductCreatedVO;
+import com.muzhi.minierp.vo.website.WebsiteProductVO;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.IllformedLocaleException;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -39,13 +37,13 @@ public class WebsiteProductController {
 
 
     @PostMapping
-    public JsonResult<WebsiteProductCreatedVO> create(@RequestBody WebsiteProductCreateDTO query) {
+    public JsonResult<WebsiteProductCreatedVO> create(@RequestBody WebsiteProductVO query) {
         Assert.isNull(query, "商品信息不能为空");
         Assert.isTrue(StringUtils.isBlank(query.getSlug()), "商品 slug 不能为空");
         String slug = query.getSlug().trim();
         Pattern compile = Pattern.compile("[a-z0-9]+(?:-[a-z0-9]+)*");
         Assert.isFalse(compile.matcher(slug).matches(), "商品 slug 只能由小写字母、数字和中划线组成");
-        WebsiteProductI18nDTO productI18n = query.getProductI18n();
+        WebsiteProductI18nVO productI18n = query.getProductI18n();
         this.validateLocale(productI18n.getLocale());
         this.validateI18n(query.getProductI18n());
         WebsiteProductCreatedVO product = websiteProductService.create(query);
@@ -54,7 +52,7 @@ public class WebsiteProductController {
 
     /** 为已有商品新增一种语言，不覆盖已有语言。 */
     @PostMapping("/addI18n")
-    public JsonResult<WebsiteProductCreatedVO> addI18n(@RequestBody WebsiteProductI18nDTO query) {
+    public JsonResult<WebsiteProductCreatedVO> addI18n(@RequestBody WebsiteProductI18nVO query) {
         this.validateI18n(query);
         this.validateLocale(query.getLocale());
         WebsiteProductCreatedVO product = websiteProductService.addI18n(query);
@@ -73,7 +71,7 @@ public class WebsiteProductController {
      * @since 2026/9/10 18:12
      * @param query query
      */
-    private void validateI18n(WebsiteProductI18nDTO query) {
+    private void validateI18n(WebsiteProductI18nVO query) {
         Assert.isNull(query, "商品语言内容不能为空");
         Assert.isTrue(StringUtils.isBlank(query.getName()), "商品名称不能为空");
 

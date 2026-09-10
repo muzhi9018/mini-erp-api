@@ -4,8 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.muzhi.minierp.dto.website.WebsiteProductCreateDTO;
-import com.muzhi.minierp.dto.website.WebsiteProductI18nDTO;
+import com.muzhi.minierp.vo.website.WebsiteProductI18nVO;
 import com.muzhi.minierp.entity.website.*;
 import com.muzhi.minierp.exception.BusinessException;
 import com.muzhi.minierp.mapper.website.WebsiteProductCategoryMapper;
@@ -16,6 +15,7 @@ import com.muzhi.minierp.mapper.website.WebsiteProductMediaItemMapper;
 import com.muzhi.minierp.service.website.IWebsiteProductService;
 import com.muzhi.minierp.util.Assert;
 import com.muzhi.minierp.vo.website.WebsiteProductCreatedVO;
+import com.muzhi.minierp.vo.website.WebsiteProductVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
@@ -40,7 +40,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public WebsiteProductCreatedVO create(WebsiteProductCreateDTO query) {
+    public WebsiteProductCreatedVO create(WebsiteProductVO query) {
         WebsiteProductCategory dbCategory = websiteProductCategoryMapper.selectById(query.getCategoryId());
         Assert.isNull(dbCategory, "商品分类不存在");
         String slug = query.getSlug();
@@ -48,7 +48,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         slugQuery.eq(WebsiteProduct::getSlug, slug);
         Assert.isTrue(baseMapper.exists(slugQuery), "商品 slug 已存在");
 
-        WebsiteProductI18nDTO productI18nDTO = query.getProductI18n();
+        WebsiteProductI18nVO productI18nDTO = query.getProductI18n();
         String locale = productI18nDTO.getLocale();
 
         WebsiteProduct product = new WebsiteProduct();
@@ -71,7 +71,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public WebsiteProductCreatedVO addI18n(WebsiteProductI18nDTO query) {
+    public WebsiteProductCreatedVO addI18n(WebsiteProductI18nVO query) {
         Long productId = query.getProductId();
         String locale = query.getLocale();
         // 在事务内锁住父商品，避免两个添加语言请求同时通过重复检查。
@@ -84,7 +84,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         return insertI18n(productId, locale, query);
     }
 
-    private WebsiteProductCreatedVO insertI18n(Long productId, String locale, WebsiteProductI18nDTO query) {
+    private WebsiteProductCreatedVO insertI18n(Long productId, String locale, WebsiteProductI18nVO query) {
         WebsiteProductI18n translation = new WebsiteProductI18n();
         BeanUtils.copyProperties(query, translation);
         translation.setId(IdWorker.getId());

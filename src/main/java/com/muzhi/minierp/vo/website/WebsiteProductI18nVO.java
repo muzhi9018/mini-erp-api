@@ -1,8 +1,10 @@
-package com.muzhi.minierp.dto.website;
+package com.muzhi.minierp.vo.website;
 
 import com.muzhi.minierp.entity.website.WebsiteProductDetailItem;
 import com.muzhi.minierp.entity.website.WebsiteProductI18n;
 import com.muzhi.minierp.entity.website.WebsiteProductMediaItem;
+import io.github.linpeilie.annotations.AutoMapper;
+import io.github.linpeilie.annotations.AutoMappers;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -12,7 +14,8 @@ import java.util.List;
 /** 一个语言的完整商品内容，不接收实体主键及审计字段。 */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class WebsiteProductI18nDTO extends WebsiteProductI18n {
+@AutoMappers({@AutoMapper(target = WebsiteProductI18n.class)})
+public class WebsiteProductI18nVO extends WebsiteProductI18n {
 
     @Serial
     private static final long serialVersionUID = -593755304120421850L;

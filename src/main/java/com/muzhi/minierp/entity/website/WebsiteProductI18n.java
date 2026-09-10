@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.muzhi.minierp.dto.website.WebsiteProductI18nDTO;
+import com.muzhi.minierp.vo.website.WebsiteProductI18nVO;
 import io.github.linpeilie.annotations.AutoMapper;
 import io.github.linpeilie.annotations.AutoMappers;
 import lombok.Getter;
@@ -27,7 +27,6 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-@AutoMappers({@AutoMapper(target = WebsiteProductI18nDTO.class)})
 @TableName("website_product_i18n")
 public class WebsiteProductI18n implements Serializable {
 
