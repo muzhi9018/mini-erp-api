@@ -27,7 +27,6 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @ToString
-@AutoMappers({@AutoMapper(target = SysMenuVO.class)})
 @TableName("sys_menu")
 public class SysMenu implements Serializable {
 

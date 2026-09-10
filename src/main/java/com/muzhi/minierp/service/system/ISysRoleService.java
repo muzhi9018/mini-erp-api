@@ -1,7 +1,6 @@
 package com.muzhi.minierp.service.system;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.muzhi.minierp.dto.SysRolePermissionDTO;
 import com.muzhi.minierp.entity.system.SysRole;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.muzhi.minierp.entity.system.SysRolePermission;
@@ -86,7 +85,7 @@ public interface ISysRoleService extends IService<SysRole> {
      * @since 2023/12/21 20:24
      * @param sysRolePermissionDTO 同步对象
      */
-    void syncRolePermissionPermissionCode(SysRolePermissionDTO sysRolePermissionDTO);
+    void syncRolePermissionPermissionCode(SysRolePermission sysRolePermissionDTO);
 
 
     /**

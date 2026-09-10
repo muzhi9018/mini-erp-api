@@ -1,6 +1,6 @@
 package com.muzhi.minierp.vo;
 
-import com.muzhi.minierp.dto.SysMenuDTO;
+import com.muzhi.minierp.entity.system.SysMenu;
 import io.github.linpeilie.annotations.AutoMapper;
 import io.github.linpeilie.annotations.AutoMappers;
 import lombok.Data;
@@ -19,8 +19,8 @@ import java.util.List;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@AutoMappers(@AutoMapper(target = SysMenuDTO.class))
-public class SysMenuVO extends SysMenuDTO {
+@AutoMappers(@AutoMapper(target = SysMenu.class))
+public class SysMenuVO extends SysMenu {
 
     @Serial
     private static final long serialVersionUID = -4011747186629680606L;

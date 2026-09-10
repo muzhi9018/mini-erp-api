@@ -9,6 +9,7 @@ import lombok.Getter;
 public enum SysUserStatus {
 
     ENABLED(1, "正常"),
+
     DISABLED(0, "禁用");
 
     private final int value;

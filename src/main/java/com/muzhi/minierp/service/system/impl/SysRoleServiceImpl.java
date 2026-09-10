@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.muzhi.minierp.dto.SysRolePermissionDTO;
 import com.muzhi.minierp.entity.system.SysMenu;
 import com.muzhi.minierp.entity.system.SysRole;
 import com.muzhi.minierp.entity.system.SysRolePermission;
@@ -196,7 +195,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
     @Override
     @Transactional
-    public void syncRolePermissionPermissionCode(SysRolePermissionDTO sysRolePermissionDTO) {
+    public void syncRolePermissionPermissionCode(SysRolePermission sysRolePermissionDTO) {
         sysRolePermissionMapper.updatePermissionCodeByMenuId(sysRolePermissionDTO.getPermissionCode(), sysRolePermissionDTO.getMenuId());
     }
 

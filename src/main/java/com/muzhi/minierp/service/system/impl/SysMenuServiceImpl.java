@@ -3,8 +3,8 @@ package com.muzhi.minierp.service.system.impl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.muzhi.minierp.dto.SysRolePermissionDTO;
 import com.muzhi.minierp.entity.system.SysMenu;
+import com.muzhi.minierp.entity.system.SysRolePermission;
 import com.muzhi.minierp.mapper.system.SysMenuMapper;
 import com.muzhi.minierp.mapper.system.SysRolePermissionMapper;
 import com.muzhi.minierp.service.system.ISysMenuService;
@@ -74,7 +74,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
 
         // 判断是否修改了权限码，修改了要同步到角色权限
         if (sysMenu.getPermissionCode() != null && !sysMenu.getPermissionCode().equals(dbMenu.getPermissionCode())) {
-            SysRolePermissionDTO sysRolePermissionDTO = new SysRolePermissionDTO();
+            SysRolePermission sysRolePermissionDTO = new SysRolePermission();
             sysRolePermissionDTO.setMenuId(dbMenu.getId());
             sysRolePermissionDTO.setPermissionCode(sysMenu.getPermissionCode());
             sysRolePermissionMapper.updatePermissionCodeByMenuId(sysRolePermissionDTO.getPermissionCode(), sysRolePermissionDTO.getMenuId());
