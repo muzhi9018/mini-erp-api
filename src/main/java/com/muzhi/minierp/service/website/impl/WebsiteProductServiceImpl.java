@@ -42,11 +42,11 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
     @Transactional(rollbackFor = Exception.class)
     public WebsiteProductCreatedVO create(WebsiteProductVO query) {
         WebsiteProductCategory dbCategory = websiteProductCategoryMapper.selectById(query.getCategoryId());
-        Assert.isNull(dbCategory, "商品分类不存在");
+        Assert.isNull(dbCategory, "website.product.category-not-found", "商品分类不存在");
         String slug = query.getSlug();
         LambdaQueryWrapper<WebsiteProduct> slugQuery = Wrappers.lambdaQuery();
         slugQuery.eq(WebsiteProduct::getSlug, slug);
-        Assert.isTrue(baseMapper.exists(slugQuery), "商品 slug 已存在");
+        Assert.isTrue(baseMapper.exists(slugQuery), "website.product.slug-already-exists", "商品 slug 已存在");
 
         WebsiteProductI18nVO productI18nDTO = query.getProductI18n();
         String locale = productI18nDTO.getLocale();
@@ -63,7 +63,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         try {
             baseMapper.insert(product);
         } catch (DuplicateKeyException exception) {
-            throw new BusinessException("商品 slug 已存在", exception);
+            throw new BusinessException("website.product.slug-already-exists", "商品 slug 已存在", exception);
         }
 
         return insertI18n(product.getId(), locale, query.getProductI18n());
@@ -76,11 +76,11 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         String locale = query.getLocale();
         // 在事务内锁住父商品，避免两个添加语言请求同时通过重复检查。
         WebsiteProduct dbProduct = baseMapper.selectByIdForUpdate(productId);
-        Assert.isNull(dbProduct, "商品不存在");
+        Assert.isNull(dbProduct, "website.product.not-found", "商品不存在");
         LambdaQueryWrapper<WebsiteProductI18n> productI18nQuery = Wrappers.lambdaQuery();
         productI18nQuery.eq(WebsiteProductI18n::getProductId, productId);
         productI18nQuery.eq(WebsiteProductI18n::getLocale, locale);
-        Assert.isTrue(websiteProductI18nMapper.exists(productI18nQuery), "该商品已配置此语言");
+        Assert.isTrue(websiteProductI18nMapper.exists(productI18nQuery), "website.product.locale-already-exists", "该商品已配置此语言");
         return insertI18n(productId, locale, query);
     }
 
@@ -95,7 +95,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         try {
             websiteProductI18nMapper.insert(translation);
         } catch (DuplicateKeyException exception) {
-            throw new BusinessException("该商品已配置此语言", exception);
+            throw new BusinessException("website.product.locale-already-exists", "该商品已配置此语言", exception);
         }
 
         List<WebsiteProductDetailItem> detailItems = new ArrayList<>(16);
@@ -156,9 +156,5 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         mediaItem.setIsShow(!Boolean.FALSE.equals(mediaItem.getIsShow()));
         mediaItem.setIsDeleted(false);
     }
-
-
-
-
 
 }

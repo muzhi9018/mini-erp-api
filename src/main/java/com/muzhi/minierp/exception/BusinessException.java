@@ -22,6 +22,8 @@ public class BusinessException extends RuntimeException {
     @Getter
     private final String i18nCode;
 
+    private final Object[] i18nArgs;
+
     public BusinessException(String message){
         this(null, message, null);
     }
@@ -38,10 +40,15 @@ public class BusinessException extends RuntimeException {
         this(null, cause.getMessage(), cause);
     }
 
-    private BusinessException(String i18nCode, String message, Throwable cause) {
+    public BusinessException(String i18nCode, String message, Throwable cause, Object... i18nArgs) {
         super(message, cause);
         this.i18nCode = i18nCode;
         this.message = message;
+        this.i18nArgs = i18nArgs == null ? new Object[0] : i18nArgs.clone();
+    }
+
+    public Object[] getI18nArgs() {
+        return i18nArgs.clone();
     }
 
     @Override

@@ -53,7 +53,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     public void addRole(SysRole sysRole) {
         LambdaQueryWrapper<SysRole> query = new QueryWrapper<SysRole>().lambda().eq(SysRole::getRoleCode, sysRole.getRoleCode());
         List<SysRole> dbRoles = baseMapper.selectList(query);
-        Assert.isNotEmpty(dbRoles, "角色编码已存在");
+        Assert.isNotEmpty(dbRoles, "system.role.code-already-exists", "角色编码已存在");
         baseMapper.insert(sysRole);
     }
 
@@ -61,13 +61,13 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Transactional
     public void delRole(SysRole sysRole) {
         SysRole dbRole = baseMapper.selectById(sysRole.getId());
-        Assert.isNull(dbRole, "角色不存在");
+        Assert.isNull(dbRole, "system.role.not-found", "角色不存在");
         DefaultRoleEnum defaultRole = DefaultRoleEnum.ofCode(dbRole.getRoleCode());
-        Assert.isNotNull(defaultRole, "系统默认角色不能删除");
+        Assert.isNotNull(defaultRole, "system.role.default-cannot-delete", "系统默认角色不能删除");
         // 判断当前角色有没有绑定别的用户
         Long bindUserCount = sysUserRoleMapper.countByRoleId(dbRole.getId());
         if (bindUserCount != null && bindUserCount > 0) {
-            throw new BusinessException("当前角色已绑定用户,请先移除后再删除");
+            throw new BusinessException("system.role.has-users", "当前角色已绑定用户,请先移除后再删除");
         }
         // 逻辑删除，防止唯一主键冲突
         dbRole.setRoleCode(dbRole.getRoleCode() + ":" + dbRole.getId());
@@ -81,7 +81,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Transactional
     public void editRole(SysRole sysRole) {
         SysRole dbRole = baseMapper.selectById(sysRole.getId());
-        Assert.isNull(dbRole, "角色不存在");
+        Assert.isNull(dbRole, "system.role.not-found", "角色不存在");
         DefaultRoleEnum defaultRole = DefaultRoleEnum.ofCode(dbRole.getRoleCode());
         SysRole updateRole = new SysRole();
         updateRole.setId(dbRole.getId());
@@ -145,7 +145,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     public void roleAuthorize(SysRoleVO sysRole) {
         Long roleId = sysRole.getId();
         SysRole dbRole = baseMapper.selectById(roleId);
-        Assert.isNull(dbRole, "角色不存在");
+        Assert.isNull(dbRole, "system.role.not-found", "角色不存在");
         List<Long> menuIds = sysRole.getMenuIds();
         sysRolePermissionMapper.deleteByRoleId(roleId);
         if (menuIds == null || menuIds.isEmpty()) {

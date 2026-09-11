@@ -36,7 +36,7 @@ public class I18nHelper {
 
     public String getMessage(BusinessException businessException, HttpServletRequest request) {
         String i18nCode = businessException.getI18nCode();
-        return this.getMessage(i18nCode, businessException.getMessage(), request);
+        return this.messageSource.getMessage(i18nCode, businessException.getI18nArgs(), businessException.getMessage(), this.localeResolver.resolveLocale(request));
     }
 
 

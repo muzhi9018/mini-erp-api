@@ -6,7 +6,7 @@ spring:
     resources:
       add-mappings: false
   messages:
-    basename: messages
+    basename: i18n/common/messages,i18n/system/messages,i18n/website/messages
     encoding: UTF-8
     fallback-to-system-locale: false
   lifecycle:

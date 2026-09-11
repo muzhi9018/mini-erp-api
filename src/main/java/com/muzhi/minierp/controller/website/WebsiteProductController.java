@@ -38,12 +38,13 @@ public class WebsiteProductController {
 
     @PostMapping
     public JsonResult<WebsiteProductCreatedVO> create(@RequestBody WebsiteProductVO query) {
-        Assert.isNull(query, "商品信息不能为空");
-        Assert.isTrue(StringUtils.isBlank(query.getSlug()), "商品 slug 不能为空");
+        Assert.isNull(query, "website.product.required", "商品信息不能为空");
+        Assert.isTrue(StringUtils.isBlank(query.getSlug()), "website.product.slug-required", "商品 slug 不能为空");
         String slug = query.getSlug().trim();
         Pattern compile = Pattern.compile("[a-z0-9]+(?:-[a-z0-9]+)*");
-        Assert.isFalse(compile.matcher(slug).matches(), "商品 slug 只能由小写字母、数字和中划线组成");
+        Assert.isFalse(compile.matcher(slug).matches(), "website.product.slug-invalid", "商品 slug 只能由小写字母、数字和中划线组成");
         WebsiteProductI18nVO productI18n = query.getProductI18n();
+        Assert.isNull(productI18n, "website.product.translation-required", "商品语言内容不能为空");
         this.validateLocale(productI18n.getLocale());
         this.validateI18n(query.getProductI18n());
         WebsiteProductCreatedVO product = websiteProductService.create(query);
@@ -61,9 +62,9 @@ public class WebsiteProductController {
 
 
     private void validateLocale(String code) {
-        Assert.isTrue(StringUtils.isBlank(code), "语言编码不能为空");
+        Assert.isTrue(StringUtils.isBlank(code), "website.locale.code-required", "语言编码不能为空");
         SysLocale locale = SysLocale.ofCode(code);
-        Assert.isNull(locale, "语言编码格式不正确");
+        Assert.isNull(locale, "website.locale.code-invalid", "语言编码格式不正确");
     }
     /**
      * 校验国际化数据
@@ -72,8 +73,8 @@ public class WebsiteProductController {
      * @param query query
      */
     private void validateI18n(WebsiteProductI18nVO query) {
-        Assert.isNull(query, "商品语言内容不能为空");
-        Assert.isTrue(StringUtils.isBlank(query.getName()), "商品名称不能为空");
+        Assert.isNull(query, "website.product.translation-required", "商品语言内容不能为空");
+        Assert.isTrue(StringUtils.isBlank(query.getName()), "website.product.name-required", "商品名称不能为空");
 
         List<WebsiteProductDetailItem> features = query.getFeatures();
         this.validateDetailItem(features, WebsiteProductEnum.DetailItemType.FEATURE);
@@ -96,12 +97,14 @@ public class WebsiteProductController {
      */
     private void validateDetailItem(List<WebsiteProductDetailItem> detailItems, WebsiteProductEnum.DetailItemType detailItemType) {
         String name = detailItemType == WebsiteProductEnum.DetailItemType.FEATURE ? "产品特点与优势" : "产品技术参数";
-        Assert.isEmpty(detailItems, name + "不能为空");
-        Assert.isTrue(detailItems.size() < 4, "最少填写4个" + name);
+        String code = detailItemType == WebsiteProductEnum.DetailItemType.FEATURE ? "website.product.feature" : "website.product.specification";
+        Assert.isEmpty(detailItems, code + ".required", name + "不能为空");
+        Assert.isTrue(detailItems.size() < 4, code + ".minimum-count", "最少填写4个" + name);
         int index = 0;
         for (WebsiteProductDetailItem detailItem : detailItems) {
-            Assert.isTrue(StringUtils.isBlank(detailItem.getTitle()), name + "标题不能为空");
-            Assert.isTrue(StringUtils.isBlank(detailItem.getContent()), name + "内容不能为空");
+            Assert.isNull(detailItem, code + ".item-required", name + "条目不能为空");
+            Assert.isTrue(StringUtils.isBlank(detailItem.getTitle()), code + ".title-required", name + "标题不能为空");
+            Assert.isTrue(StringUtils.isBlank(detailItem.getContent()), code + ".content-required", name + "内容不能为空");
             detailItem.setSortOrder(index++);
         }
     }
@@ -115,12 +118,15 @@ public class WebsiteProductController {
      */
     private void validateMediaItem(List<WebsiteProductMediaItem> mediaItems, WebsiteProductEnum.MediaItemType mediaItemType) {
         String name = mediaItemType == WebsiteProductEnum.MediaItemType.APPLICATION ? "产品应用场景" : "产品案例展示";
-        Assert.isEmpty(mediaItems, name + "不能为空");
-        Assert.isTrue(mediaItems.size() < 4, "最少填写4个" + name);
+        String code = mediaItemType == WebsiteProductEnum.MediaItemType.APPLICATION
+                ? "website.product.application" : "website.product.case";
+        Assert.isEmpty(mediaItems, code + ".required", name + "不能为空");
+        Assert.isTrue(mediaItems.size() < 4, code + ".minimum-count", "最少填写4个" + name);
         int index = 0;
         for (WebsiteProductMediaItem mediaItem : mediaItems) {
-            Assert.isTrue(StringUtils.isBlank(mediaItem.getTitle()), name + "标题不能为空");
-            Assert.isTrue(StringUtils.isBlank(mediaItem.getImageUrl()), name + "图片地址不能为空");
+            Assert.isNull(mediaItem, code + ".item-required", name + "条目不能为空");
+            Assert.isTrue(StringUtils.isBlank(mediaItem.getTitle()), code + ".title-required", name + "标题不能为空");
+            Assert.isTrue(StringUtils.isBlank(mediaItem.getImageUrl()), code + ".image-required", name + "图片地址不能为空");
             mediaItem.setSortOrder(index++);
         }
     }

@@ -42,14 +42,14 @@ public class UserAuthenticationProvider implements AuthenticationProvider {
         String password = authentication.getCredentials() == null ? "" : authentication.getCredentials().toString();
         LoginUser user = this.loadLoginUser(username, password);
         if (user == null || StringUtils.isBlank(password) || StringUtils.isBlank(user.getPassword())) {
-            throw new BadCredentialsException("auth.invalid-credentials");
+            throw new BadCredentialsException("system.auth.invalid-credentials");
         }
         String presentedPassword = SecurityUtils.passwordSaltAddition(username, password);
         if (!passwordEncoder.matches(presentedPassword, user.getPassword())) {
-            throw new BadCredentialsException("auth.invalid-credentials");
+            throw new BadCredentialsException("system.auth.invalid-credentials");
         }
         if (!user.isEnabled()) {
-            throw new DisabledException("auth.account-locked");
+            throw new DisabledException("system.auth.account-locked");
         }
         RedisKey.User key = RedisKey.User.USER_AUTHORITIES;
         redisTemplate.opsForValue().set(key.getKey(user.getUsername()), user.getAuthorities(), key.getTimeout());

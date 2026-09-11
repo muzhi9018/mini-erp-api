@@ -35,7 +35,7 @@ public class SysUserController {
     @PostMapping("/create")
     public JsonResult<Boolean> create(@RequestBody SysUser user, HttpServletRequest request) {
         if (user == null || !StringUtils.hasText(user.getUsername()) || !StringUtils.hasText(user.getPassword())) {
-            throw new BusinessException("user.username-password-required", "用户名和密码不能为空");
+            throw new BusinessException("system.user.username-password-required", "用户名和密码不能为空");
         }
         sysUserService.create(user);
         return JsonResult.success();

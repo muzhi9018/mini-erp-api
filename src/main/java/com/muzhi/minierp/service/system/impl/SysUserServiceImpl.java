@@ -42,7 +42,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     public void create(SysUser user) {
         SysUser dbUser = this.findByUsername(user.getUsername());
         if (dbUser != null) {
-            throw new BusinessException("user.username-already-exists", "用户名已存在");
+            throw new BusinessException("system.user.username-already-exists", "用户名已存在");
         }
         String password = SecurityUtils.passwordSaltAddition(user.getUsername(), user.getPassword());
         password = passwordEncoder.encode(password);

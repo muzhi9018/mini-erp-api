@@ -50,11 +50,11 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         // 判断是否为顶级菜单
         if (sysMenu.getParentId().equals(0L)) {
             SysMenu parentMenu = baseMapper.findByClientIdAndParentId(sysMenu.getClientId(), sysMenu.getParentId());
-            Assert.isNotNull(parentMenu, String.format("客户端[%s]顶级菜单已存在", sysMenu.getClientId()));
+            Assert.isNotNull(parentMenu, "system.menu.top-level-already-exists", "客户端[{0}]顶级菜单已存在", String.valueOf(sysMenu.getClientId()));
             sysMenu.setHierarchy(String.valueOf(sysMenu.getId()));
         } else {
             SysMenu parentMenu = baseMapper.selectById(sysMenu.getParentId());
-            Assert.isNull(parentMenu, "父级菜单不存在");
+            Assert.isNull(parentMenu, "system.menu.parent-not-found", "父级菜单不存在");
             sysMenu.setHierarchy(parentMenu.getHierarchy() + "," + sysMenu.getId());
             sysMenu.setClientId(parentMenu.getClientId());
         }
@@ -65,7 +65,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
     @Transactional
     public void updateMenu(SysMenu sysMenu) {
         SysMenu dbMenu = baseMapper.selectById(sysMenu.getId());
-        Assert.isNull(dbMenu, "菜单不存在");
+        Assert.isNull(dbMenu, "system.menu.not-found", "菜单不存在");
         // 父级id、所属客户端、层级 不能修改
         sysMenu.setParentId(null);
         sysMenu.setClientId(null);
@@ -85,7 +85,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
     @Transactional
     public void delById(Long id) {
         List<SysMenu> children = baseMapper.findByParentId(id);
-        Assert.isNotEmpty(children, "当前菜单存在子级菜单,不能删除");
+        Assert.isNotEmpty(children, "system.menu.has-children", "当前菜单存在子级菜单,不能删除");
         sysRolePermissionMapper.deleteByMenuId(id);
         baseMapper.delById(id);
     }

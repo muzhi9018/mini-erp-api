@@ -91,6 +91,32 @@ export SPRING_DATASOURCE_PASSWORD=your_password
 export SECURITY_JWT_SECRET=your-strong-jwt-secret
 ```
 
+## 异常信息国际化
+
+异常响应根据请求头 `Accept-Language` 选择语言，支持 `en-US`、`zh-CN`、`zh-TW`，未指定或不支持的语言使用简体中文。
+
+资源按模块管理，每组包含默认英文、简体中文和繁体中文三个文件：
+
+```text
+src/main/resources/i18n/
+├── common/messages{,_zh_CN,_zh_TW}.properties   # HTTP 状态、通用断言
+├── system/messages{,_zh_CN,_zh_TW}.properties   # 用户、认证、菜单、角色
+└── website/messages{,_zh_CN,_zh_TW}.properties  # 官网商品、语言内容校验
+```
+
+`application.yaml` 的 `spring.messages.basename` 注册以上三个资源组。增加模块时，新建该模块的三种语言文件并追加 basename；同一编码的三种译文应同步维护，业务编码以模块名开头，避免跨文件冲突。
+
+Controller 和 Service 通过断言或业务异常传递编码，由全局异常处理器统一翻译：
+
+```java
+Assert.isNull(menu, "system.menu.not-found", "菜单不存在");
+Assert.isNotNull(parentMenu, "system.menu.top-level-already-exists",
+        "客户端[{0}]顶级菜单已存在", clientId);
+throw new BusinessException("website.product.slug-already-exists", "商品 slug 已存在", cause);
+```
+
+动态内容使用 `{0}`、`{1}` 等 `MessageFormat` 占位符，参数随异常传递。资源中找不到编码时使用默认提示，并替换占位符；原来的纯文本断言调用仍然可用。英文模板中如需单引号，按 `MessageFormat` 规则写成两个单引号。
+
 ## 数据库说明
 
 当前项目使用 PostgreSQL，并在 MyBatis-Plus 分页插件中配置了数据库类型：
@@ -210,4 +236,3 @@ Authorization: Bearer <token>
 - 用户密码入库前会经过用户名加盐和 `PasswordEncoder` 编码。
 - `gmtCreate`、`gmtModified`、`createUser`、`updateUser` 由 MyBatis-Plus 自动填充。
 - 逻辑删除字段 `is_deleted` 建议在 PostgreSQL 中使用 `boolean` 类型，并在 Java 实体中使用 `boolean` / `Boolean`。
-
