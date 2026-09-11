@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  * @since 2026-09-04
  */
 @RestController
-@RequestMapping("/websiteProduct")
+@RequestMapping("/website/product")
 @RequiredArgsConstructor
 public class WebsiteProductController {
 
