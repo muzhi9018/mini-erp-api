@@ -2,4 +2,66 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.muzhi.minierp.mapper.website.WebsiteProductI18nMapper">
 
+    <select id="list" resultType="com.muzhi.minierp.vo.website.WebsiteProductI18nVO">
+        select
+            wp.id,
+            wp.category_id,
+            wp.slug,
+            wp.sort_order,
+            wp.is_show,
+            wp.is_recommended,
+            wpi.locale,
+            wpi.name
+        from website_product wp
+        join website_product_i18n wpi on wpi.product_id = wp.id
+        where wpi.locale = #{query.locale}
+        and wp.is_deleted = false
+        and wpi.is_deleted = false
+        <if test="query.id != null">
+            and wp.id = #{query.id}
+        </if>
+        <if test="query.productId != null">
+            and wpi.product_id = #{query.productId}
+        </if>
+        <if test="query.categoryId != null">
+            and wp.category_id = #{query.categoryId}
+        </if>
+        <if test="query.slug != null and query.slug != ''">
+            and wp.slug = #{query.slug}
+        </if>
+        <if test="query.name != null and query.name != ''">
+            and wpi.name like concat('%', #{query.name}, '%')
+        </if>
+        <if test="query.subtitle != null and query.subtitle != ''">
+            and wpi.subtitle like concat('%', #{query.subtitle}, '%')
+        </if>
+        <if test="query.summary != null and query.summary != ''">
+            and wpi.summary like concat('%', #{query.summary}, '%')
+        </if>
+        <if test="query.tagline != null and query.tagline != ''">
+            and wpi.tagline like concat('%', #{query.tagline}, '%')
+        </if>
+        <if test="query.featureIntroduction != null and query.featureIntroduction != ''">
+            and wpi.feature_introduction like concat('%', #{query.featureIntroduction}, '%')
+        </if>
+        <if test="query.specificationIntroduction != null and query.specificationIntroduction != ''">
+            and wpi.specification_introduction like concat('%', #{query.specificationIntroduction}, '%')
+        </if>
+        <if test="query.applicationIntroduction != null and query.applicationIntroduction != ''">
+            and wpi.application_introduction like concat('%', #{query.applicationIntroduction}, '%')
+        </if>
+        <if test="query.caseIntroduction != null and query.caseIntroduction != ''">
+            and wpi.case_introduction like concat('%', #{query.caseIntroduction}, '%')
+        </if>
+        <if test="query.sortOrder != null">
+            and wp.sort_order = #{query.sortOrder}
+        </if>
+        <if test="query.isShow != null">
+            and wp.is_show = #{query.isShow}
+        </if>
+        <if test="query.isRecommended != null">
+            and wp.is_recommended = #{query.isRecommended}
+        </if>
+        order by wp.sort_order asc, wp.id asc
+    </select>
 </mapper>

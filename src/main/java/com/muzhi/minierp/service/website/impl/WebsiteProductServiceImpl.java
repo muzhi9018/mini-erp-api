@@ -1,9 +1,13 @@
 package com.muzhi.minierp.service.website.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.muzhi.minierp.enums.SysLocale;
+import com.muzhi.minierp.i18n.I18nContext;
 import com.muzhi.minierp.vo.website.WebsiteProductI18nVO;
 import com.muzhi.minierp.entity.website.*;
 import com.muzhi.minierp.exception.BusinessException;
@@ -157,4 +161,12 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         mediaItem.setIsDeleted(false);
     }
 
+
+    @Override
+    public IPage<WebsiteProductI18nVO> list(WebsiteProductI18nVO query, Integer pageNum, Integer pageSize) {
+        SysLocale currentLocale = I18nContext.getCurrentLocale();
+        query.setLocale(currentLocale.getCode());
+        Page<WebsiteProductI18nVO> page = new Page<>(pageNum, pageSize);
+        return websiteProductI18nMapper.list(page, query);
+    }
 }

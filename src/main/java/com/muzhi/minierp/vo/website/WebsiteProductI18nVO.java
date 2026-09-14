@@ -21,6 +21,31 @@ public class WebsiteProductI18nVO extends WebsiteProductI18n {
     private static final long serialVersionUID = -593755304120421850L;
 
     /**
+     * 商品分类 id
+     */
+    private Long categoryId;
+
+    /**
+     * 官网详情页路由标识
+     */
+    private String slug;
+
+    /**
+     * 官网展示顺序，数值越小越靠前
+     */
+    private Integer sortOrder;
+
+    /**
+     * 是否在官网展示
+     */
+    private Boolean isShow;
+
+    /**
+     * 是否用于全局推荐展示位
+     */
+    private Boolean isRecommended;
+
+    /**
      * 产品特点与优势列表
      */
     private List<WebsiteProductDetailItem> features;

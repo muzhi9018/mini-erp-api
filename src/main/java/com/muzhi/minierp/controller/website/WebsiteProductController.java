@@ -1,5 +1,6 @@
 package com.muzhi.minierp.controller.website;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.muzhi.minierp.vo.website.WebsiteProductI18nVO;
 import com.muzhi.minierp.entity.website.WebsiteProductDetailItem;
 import com.muzhi.minierp.entity.website.WebsiteProductMediaItem;
@@ -12,10 +13,7 @@ import com.muzhi.minierp.vo.website.WebsiteProductCreatedVO;
 import com.muzhi.minierp.vo.website.WebsiteProductVO;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.regex.Pattern;
@@ -129,5 +127,12 @@ public class WebsiteProductController {
             Assert.isTrue(StringUtils.isBlank(mediaItem.getImageUrl()), code + ".image-required", name + "图片地址不能为空");
             mediaItem.setSortOrder(index++);
         }
+    }
+
+
+    @GetMapping("/list")
+    public JsonResult<IPage<WebsiteProductI18nVO>> list(WebsiteProductI18nVO query, @RequestParam(name = "pageNum", defaultValue = "1") Integer pageNum, @RequestParam(value = "pageSize", defaultValue = "15") Integer pageSize) {
+        IPage<WebsiteProductI18nVO> list = websiteProductService.list(query, pageNum, pageSize);
+        return JsonResult.success(list);
     }
 }
