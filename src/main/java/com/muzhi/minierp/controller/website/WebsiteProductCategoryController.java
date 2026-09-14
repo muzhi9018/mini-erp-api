@@ -1,17 +1,16 @@
 package com.muzhi.minierp.controller.website;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.muzhi.minierp.entity.website.WebsiteProductCategoryI18n;
 import com.muzhi.minierp.enums.SysLocale;
 import com.muzhi.minierp.model.JsonResult;
 import com.muzhi.minierp.service.website.IWebsiteProductCategoryService;
 import com.muzhi.minierp.util.Assert;
+import com.muzhi.minierp.vo.website.WebsiteProductCategoryI18nVO;
 import com.muzhi.minierp.vo.website.WebsiteProductCategoryVO;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * <p>
@@ -37,7 +36,6 @@ public class WebsiteProductCategoryController {
         boolean codeBlank = StringUtils.isBlank(query.getCode());
         Assert.isTrue(codeBlank, "website.product-category.code-required", "商品分类编码不能为空");
         this.validateI18n(query.getCategoryI18n());
-
         WebsiteProductCategoryI18n category = websiteProductCategoryService.create(query);
         return JsonResult.success(category);
     }
@@ -67,5 +65,11 @@ public class WebsiteProductCategoryController {
         Assert.isTrue(localeCodeBlank, "website.locale.code-required", "语言编码不能为空");
         SysLocale locale = SysLocale.ofCode(localeCode);
         Assert.isNull(locale, "website.locale.code-invalid", "语言编码格式不正确");
+    }
+
+    @GetMapping("/list")
+    public JsonResult<IPage<WebsiteProductCategoryI18nVO>> list(WebsiteProductCategoryI18nVO query, @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum, @RequestParam("pageSize") Integer pageSize) {
+        IPage<WebsiteProductCategoryI18nVO> list = websiteProductCategoryService.list(query, pageNum, pageSize);
+        return  JsonResult.success(list);
     }
 }

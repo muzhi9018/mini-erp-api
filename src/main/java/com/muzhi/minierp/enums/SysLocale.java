@@ -1,5 +1,6 @@
 package com.muzhi.minierp.enums;
 
+import com.baomidou.mybatisplus.annotation.EnumValue;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -17,14 +18,14 @@ import java.util.Locale;
 @Getter
 public enum SysLocale {
 
-    ZH_CN(1, "zh-CN", "Simplified Chinese", "简体中文", true,  Locale.SIMPLIFIED_CHINESE),
-    ZH_TW(2, "zh-TW", "Traditional Chinese", "繁體中文", false, Locale.TRADITIONAL_CHINESE),
+    ZH_CN(1, "zh-CN", "Simplified Chinese", "简体中文", false,  Locale.SIMPLIFIED_CHINESE),
+    ZH_TW(2, "zh-TW", "Traditional Chinese", "繁體中文", true, Locale.TRADITIONAL_CHINESE),
     EN_US(3, "en-US", "English","English", false, Locale.US),
     ;
 
     private final int id;
 
-
+    @EnumValue
     private final String code;
 
     private final String name;
@@ -76,5 +77,26 @@ public enum SysLocale {
             }
         }
         return null;
+    }
+
+    public static SysLocale ofLocale(Locale locale) {
+        for (SysLocale value : SysLocale.values()) {
+            if (value.getLocale().equals(locale)) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    public static SysLocale ofLocaleOrDefault(Locale locale) {
+        SysLocale sysLocale = ofLocale(locale);
+        if (sysLocale == null) {
+            for (SysLocale value : SysLocale.values()) {
+                if (value.isDefaultLocal()) {
+                    return value;
+                }
+            }
+        }
+        return sysLocale;
     }
 }

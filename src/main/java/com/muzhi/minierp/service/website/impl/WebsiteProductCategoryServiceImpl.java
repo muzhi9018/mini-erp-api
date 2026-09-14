@@ -1,17 +1,22 @@
 package com.muzhi.minierp.service.website.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.muzhi.minierp.entity.website.WebsiteProductCategory;
 import com.muzhi.minierp.entity.website.WebsiteProductCategoryI18n;
+import com.muzhi.minierp.enums.SysLocale;
 import com.muzhi.minierp.exception.BusinessException;
+import com.muzhi.minierp.i18n.I18nContext;
 import com.muzhi.minierp.mapper.website.WebsiteProductCategoryI18nMapper;
 import com.muzhi.minierp.mapper.website.WebsiteProductCategoryMapper;
 import com.muzhi.minierp.service.website.IWebsiteProductCategoryService;
 import com.muzhi.minierp.util.Assert;
 import com.muzhi.minierp.util.BeanConvertUtils;
+import com.muzhi.minierp.vo.website.WebsiteProductCategoryI18nVO;
 import com.muzhi.minierp.vo.website.WebsiteProductCategoryVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -104,5 +109,14 @@ public class WebsiteProductCategoryServiceImpl extends ServiceImpl<WebsiteProduc
             throw new BusinessException("website.product-category.locale-already-exists", "该商品分类已配置此语言", exception);
         }
         return translation;
+    }
+
+
+    @Override
+    public IPage<WebsiteProductCategoryI18nVO> list(WebsiteProductCategoryI18nVO query, Integer pageNum, Integer pageSize) {
+        SysLocale currentLocale = I18nContext.getCurrentLocale();
+        query.setLocale(currentLocale.getCode());
+        IPage<WebsiteProductCategoryI18nVO> page = new Page<>(pageNum, pageSize);
+        return websiteProductCategoryI18nMapper.list(page, query);
     }
 }

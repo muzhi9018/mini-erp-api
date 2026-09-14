@@ -1,9 +1,12 @@
 package com.muzhi.minierp.service.website;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.muzhi.minierp.entity.website.WebsiteProductCategoryI18n;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.muzhi.minierp.entity.website.WebsiteProductCategory;
+import com.muzhi.minierp.vo.website.WebsiteProductCategoryI18nVO;
 import com.muzhi.minierp.vo.website.WebsiteProductCategoryVO;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * <p>
@@ -24,4 +27,7 @@ public interface IWebsiteProductCategoryService extends IService<WebsiteProductC
      * 为已有商品分类添加一种语言，重复语言拒绝新增。
      */
     WebsiteProductCategoryI18n addI18n(WebsiteProductCategoryI18n query);
+
+    IPage<WebsiteProductCategoryI18nVO> list(WebsiteProductCategoryI18nVO query, @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum, @RequestParam("pageSize") Integer pageSize);
+
 }

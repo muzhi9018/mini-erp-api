@@ -39,4 +39,5 @@ public class WebsiteProductI18nVO extends WebsiteProductI18n {
      * 产品案列列表
      */
     private List<WebsiteProductMediaItem> cases;
+
 }

@@ -2,4 +2,46 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.muzhi.minierp.mapper.website.WebsiteProductCategoryI18nMapper">
 
+
+    <select id="list" resultType="com.muzhi.minierp.vo.website.WebsiteProductCategoryI18nVO">
+        select
+            wpc.id,
+            wpc.code,
+            wpc.sort_order,
+            wpc.is_show,
+            wpci.locale,
+            wpci.name,
+            wpci.description,
+            wpci.image_url
+        from website_product_category wpc
+        join website_product_category_i18n wpci on wpci.website_product_category_id = wpc.id
+        where wpci.locale = #{query.locale}
+        and wpc.is_deleted = false
+        and wpci.is_deleted = false
+        <if test="query.id != null">
+            and wpc.id = #{query.id}
+        </if>
+        <if test="query.websiteProductCategoryId != null">
+            and wpci.website_product_category_id = #{query.websiteProductCategoryId}
+        </if>
+        <if test="query.code != null and query.code != ''">
+            and wpc.code like concat('%', #{query.code}, '%')
+        </if>
+        <if test="query.name != null and query.name != ''">
+            and wpci.name like concat('%', #{query.name}, '%')
+        </if>
+        <if test="query.description != null and query.description != ''">
+            and wpci.description like concat('%', #{query.description}, '%')
+        </if>
+        <if test="query.imageUrl != null and query.imageUrl != ''">
+            and wpci.image_url = #{query.imageUrl}
+        </if>
+        <if test="query.sortOrder != null">
+            and wpc.sort_order = #{query.sortOrder}
+        </if>
+        <if test="query.isShow != null">
+            and wpc.is_show = #{query.isShow}
+        </if>
+        order by wpc.sort_order asc, wpc.id asc
+    </select>
 </mapper>
