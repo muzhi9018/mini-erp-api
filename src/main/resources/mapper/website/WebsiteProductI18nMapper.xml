@@ -11,12 +11,13 @@
             wp.is_show,
             wp.is_recommended,
             wpi.locale,
-            wpi.name
+            wpi.name,
+            wpci.name as category_name
         from website_product wp
-        join website_product_i18n wpi on wpi.product_id = wp.id
+        join website_product_i18n wpi on wpi.product_id = wp.id and wpi.is_deleted = false
+        join website_product_category_i18n wpci on wpci.website_product_category_id = wp.category_id and wpci.is_deleted = false and wpci.locale = #{query.locale}
         where wpi.locale = #{query.locale}
         and wp.is_deleted = false
-        and wpi.is_deleted = false
         <if test="query.id != null">
             and wp.id = #{query.id}
         </if>

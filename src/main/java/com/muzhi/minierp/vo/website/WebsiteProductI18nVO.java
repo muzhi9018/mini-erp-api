@@ -20,10 +20,16 @@ public class WebsiteProductI18nVO extends WebsiteProductI18n {
     @Serial
     private static final long serialVersionUID = -593755304120421850L;
 
+
     /**
      * 商品分类 id
      */
     private Long categoryId;
+
+    /**
+     * 商品分类名称
+     */
+    private String categoryName;
 
     /**
      * 官网详情页路由标识
