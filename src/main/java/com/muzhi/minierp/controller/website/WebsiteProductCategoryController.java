@@ -30,7 +30,7 @@ public class WebsiteProductCategoryController {
     /**
      * 新增商品分类及默认语言内容。
      */
-    @PostMapping
+    @PostMapping("/create")
     public JsonResult<WebsiteProductCategoryI18n> create(@RequestBody WebsiteProductCategoryVO query) {
         Assert.isNull(query, "website.product-category.required", "商品分类信息不能为空");
         boolean codeBlank = StringUtils.isBlank(query.getCode());
