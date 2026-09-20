@@ -134,4 +134,10 @@ public class WebsiteProductCategoryServiceImpl extends ServiceImpl<WebsiteProduc
         }
         return result;
     }
+
+    @Override
+    public List<WebsiteProductCategoryI18nVO> websiteList() {
+        SysLocale currentLocale = I18nContext.getCurrentLocale();
+        return websiteProductCategoryI18nMapper.websiteList(currentLocale.getCode());
+    }
 }

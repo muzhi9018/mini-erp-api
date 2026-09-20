@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.muzhi.minierp.entity.website.WebsiteProductCategoryI18n;
 import com.muzhi.minierp.vo.website.WebsiteProductCategoryI18nVO;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * <p>
@@ -24,4 +27,13 @@ public interface WebsiteProductCategoryI18nMapper extends BaseMapper<WebsiteProd
      * @return 返回結果
      */
     IPage<WebsiteProductCategoryI18nVO> list(IPage<WebsiteProductCategoryI18nVO> page, WebsiteProductCategoryI18nVO query);
+
+    /**
+     * 官网列表查询
+     * @author Mr.Muzhi
+     * @since 2026/9/20 18:29
+     * @param locale locale
+     * @return 返回結果
+     */
+    List<WebsiteProductCategoryI18nVO> websiteList(@Param("locale") String locale);
 }

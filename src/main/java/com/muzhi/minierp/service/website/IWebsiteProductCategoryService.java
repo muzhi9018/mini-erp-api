@@ -8,6 +8,8 @@ import com.muzhi.minierp.vo.website.WebsiteProductCategoryI18nVO;
 import com.muzhi.minierp.vo.website.WebsiteProductCategoryVO;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
+
 /**
  * <p>
  * {@code IWebsiteProductCategoryService}: 官网商品分类 服务接口
@@ -29,5 +31,13 @@ public interface IWebsiteProductCategoryService extends IService<WebsiteProductC
     WebsiteProductCategoryI18n addI18n(WebsiteProductCategoryI18n query);
 
     IPage<WebsiteProductCategoryI18nVO> list(WebsiteProductCategoryI18nVO query, @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum, @RequestParam("pageSize") Integer pageSize);
+
+    /**
+     * 官网分类列表
+     * @author Mr.Muzhi
+     * @since 2026/9/20 18:24
+     * @return 所有分类列表
+     */
+    List<WebsiteProductCategoryI18nVO> websiteList();
 
 }

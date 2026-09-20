@@ -44,4 +44,22 @@
         </if>
         order by wpc.sort_order asc, wpc.id asc
     </select>
+
+    <select id="websiteList" resultType="com.muzhi.minierp.vo.website.WebsiteProductCategoryI18nVO">
+        select
+            wpc.id,
+            wpc.code,
+            wpc.sort_order,
+            wpc.is_show,
+            wpci.locale,
+            wpci.name,
+            wpci.description,
+            wpci.image_attachment_id
+        from website_product_category wpc
+        join website_product_category_i18n wpci on wpci.website_product_category_id = wpc.id
+        where wpci.locale = #{query.locale}
+        and wpc.is_deleted = false
+        and wpci.is_deleted = false
+        order by wpc.sort_order asc, wpc.id asc
+    </select>
 </mapper>

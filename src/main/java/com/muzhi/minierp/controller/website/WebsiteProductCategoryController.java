@@ -1,6 +1,7 @@
 package com.muzhi.minierp.controller.website;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.muzhi.minierp.annotation.OpenApi;
 import com.muzhi.minierp.entity.website.WebsiteProductCategoryI18n;
 import com.muzhi.minierp.enums.SysLocale;
 import com.muzhi.minierp.model.JsonResult;
@@ -11,6 +12,8 @@ import com.muzhi.minierp.vo.website.WebsiteProductCategoryVO;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * <p>
@@ -73,5 +76,12 @@ public class WebsiteProductCategoryController {
     public JsonResult<IPage<WebsiteProductCategoryI18nVO>> list(WebsiteProductCategoryI18nVO query, @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum, @RequestParam("pageSize") Integer pageSize) {
         IPage<WebsiteProductCategoryI18nVO> list = websiteProductCategoryService.list(query, pageNum, pageSize);
         return  JsonResult.success(list);
+    }
+
+    @OpenApi
+    @GetMapping("/website/list")
+    public JsonResult<List<WebsiteProductCategoryI18nVO>> websiteList() {
+        List<WebsiteProductCategoryI18nVO> list = websiteProductCategoryService.websiteList();
+        return JsonResult.success(list);
     }
 }
