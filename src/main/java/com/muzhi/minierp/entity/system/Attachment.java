@@ -37,7 +37,7 @@ public class Attachment implements Serializable {
     private Long id;
 
     /**
-     * 存储类型，例如：RUSTFS、S3、OSS、COS
+     * 存储类型，参见 {@link com.muzhi.minierp.enums.AttachmentEnum.StorageType}
      */
     @TableField("storage_type")
     private String storageType;
@@ -79,7 +79,7 @@ public class Attachment implements Serializable {
     private String etag;
 
     /**
-     * 访问类型：public-公开访问，private-私有访问；私有附件需要生成预签名url访问
+     * 访问类型，参见 {@link com.muzhi.minierp.enums.AttachmentEnum.AccessType}；私有附件通过预签名 URL 访问
      */
     @TableField("access_type")
     private String accessType;

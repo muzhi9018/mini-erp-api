@@ -23,6 +23,8 @@ import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import tools.jackson.databind.ObjectMapper;
 
+import jakarta.servlet.DispatcherType;
+
 import java.lang.annotation.Annotation;
 import java.util.HashSet;
 import java.util.Map;
@@ -43,6 +45,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
                 .authorizeHttpRequests(auth -> {
+                    // SSE 首次请求正常鉴权，完成时的容器异步分派不再读取已清理的登录上下文。
+                    auth.requestMatchers(request -> request.getDispatcherType() == DispatcherType.ASYNC
+                            && request.getRequestURI().startsWith(request.getContextPath() + "/attachment/upload/progress/"))
+                            .permitAll();
                     auth.requestMatchers(openApiPatterns.toArray(new String[0])).permitAll();
                     auth.anyRequest().authenticated();
                 })

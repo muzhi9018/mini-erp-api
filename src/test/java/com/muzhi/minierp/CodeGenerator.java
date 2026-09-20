@@ -21,7 +21,7 @@ import java.nio.file.Paths;
 public class CodeGenerator {
 
     public static void main(String[] args) {
-        FastAutoGenerator.create("jdbc:postgresql://192.168.1.199:5432/mini_erp", "root", "postgres@root@602")
+        FastAutoGenerator.create("jdbc:postgresql://100.64.88.3:5432/mini_erp", "root", "postgres@root@602")
                 .globalConfig(builder -> builder
                         .author("Mr.Muzhi")
                         .outputDir(Paths.get(System.getProperty("user.dir")) + "/src/main/java")

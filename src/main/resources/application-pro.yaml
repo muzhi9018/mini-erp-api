@@ -2,7 +2,7 @@ spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://192.168.1.199:5432/mini_erp
+    url: jdbc:postgresql://100.64.88.3:5432/mini_erp
     username: 'root'
     password: 'postgres@root@602'
     druid:
@@ -20,7 +20,7 @@ spring:
       max-evictable-idle-time-millis: 900000
   data:
     redis:
-      host: 192.168.1.199
+      host: 100.64.88.3
       password: 'MYREDIS@123'
       port: 6379
       database: 0
@@ -34,6 +34,6 @@ spring:
 oss:
   access-key: 'VASONTyplDIOQk2ayR0k'
   secret-key: 'B1BQPfVXEOPjt4B3PswzYyhzdiyaNSZ2sCiajlN2'
-  internal-endpoint: 'https://greenbuild.cfd'
+  internal-endpoint: 'http://rusts:9000'
   external-endpoint: 'https://greenbuild.cfd'
-  bucket-name: 'mini-erp-dev'
+  bucket-name: 'mini-erp-pro'

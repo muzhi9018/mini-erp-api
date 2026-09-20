@@ -2,6 +2,11 @@ server:
   port: 8081
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      # 为表单字段和 multipart 边界预留空间。
+      max-request-size: 101MB
   web:
     resources:
       add-mappings: false
