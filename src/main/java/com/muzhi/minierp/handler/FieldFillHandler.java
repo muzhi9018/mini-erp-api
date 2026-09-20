@@ -5,7 +5,7 @@ import com.muzhi.minierp.model.User;
 import com.muzhi.minierp.security.SecurityUtils;
 import org.apache.ibatis.reflection.MetaObject;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * <p>
@@ -41,8 +41,8 @@ public class FieldFillHandler implements MetaObjectHandler {
 
     @Override
     public void insertFill(MetaObject metaObject) {
-        this.strictInsertFill(metaObject, FILL_FIELD_GMT_CREATE, LocalDateTime::now, LocalDateTime.class);
-        this.strictInsertFill(metaObject, FILL_FIELD_GMT_MODIFIED, LocalDateTime::now, LocalDateTime.class);
+        this.strictInsertFill(metaObject, FILL_FIELD_GMT_CREATE, OffsetDateTime::now, OffsetDateTime.class);
+        this.strictInsertFill(metaObject, FILL_FIELD_GMT_MODIFIED, OffsetDateTime::now, OffsetDateTime.class);
         User currentUser = SecurityUtils.getCurrentUser();
         if (currentUser != null) {
             this.strictInsertFill(metaObject, FILL_FIELD_CREATE_USER, currentUser::getId, Long.class);
@@ -52,7 +52,7 @@ public class FieldFillHandler implements MetaObjectHandler {
 
     @Override
     public void updateFill(MetaObject metaObject) {
-        this.strictUpdateFill(metaObject, FILL_FIELD_GMT_MODIFIED, LocalDateTime::now, LocalDateTime.class);
+        this.strictUpdateFill(metaObject, FILL_FIELD_GMT_MODIFIED, OffsetDateTime::now, OffsetDateTime.class);
         User currentUser = SecurityUtils.getCurrentUser();
         if (currentUser != null) {
             this.strictInsertFill(metaObject, FILL_FIELD_UPDATE_USER, currentUser::getId, Long.class);

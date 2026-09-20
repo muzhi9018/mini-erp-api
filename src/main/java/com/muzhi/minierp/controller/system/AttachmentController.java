@@ -1,7 +1,7 @@
 package com.muzhi.minierp.controller.system;
 
 import com.muzhi.minierp.client.listener.ProgressListener;
-import com.muzhi.minierp.entity.system.Attachment;
+import com.muzhi.minierp.vo.system.AttachmentVO;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.CacheControl;
@@ -37,10 +37,10 @@ public class AttachmentController {
     private final IProgressCacheService progressCacheService;
 
     @PostMapping("/upload")
-    public JsonResult<Attachment> upload(@RequestParam("file") MultipartFile file, @RequestParam("model") String model) {
+    public JsonResult<AttachmentVO> upload(@RequestParam("file") MultipartFile file, @RequestParam("model") String model) {
         Assert.isNull(file, "system.attachment.file-required", "请选择上传文件");
         Assert.isTrue(file.isEmpty(), "system.attachment.file-empty", "上传文件不能为空");
-        Attachment attachment = attachmentService.upload(file, model);
+        AttachmentVO attachment = attachmentService.upload(file, model);
         return JsonResult.success(attachment);
     }
 

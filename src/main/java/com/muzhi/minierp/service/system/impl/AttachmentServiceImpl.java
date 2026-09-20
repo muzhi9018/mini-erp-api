@@ -13,6 +13,8 @@ import com.muzhi.minierp.service.oss.IOssBridgeManager;
 import com.muzhi.minierp.service.system.IAttachmentService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.muzhi.minierp.util.Assert;
+import com.muzhi.minierp.util.BeanConvertUtils;
+import com.muzhi.minierp.vo.system.AttachmentVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -83,7 +85,7 @@ public class AttachmentServiceImpl extends ServiceImpl<AttachmentMapper, Attachm
     }
 
     @Override
-    public Attachment upload(MultipartFile file, String model) {
+    public AttachmentVO upload(MultipartFile file, String model) {
         OssModelEnum ossModelEnum = OssModelEnum.ofModel(model);
         Assert.isNull(ossModelEnum, "system.attachment.model-invalid", "没有找到对应的模块");
         long id = IdWorker.getId();
@@ -121,6 +123,9 @@ public class AttachmentServiceImpl extends ServiceImpl<AttachmentMapper, Attachm
             }
             throw e;
         }
-        return attachment;
+        AttachmentVO result = BeanConvertUtils.convert(attachment, AttachmentVO.class);
+        String previewUrl = ossBridgeManager.getAuthorizedDownloadUrl(result.getBucketName(), result.getObjectKey());
+        result.setPreviewUrl(previewUrl);
+        return result;
     }
 }

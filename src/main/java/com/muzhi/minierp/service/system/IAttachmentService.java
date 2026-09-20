@@ -2,6 +2,7 @@ package com.muzhi.minierp.service.system;
 
 import com.muzhi.minierp.entity.system.Attachment;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.muzhi.minierp.vo.system.AttachmentVO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Collection;
@@ -34,6 +35,6 @@ public interface IAttachmentService extends IService<Attachment> {
      * @param model 已校验的业务模块编码
      * @return 已保存的附件记录
      */
-    Attachment upload(MultipartFile file, String model);
+    AttachmentVO upload(MultipartFile file, String model);
 
 }

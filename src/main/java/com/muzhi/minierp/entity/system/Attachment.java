@@ -11,7 +11,7 @@ import lombok.ToString;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * <p>
@@ -88,13 +88,13 @@ public class Attachment implements Serializable {
      * 创建时间
      */
     @TableField(value = "gmt_create", fill = FieldFill.INSERT)
-    private LocalDateTime gmtCreate;
+    private OffsetDateTime gmtCreate;
 
     /**
      * 最后修改时间
      */
     @TableField(value = "gmt_modified", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime gmtModified;
+    private OffsetDateTime gmtModified;
 
     /**
      * 最后修改人id

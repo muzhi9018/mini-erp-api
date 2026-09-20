@@ -6,14 +6,14 @@ import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 /**
  * <p>
  * 系统用户信息
  *   <tr><td>id</td><td>{@link Long}</td><td>id</td><td>BIGINT UNSIGNED</td><td>主键</td></tr>
- *   <tr><td>gmtCreate</td><td>{@link LocalDateTime}</td><td>gmt_create</td><td>DATETIME</td><td>创建时间</td></tr>
- *   <tr><td>gmtModified</td><td>{@link LocalDateTime}</td><td>gmt_modified</td><td>DATETIME</td><td>更新时间</td></tr>
+ *   <tr><td>gmtCreate</td><td>{@link OffsetDateTime}</td><td>gmt_create</td><td>DATETIME</td><td>创建时间</td></tr>
+ *   <tr><td>gmtModified</td><td>{@link OffsetDateTime}</td><td>gmt_modified</td><td>DATETIME</td><td>更新时间</td></tr>
  *   <tr><td>createUser</td><td>{@link Long}</td><td>create_user</td><td>BIGINT</td><td>创建者</td></tr>
  *   <tr><td>updateUser</td><td>{@link Long}</td><td>update_user</td><td>BIGINT</td><td>更新者</td></tr>
  *   <tr><td>isDeleted</td><td>{@link Boolean}</td><td>is_deleted</td><td>TINYINT UNSIGNED</td><td>是否删除(0:否; 1:是)</td></tr>
@@ -49,13 +49,13 @@ public class SysUser implements Serializable {
      * 创建时间
      */
     @TableField(value = "gmt_create", fill = FieldFill.INSERT)
-    private LocalDateTime gmtCreate;
+    private OffsetDateTime gmtCreate;
 
     /**
      * 更新时间
      */
     @TableField(value = "gmt_modified", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime gmtModified;
+    private OffsetDateTime gmtModified;
 
     /**
      * 创建者
