@@ -67,7 +67,12 @@ public enum SysLocale {
      * @return 默认的系统区域
      */
     public static Locale defaultLocale() {
-        return ZH_CN.getLocale();
+        for (SysLocale value : SysLocale.values()) {
+            if (value.defaultLocal) {
+                return value.getLocale();
+            }
+        }
+        return SysLocale.ZH_TW.getLocale();
     }
 
     public static SysLocale ofCode(String code) {

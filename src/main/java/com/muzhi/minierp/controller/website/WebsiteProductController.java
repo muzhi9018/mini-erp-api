@@ -43,7 +43,8 @@ public class WebsiteProductController {
         Assert.isFalse(compile.matcher(slug).matches(), "website.product.slug-invalid", "商品 slug 只能由小写字母、数字和中划线组成");
         WebsiteProductI18nVO productI18n = query.getProductI18n();
         Assert.isNull(productI18n, "website.product.translation-required", "商品语言内容不能为空");
-        this.validateLocale(productI18n.getLocale());
+        SysLocale locale = this.validateLocale(productI18n.getLocale());
+        Assert.isFalse(locale.isDefaultLocal(), "website.locale.default-required", "新增时只能使用系统默认语言");
         this.validateI18n(query.getProductI18n());
         WebsiteProductCreatedVO product = websiteProductService.create(query);
         return JsonResult.success(product);
@@ -59,10 +60,11 @@ public class WebsiteProductController {
     }
 
 
-    private void validateLocale(String code) {
+    private SysLocale validateLocale(String code) {
         Assert.isTrue(StringUtils.isBlank(code), "website.locale.code-required", "语言编码不能为空");
         SysLocale locale = SysLocale.ofCode(code);
         Assert.isNull(locale, "website.locale.code-invalid", "语言编码格式不正确");
+        return locale;
     }
     /**
      * 校验国际化数据

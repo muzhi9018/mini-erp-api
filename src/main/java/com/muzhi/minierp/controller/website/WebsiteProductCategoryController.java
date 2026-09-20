@@ -28,14 +28,15 @@ public class WebsiteProductCategoryController {
     private final IWebsiteProductCategoryService websiteProductCategoryService;
 
     /**
-     * 新增商品分类及首种语言内容。
+     * 新增商品分类及默认语言内容。
      */
     @PostMapping
     public JsonResult<WebsiteProductCategoryI18n> create(@RequestBody WebsiteProductCategoryVO query) {
         Assert.isNull(query, "website.product-category.required", "商品分类信息不能为空");
         boolean codeBlank = StringUtils.isBlank(query.getCode());
         Assert.isTrue(codeBlank, "website.product-category.code-required", "商品分类编码不能为空");
-        this.validateI18n(query.getCategoryI18n());
+        SysLocale locale = this.validateI18n(query.getCategoryI18n());
+        Assert.isFalse(locale.isDefaultLocal(), "website.locale.default-required", "新增时只能使用系统默认语言");
         WebsiteProductCategoryI18n category = websiteProductCategoryService.create(query);
         return JsonResult.success(category);
     }
@@ -55,7 +56,7 @@ public class WebsiteProductCategoryController {
     /**
      * 校验分类语言内容及系统支持的语言编码。
      */
-    private void validateI18n(WebsiteProductCategoryI18n query) {
+    private SysLocale validateI18n(WebsiteProductCategoryI18n query) {
         Assert.isNull(query, "website.product-category.translation-required", "商品分类语言内容不能为空");
         boolean nameBlank = StringUtils.isBlank(query.getName());
         Assert.isTrue(nameBlank, "website.product-category.name-required", "商品分类名称不能为空");
@@ -65,6 +66,7 @@ public class WebsiteProductCategoryController {
         Assert.isTrue(localeCodeBlank, "website.locale.code-required", "语言编码不能为空");
         SysLocale locale = SysLocale.ofCode(localeCode);
         Assert.isNull(locale, "website.locale.code-invalid", "语言编码格式不正确");
+        return locale;
     }
 
     @GetMapping("/list")
