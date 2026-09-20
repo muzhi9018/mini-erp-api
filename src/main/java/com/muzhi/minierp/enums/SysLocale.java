@@ -75,6 +75,15 @@ public enum SysLocale {
         return SysLocale.ZH_TW.getLocale();
     }
 
+    public static SysLocale defaultSysLocale() {
+        for (SysLocale value : SysLocale.values()) {
+            if (value.defaultLocal) {
+                return value;
+            }
+        }
+        return SysLocale.ZH_TW;
+    }
+
     public static SysLocale ofCode(String code) {
         for (SysLocale value : SysLocale.values()) {
             if (value.getCode().equals(code)) {

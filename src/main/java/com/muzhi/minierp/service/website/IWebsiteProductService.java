@@ -8,6 +8,8 @@ import com.muzhi.minierp.vo.website.WebsiteProductCreatedVO;
 import com.muzhi.minierp.vo.website.WebsiteProductVO;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
+
 /**
  * <p>
  * 官网商品 服务类
@@ -25,4 +27,23 @@ public interface IWebsiteProductService extends IService<WebsiteProduct> {
     WebsiteProductCreatedVO addI18n(WebsiteProductI18nVO query);
 
     IPage<WebsiteProductI18nVO> list(WebsiteProductI18nVO query, Integer pageNum, Integer pageSize);
+
+    /**
+     * 官網列表
+     * @author Mr.Muzhi
+     * @since 2026/9/20 20:54
+     * @param categoryId 分類 id
+     * @return 列表數據
+     */
+    List<WebsiteProductI18nVO> websiteList(Long categoryId);
+
+    /**
+     * 根据 slug 查询官网商品详情，当前语言不存在时使用系统默认语言。
+     *
+     * @author Mr.Muzhi
+     * @since 2026/9/20
+     * @param slug 官网详情页路由标识
+     * @return 官网商品详情
+     */
+    WebsiteProductI18nVO websiteDetail(String slug);
 }

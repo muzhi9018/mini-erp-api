@@ -1,6 +1,7 @@
 package com.muzhi.minierp.controller.website;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.muzhi.minierp.annotation.OpenApi;
 import com.muzhi.minierp.vo.website.WebsiteProductI18nVO;
 import com.muzhi.minierp.entity.website.WebsiteProductDetailItem;
 import com.muzhi.minierp.vo.website.WebsiteProductMediaItemVO;
@@ -118,8 +119,7 @@ public class WebsiteProductController {
      */
     private void validateMediaItem(List<WebsiteProductMediaItemVO> mediaItems, WebsiteProductEnum.MediaItemType mediaItemType) {
         String name = mediaItemType == WebsiteProductEnum.MediaItemType.APPLICATION ? "产品应用场景" : "产品案例展示";
-        String code = mediaItemType == WebsiteProductEnum.MediaItemType.APPLICATION
-                ? "website.product.application" : "website.product.case";
+        String code = mediaItemType == WebsiteProductEnum.MediaItemType.APPLICATION ? "website.product.application" : "website.product.case";
         Assert.isEmpty(mediaItems, code + ".required", name + "不能为空");
         Assert.isTrue(mediaItems.size() < 4, code + ".minimum-count", "最少填写4个" + name);
         int index = 0;
@@ -137,5 +137,28 @@ public class WebsiteProductController {
     public JsonResult<IPage<WebsiteProductI18nVO>> list(WebsiteProductI18nVO query, @RequestParam(name = "pageNum", defaultValue = "1") Integer pageNum, @RequestParam(value = "pageSize", defaultValue = "15") Integer pageSize) {
         IPage<WebsiteProductI18nVO> list = websiteProductService.list(query, pageNum, pageSize);
         return JsonResult.success(list);
+    }
+
+    @OpenApi
+    @GetMapping("/website/list")
+    public JsonResult<List<WebsiteProductI18nVO>> websiteList(Long categoryId) {
+        List<WebsiteProductI18nVO> list = websiteProductService.websiteList(categoryId);
+        return JsonResult.success(list);
+    }
+
+    /**
+     * 根据 slug 查询官网商品详情。
+     *
+     * @author Mr.Muzhi
+     * @since 2026/9/20
+     * @param slug 官网详情页路由标识
+     * @return 官网商品详情
+     */
+    @OpenApi
+    @GetMapping("/website/detail/{slug}")
+    public JsonResult<WebsiteProductI18nVO> websiteDetail(@PathVariable String slug) {
+        Assert.isTrue(StringUtils.isBlank(slug), "website.product.slug-required", "商品 slug 不能为空");
+        WebsiteProductI18nVO product = websiteProductService.websiteDetail(slug.trim());
+        return JsonResult.success(product);
     }
 }
