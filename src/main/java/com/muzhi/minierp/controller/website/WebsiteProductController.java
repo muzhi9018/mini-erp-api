@@ -34,7 +34,7 @@ public class WebsiteProductController {
     private final IWebsiteProductService websiteProductService;
 
 
-    @PostMapping
+    @PostMapping("/create")
     public JsonResult<WebsiteProductCreatedVO> create(@RequestBody WebsiteProductVO query) {
         Assert.isNull(query, "website.product.required", "商品信息不能为空");
         Assert.isTrue(StringUtils.isBlank(query.getSlug()), "website.product.slug-required", "商品 slug 不能为空");
