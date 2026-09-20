@@ -2,7 +2,6 @@ package com.muzhi.minierp.vo.website;
 
 import com.muzhi.minierp.entity.website.WebsiteProductDetailItem;
 import com.muzhi.minierp.entity.website.WebsiteProductI18n;
-import com.muzhi.minierp.entity.website.WebsiteProductMediaItem;
 import io.github.linpeilie.annotations.AutoMapper;
 import io.github.linpeilie.annotations.AutoMappers;
 import lombok.Data;
@@ -20,6 +19,20 @@ public class WebsiteProductI18nVO extends WebsiteProductI18n {
     @Serial
     private static final long serialVersionUID = -593755304120421850L;
 
+    /**
+     * 图片授权访问地址，仅用于查询返回。
+     */
+    private String coverImageUrl;
+
+    /**
+     * 图片授权访问地址，仅用于查询返回。
+     */
+    private String featureImageUrl;
+
+    /**
+     * 商品国际化 ID，用于关联语言下的媒体明细。
+     */
+    private Long productI18nId;
 
     /**
      * 商品分类 id
@@ -64,11 +77,11 @@ public class WebsiteProductI18nVO extends WebsiteProductI18n {
     /**
      * 产品应用场景
      */
-    private List<WebsiteProductMediaItem> applications;
+    private List<WebsiteProductMediaItemVO> applications;
 
     /**
      * 产品案列列表
      */
-    private List<WebsiteProductMediaItem> cases;
+    private List<WebsiteProductMediaItemVO> cases;
 
 }

@@ -92,8 +92,8 @@ public class WebsiteProductCategoryI18n implements Serializable {
     private String description;
 
     /**
-     * 分类图片地址
+     * 分类图片附件 ID（关联 attachment.id）
      */
-    @TableField("image_url")
-    private String imageUrl;
+    @TableField("image_attachment_id")
+    private Long imageAttachmentId;
 }

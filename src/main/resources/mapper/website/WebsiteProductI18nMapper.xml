@@ -10,6 +10,10 @@
             wp.sort_order,
             wp.is_show,
             wp.is_recommended,
+            wpi.id as product_i18n_id,
+            wpi.product_id,
+            wpi.cover_image_attachment_id,
+            wpi.feature_image_attachment_id,
             wpi.locale,
             wpi.name,
             wpci.name as category_name

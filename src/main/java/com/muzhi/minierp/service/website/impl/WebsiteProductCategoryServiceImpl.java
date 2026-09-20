@@ -14,6 +14,11 @@ import com.muzhi.minierp.i18n.I18nContext;
 import com.muzhi.minierp.mapper.website.WebsiteProductCategoryI18nMapper;
 import com.muzhi.minierp.mapper.website.WebsiteProductCategoryMapper;
 import com.muzhi.minierp.service.website.IWebsiteProductCategoryService;
+import com.muzhi.minierp.service.system.IAttachmentService;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import com.muzhi.minierp.util.Assert;
 import com.muzhi.minierp.util.BeanConvertUtils;
 import com.muzhi.minierp.vo.website.WebsiteProductCategoryI18nVO;
@@ -34,6 +39,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class WebsiteProductCategoryServiceImpl extends ServiceImpl<WebsiteProductCategoryMapper, WebsiteProductCategory> implements IWebsiteProductCategoryService {
+
+    private final IAttachmentService attachmentService;
 
     private final WebsiteProductCategoryI18nMapper websiteProductCategoryI18nMapper;
 
@@ -92,6 +99,8 @@ public class WebsiteProductCategoryServiceImpl extends ServiceImpl<WebsiteProduc
      * 保存分类语言内容，关联 ID 由业务入口指定。
      */
     private WebsiteProductCategoryI18n insertI18n(Long categoryId, WebsiteProductCategoryI18n translation) {
+        List<Long> attachmentIds = Collections.singletonList(translation.getImageAttachmentId());
+        attachmentService.validateAttachments(attachmentIds);
         Long categoryI18nId = IdWorker.getId();
         String name = translation.getName().trim();
         translation.setId(categoryI18nId);
@@ -117,6 +126,12 @@ public class WebsiteProductCategoryServiceImpl extends ServiceImpl<WebsiteProduc
         SysLocale currentLocale = I18nContext.getCurrentLocale();
         query.setLocale(currentLocale.getCode());
         IPage<WebsiteProductCategoryI18nVO> page = new Page<>(pageNum, pageSize);
-        return websiteProductCategoryI18nMapper.list(page, query);
+        IPage<WebsiteProductCategoryI18nVO> result = websiteProductCategoryI18nMapper.list(page, query);
+        List<Long> attachmentIds = result.getRecords().stream().map(WebsiteProductCategoryI18n::getImageAttachmentId).toList();
+        Map<Long, String> urls = attachmentService.getAuthorizedUrls(attachmentIds);
+        for (WebsiteProductCategoryI18nVO category : result.getRecords()) {
+            category.setImageUrl(category.getImageAttachmentId() == null ? null : urls.get(category.getImageAttachmentId()));
+        }
+        return result;
     }
 }

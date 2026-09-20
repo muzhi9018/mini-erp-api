@@ -92,10 +92,10 @@ public class WebsiteProductMediaItem implements Serializable {
     private String description;
 
     /**
-     * 应用场景或案例图片地址
+     * 应用场景或案例图片附件 ID（关联 attachment.id）
      */
-    @TableField("image_url")
-    private String imageUrl;
+    @TableField("image_attachment_id")
+    private Long imageAttachmentId;
 
     /**
      * 同类型内容展示顺序，数值越小越靠前

@@ -1,6 +1,8 @@
 package com.muzhi.minierp.service.system.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.muzhi.minierp.config.OssConfigProperties;
 import com.muzhi.minierp.entity.system.Attachment;
 import com.muzhi.minierp.enums.OssModelEnum;
@@ -16,6 +18,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * <p>
@@ -35,6 +44,43 @@ public class AttachmentServiceImpl extends ServiceImpl<AttachmentMapper, Attachm
     private final TransactionTemplate transactionTemplate;
 
     private final OssConfigProperties ossConfigProperties;
+
+    @Override
+    public void validateAttachments(Collection<Long> attachmentIds) {
+        Set<Long> ids = this.distinctIds(attachmentIds);
+        List<Attachment> attachments = this.findAttachments(ids);
+        Assert.isTrue(attachments.size() != ids.size(), "system.attachment.not-found", "附件不存在或已删除");
+    }
+
+    @Override
+    public Map<Long, String> getAuthorizedUrls(Collection<Long> attachmentIds) {
+        Set<Long> ids = this.distinctIds(attachmentIds);
+        List<Attachment> attachments = this.findAttachments(ids);
+        Map<Long, String> urls = new HashMap<>();
+        for (Attachment attachment : attachments) {
+            String url = ossBridgeManager.getAuthorizedDownloadUrl(attachment.getBucketName(), attachment.getObjectKey());
+            urls.put(attachment.getId(), url);
+        }
+        return urls;
+    }
+
+    private Set<Long> distinctIds(Collection<Long> attachmentIds) {
+        Set<Long> ids = new HashSet<>();
+        if (attachmentIds != null) {
+            ids.addAll(attachmentIds);
+            ids.remove(null);
+        }
+        return ids;
+    }
+
+    private List<Attachment> findAttachments(Set<Long> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        LambdaQueryWrapper<Attachment> query = Wrappers.lambdaQuery();
+        query.in(Attachment::getId, ids);
+        return super.baseMapper.selectList(query);
+    }
 
     @Override
     public Attachment upload(MultipartFile file, String model) {

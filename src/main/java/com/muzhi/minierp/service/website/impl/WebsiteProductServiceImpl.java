@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.muzhi.minierp.enums.SysLocale;
+import com.muzhi.minierp.enums.WebsiteProductEnum;
 import com.muzhi.minierp.i18n.I18nContext;
 import com.muzhi.minierp.vo.website.WebsiteProductI18nVO;
 import com.muzhi.minierp.entity.website.*;
@@ -17,21 +18,26 @@ import com.muzhi.minierp.mapper.website.WebsiteProductI18nMapper;
 import com.muzhi.minierp.mapper.website.WebsiteProductMapper;
 import com.muzhi.minierp.mapper.website.WebsiteProductMediaItemMapper;
 import com.muzhi.minierp.service.website.IWebsiteProductService;
+import com.muzhi.minierp.service.system.IAttachmentService;
 import com.muzhi.minierp.util.Assert;
+import com.muzhi.minierp.util.BeanConvertUtils;
 import com.muzhi.minierp.vo.website.WebsiteProductCreatedVO;
+import com.muzhi.minierp.vo.website.WebsiteProductMediaItemVO;
 import com.muzhi.minierp.vo.website.WebsiteProductVO;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /** 官网商品新增与语言内容新增。 */
 @Service
 @RequiredArgsConstructor
 public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper, WebsiteProduct> implements IWebsiteProductService {
+
+    private final IAttachmentService attachmentService;
 
     private final WebsiteProductCategoryMapper websiteProductCategoryMapper;
 
@@ -70,7 +76,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
             throw new BusinessException("website.product.slug-already-exists", "商品 slug 已存在", exception);
         }
 
-        return insertI18n(product.getId(), locale, query.getProductI18n());
+        return this.insertI18n(product.getId(), locale, query.getProductI18n());
     }
 
     @Override
@@ -85,12 +91,25 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         productI18nQuery.eq(WebsiteProductI18n::getProductId, productId);
         productI18nQuery.eq(WebsiteProductI18n::getLocale, locale);
         Assert.isTrue(websiteProductI18nMapper.exists(productI18nQuery), "website.product.locale-already-exists", "该商品已配置此语言");
-        return insertI18n(productId, locale, query);
+        return this.insertI18n(productId, locale, query);
     }
 
     private WebsiteProductCreatedVO insertI18n(Long productId, String locale, WebsiteProductI18nVO query) {
-        WebsiteProductI18n translation = new WebsiteProductI18n();
-        BeanUtils.copyProperties(query, translation);
+        List<Long> attachmentIds = new ArrayList<>();
+        attachmentIds.add(query.getCoverImageAttachmentId());
+        attachmentIds.add(query.getFeatureImageAttachmentId());
+        for (WebsiteProductMediaItem item : query.getApplications()) {
+            attachmentIds.add(item.getImageAttachmentId());
+        }
+        for (WebsiteProductMediaItem item : query.getCases()) {
+            attachmentIds.add(item.getImageAttachmentId());
+        }
+        attachmentService.validateAttachments(attachmentIds);
+        WebsiteProductI18n translation = BeanConvertUtils.convert(query, WebsiteProductI18n.class);
+        translation.setGmtCreate(null);
+        translation.setGmtModified(null);
+        translation.setCreateUser(null);
+        translation.setUpdateUser(null);
         translation.setId(IdWorker.getId());
         translation.setProductId(productId);
         translation.setLocale(locale);
@@ -118,14 +137,14 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         websiteProductDetailItemMapper.insert(detailItems);
 
         List<WebsiteProductMediaItem> mediaItems = new ArrayList<>(16);
-        List<WebsiteProductMediaItem> applications = query.getApplications();
+        List<WebsiteProductMediaItem> applications = BeanConvertUtils.mapList(query.getApplications(), WebsiteProductMediaItem.class);
         for (WebsiteProductMediaItem application : applications) {
-           this.setDefaultMediaItemParams(application, translation.getId());
+            this.setDefaultMediaItemParams(application, translation.getId());
             mediaItems.add(application);
         }
-        List<WebsiteProductMediaItem> cases = query.getCases();
+        List<WebsiteProductMediaItem> cases = BeanConvertUtils.mapList(query.getCases(), WebsiteProductMediaItem.class);
         for (WebsiteProductMediaItem item : cases) {
-            this.setDefaultMediaItemParams(item, translation.getId());
+             this.setDefaultMediaItemParams(item, translation.getId());
             mediaItems.add(item);
         }
         websiteProductMediaItemMapper.insert(mediaItems);
@@ -159,6 +178,10 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         mediaItem.setProductI18nId(productI18nId);
         mediaItem.setIsShow(!Boolean.FALSE.equals(mediaItem.getIsShow()));
         mediaItem.setIsDeleted(false);
+        mediaItem.setGmtCreate(null);
+        mediaItem.setGmtModified(null);
+        mediaItem.setCreateUser(null);
+        mediaItem.setUpdateUser(null);
     }
 
 
@@ -167,6 +190,50 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         SysLocale currentLocale = I18nContext.getCurrentLocale();
         query.setLocale(currentLocale.getCode());
         Page<WebsiteProductI18nVO> page = new Page<>(pageNum, pageSize);
-        return websiteProductI18nMapper.list(page, query);
+        IPage<WebsiteProductI18nVO> result = websiteProductI18nMapper.list(page, query);
+        this.fillImageUrls(result.getRecords());
+        return result;
+    }
+
+    /**
+     * 批量加载当前页媒体和附件，避免逐条访问数据库；授权地址不持久化。
+     */
+    private void fillImageUrls(List<WebsiteProductI18nVO> products) {
+        if (products.isEmpty()) {
+            return;
+        }
+        List<Long> translationIds = products.stream().map(WebsiteProductI18nVO::getProductI18nId).toList();
+        LambdaQueryWrapper<WebsiteProductMediaItem> mediaQuery = Wrappers.lambdaQuery();
+        mediaQuery.in(WebsiteProductMediaItem::getProductI18nId, translationIds);
+        mediaQuery.orderByAsc(WebsiteProductMediaItem::getSortOrder, WebsiteProductMediaItem::getId);
+        List<WebsiteProductMediaItem> mediaItems = websiteProductMediaItemMapper.selectList(mediaQuery);
+        List<WebsiteProductMediaItemVO> mediaViews = BeanConvertUtils.mapList(mediaItems, WebsiteProductMediaItemVO.class);
+        List<Long> attachmentIds = new ArrayList<>();
+        for (WebsiteProductI18nVO product : products) {
+            attachmentIds.add(product.getCoverImageAttachmentId());
+            attachmentIds.add(product.getFeatureImageAttachmentId());
+        }
+        for (WebsiteProductMediaItemVO media : mediaViews) {
+            attachmentIds.add(media.getImageAttachmentId());
+        }
+        Map<Long, String> urls = attachmentService.getAuthorizedUrls(attachmentIds);
+        for (WebsiteProductMediaItemVO media : mediaViews) {
+            media.setImageUrl(media.getImageAttachmentId() == null ? null : urls.get(media.getImageAttachmentId()));
+        }
+        Map<Long, List<WebsiteProductMediaItemVO>> mediaByTranslation = mediaViews.stream()
+                .collect(Collectors.groupingBy(WebsiteProductMediaItem::getProductI18nId));
+        for (WebsiteProductI18nVO product : products) {
+            product.setCoverImageUrl(product.getCoverImageAttachmentId() == null ? null : urls.get(product.getCoverImageAttachmentId()));
+            product.setFeatureImageUrl(product.getFeatureImageAttachmentId() == null ? null : urls.get(product.getFeatureImageAttachmentId()));
+            List<WebsiteProductMediaItemVO> translationMedia = mediaByTranslation.getOrDefault(product.getProductI18nId(), List.of());
+            List<WebsiteProductMediaItemVO> applications = translationMedia.stream()
+                    .filter(item -> WebsiteProductEnum.MediaItemType.APPLICATION.getCode().equals(item.getItemType()))
+                    .toList();
+            List<WebsiteProductMediaItemVO> cases = translationMedia.stream()
+                    .filter(item -> WebsiteProductEnum.MediaItemType.CASE.getCode().equals(item.getItemType()))
+                    .toList();
+            product.setApplications(applications);
+            product.setCases(cases);
+        }
     }
 }

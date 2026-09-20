@@ -131,14 +131,14 @@ public class WebsiteProductI18n implements Serializable {
     private String caseIntroduction;
 
     /**
-     * 商品卡片封面图片地址
+     * 商品卡片封面图片附件 ID（关联 attachment.id）
      */
-    @TableField("cover_image_url")
-    private String coverImageUrl;
+    @TableField("cover_image_attachment_id")
+    private Long coverImageAttachmentId;
 
     /**
-     * 商品特点区域图片地址
+     * 商品特点区域图片附件 ID（关联 attachment.id）
      */
-    @TableField("feature_image_url")
-    private String featureImageUrl;
+    @TableField("feature_image_attachment_id")
+    private Long featureImageAttachmentId;
 }

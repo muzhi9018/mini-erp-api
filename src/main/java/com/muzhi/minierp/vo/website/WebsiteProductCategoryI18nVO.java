@@ -22,6 +22,11 @@ public class WebsiteProductCategoryI18nVO extends WebsiteProductCategoryI18n {
     private static final long serialVersionUID = 6525507408004475199L;
 
     /**
+     * 图片授权访问地址，仅用于查询返回。
+     */
+    private String imageUrl;
+
+    /**
      * 稳定的分类编码
      */
     private String code;

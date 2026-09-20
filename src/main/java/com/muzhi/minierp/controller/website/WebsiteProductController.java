@@ -3,7 +3,7 @@ package com.muzhi.minierp.controller.website;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.muzhi.minierp.vo.website.WebsiteProductI18nVO;
 import com.muzhi.minierp.entity.website.WebsiteProductDetailItem;
-import com.muzhi.minierp.entity.website.WebsiteProductMediaItem;
+import com.muzhi.minierp.vo.website.WebsiteProductMediaItemVO;
 import com.muzhi.minierp.enums.SysLocale;
 import com.muzhi.minierp.enums.WebsiteProductEnum;
 import com.muzhi.minierp.model.JsonResult;
@@ -80,9 +80,9 @@ public class WebsiteProductController {
         List<WebsiteProductDetailItem> specifications = query.getSpecifications();
         this.validateDetailItem(specifications, WebsiteProductEnum.DetailItemType.SPECIFICATION);
 
-        List<WebsiteProductMediaItem> applications = query.getApplications();
+        List<WebsiteProductMediaItemVO> applications = query.getApplications();
         this.validateMediaItem(applications, WebsiteProductEnum.MediaItemType.APPLICATION);
-        List<WebsiteProductMediaItem> cases = query.getCases();
+        List<WebsiteProductMediaItemVO> cases = query.getCases();
         this.validateMediaItem(cases, WebsiteProductEnum.MediaItemType.CASE);
     }
 
@@ -114,17 +114,18 @@ public class WebsiteProductController {
      * @param mediaItems 数据列表
      * @param mediaItemType 类型
      */
-    private void validateMediaItem(List<WebsiteProductMediaItem> mediaItems, WebsiteProductEnum.MediaItemType mediaItemType) {
+    private void validateMediaItem(List<WebsiteProductMediaItemVO> mediaItems, WebsiteProductEnum.MediaItemType mediaItemType) {
         String name = mediaItemType == WebsiteProductEnum.MediaItemType.APPLICATION ? "产品应用场景" : "产品案例展示";
         String code = mediaItemType == WebsiteProductEnum.MediaItemType.APPLICATION
                 ? "website.product.application" : "website.product.case";
         Assert.isEmpty(mediaItems, code + ".required", name + "不能为空");
         Assert.isTrue(mediaItems.size() < 4, code + ".minimum-count", "最少填写4个" + name);
         int index = 0;
-        for (WebsiteProductMediaItem mediaItem : mediaItems) {
+        for (WebsiteProductMediaItemVO mediaItem : mediaItems) {
             Assert.isNull(mediaItem, code + ".item-required", name + "条目不能为空");
             Assert.isTrue(StringUtils.isBlank(mediaItem.getTitle()), code + ".title-required", name + "标题不能为空");
-            Assert.isTrue(StringUtils.isBlank(mediaItem.getImageUrl()), code + ".image-required", name + "图片地址不能为空");
+            Assert.isNull(mediaItem.getImageAttachmentId(), code + ".image-required", name + "图片附件 ID 不能为空");
+            mediaItem.setItemType(mediaItemType.getCode());
             mediaItem.setSortOrder(index++);
         }
     }
