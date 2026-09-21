@@ -70,6 +70,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         product.setSortOrder(sortOrder == null ? 0 : sortOrder);
         product.setIsShow(false);
         product.setIsRecommended(Boolean.TRUE.equals(query.getIsRecommended()));
+        product.setIsShow(true);
         product.setIsDeleted(false);
         try {
             baseMapper.insert(product);
