@@ -239,12 +239,16 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
     }
 
     @Override
-    public List<WebsiteProductI18nVO> websiteList(Long categoryId) {
+    public List<WebsiteProductI18nVO> websiteList(Long categoryId, Boolean recommended) {
         SysLocale currentLocale = I18nContext.getCurrentLocale();
         LambdaQueryWrapper<WebsiteProduct> query = Wrappers.lambdaQuery();
         if (categoryId != null) {
             query.eq(WebsiteProduct::getCategoryId, categoryId);
         }
+        if (recommended != null) {
+            query.eq(WebsiteProduct::getIsRecommended, recommended);
+        }
+        query.eq(WebsiteProduct::getIsShow, true);
         query.orderByAsc(WebsiteProduct::getSortOrder);
         query.orderByDesc(WebsiteProduct::getId);
         List<WebsiteProduct> websiteProducts = super.baseMapper.selectList(query);

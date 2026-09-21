@@ -33,9 +33,10 @@ public interface IWebsiteProductService extends IService<WebsiteProduct> {
      * @author Mr.Muzhi
      * @since 2026/9/20 20:54
      * @param categoryId 分類 id
+     * @param recommended 是否推荐的
      * @return 列表數據
      */
-    List<WebsiteProductI18nVO> websiteList(Long categoryId);
+    List<WebsiteProductI18nVO> websiteList(Long categoryId, Boolean recommended);
 
     /**
      * 根据 slug 查询官网商品详情，当前语言不存在时使用系统默认语言。

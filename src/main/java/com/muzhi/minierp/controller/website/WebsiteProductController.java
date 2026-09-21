@@ -141,8 +141,8 @@ public class WebsiteProductController {
 
     @OpenApi
     @GetMapping("/website/list")
-    public JsonResult<List<WebsiteProductI18nVO>> websiteList(Long categoryId) {
-        List<WebsiteProductI18nVO> list = websiteProductService.websiteList(categoryId);
+    public JsonResult<List<WebsiteProductI18nVO>> websiteList(Long categoryId, Boolean recommended) {
+        List<WebsiteProductI18nVO> list = websiteProductService.websiteList(categoryId, recommended);
         return JsonResult.success(list);
     }
 
