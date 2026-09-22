@@ -29,6 +29,7 @@
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <commons-collections4.version>4.6.0</commons-collections4.version>
         <amazon-sdk.version>2.54.16</amazon-sdk.version>
+        <amazon-crt.version>0.48.4</amazon-crt.version>
     </properties>
 
     <dependencyManagement>
@@ -180,10 +181,11 @@
             <artifactId>s3-transfer-manager</artifactId>
         </dependency>
 
-        <!-- Amazon SDK Crt Http Client SDK -->
+        <!-- Amazon CRT-based S3 Client SDK -->
         <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>aws-crt-client</artifactId>
+            <groupId>software.amazon.awssdk.crt</groupId>
+            <artifactId>aws-crt</artifactId>
+            <version>${amazon-crt.version}</version>
         </dependency>
 
         <dependency>

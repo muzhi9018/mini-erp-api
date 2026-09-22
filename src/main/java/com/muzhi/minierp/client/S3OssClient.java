@@ -1,25 +1,25 @@
 package com.muzhi.minierp.client;
 
-import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.muzhi.minierp.client.listener.S3OssClientProgressListener;
 import com.muzhi.minierp.config.ThreadPoolFactory;
-import com.muzhi.minierp.service.oss.IProgressCacheService;
 import com.muzhi.minierp.model.ObjectUploaded;
+import com.muzhi.minierp.service.oss.IProgressCacheService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.S3Utilities;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
-import software.amazon.awssdk.transfer.s3.model.Upload;
-import software.amazon.awssdk.transfer.s3.model.CompletedUpload;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetUrlRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 import software.amazon.awssdk.transfer.s3.S3TransferManager;
+import software.amazon.awssdk.transfer.s3.model.CompletedUpload;
+import software.amazon.awssdk.transfer.s3.model.Upload;
 import software.amazon.awssdk.transfer.s3.model.UploadRequest;
 
 import java.io.InputStream;
@@ -37,30 +37,31 @@ import java.time.Duration;
 @Slf4j
 public final class S3OssClient extends BaseOssClient implements OssClient {
 
-    private final S3AsyncClient internalS3AsyncClient;
+    private final S3AsyncClient s3AsyncClient;
 
-    private final S3AsyncClient externalS3AsyncClient;
+    private final S3Utilities s3Utilities;
 
     private final S3Presigner s3Presigner;
 
+    private final S3TransferManager transferManager;
+
     private final IProgressCacheService progressCacheService;
 
-
-    public S3OssClient(S3AsyncClient internalS3AsyncClient, S3AsyncClient externalS3AsyncClient, S3Presigner s3Presigner, IProgressCacheService progressCacheService) {
-        this.internalS3AsyncClient = internalS3AsyncClient;
-        this.externalS3AsyncClient = externalS3AsyncClient;
+    public S3OssClient(S3AsyncClient s3AsyncClient, S3Utilities s3Utilities, S3Presigner s3Presigner, S3TransferManager transferManager, IProgressCacheService progressCacheService) {
+        this.s3AsyncClient = s3AsyncClient;
+        this.s3Utilities = s3Utilities;
         this.s3Presigner = s3Presigner;
+        this.transferManager = transferManager;
         this.progressCacheService = progressCacheService;
-
     }
 
     @Override
     public void close() {
         try {
-            externalS3AsyncClient.close();
+            transferManager.close();
         } finally {
             try {
-                internalS3AsyncClient.close();
+                s3AsyncClient.close();
             } finally {
                 s3Presigner.close();
             }
@@ -74,7 +75,7 @@ public final class S3OssClient extends BaseOssClient implements OssClient {
                 .bucket(bucketName)
                 .key(key)
                 .build();
-        URL url = externalS3AsyncClient.utilities().getUrl(request);
+        URL url = s3Utilities.getUrl(request);
         return super.urlConvertString(url);
     }
 
@@ -99,7 +100,7 @@ public final class S3OssClient extends BaseOssClient implements OssClient {
                 .bucket(bucketName)
                 .key(key)
                 .build();
-        internalS3AsyncClient.deleteObject(request).join();
+        s3AsyncClient.deleteObject(request).join();
     }
 
     @Override
@@ -111,18 +112,14 @@ public final class S3OssClient extends BaseOssClient implements OssClient {
         S3OssClientProgressListener progressListener = new S3OssClientProgressListener(uploaded.getProgressId(), file.getOriginalFilename(), file.getSize());
         progressCacheService.saveProgressListener(uploaded.getProgressId(), progressListener);
         uploaded.setProgressListener(progressListener);
-        try (InputStream inputStream = file.getInputStream();
-             S3TransferManager transferManager = S3TransferManager.builder()
-                .s3Client(internalS3AsyncClient)
-                .build()) {
+        try (InputStream inputStream = file.getInputStream()) {
             PutObjectRequest request = PutObjectRequest
                     .builder()
                     .bucket(bucketName)
                     .key(key)
                     .contentType(file.getContentType())
                     .build();
-            AsyncRequestBody requestBody = AsyncRequestBody
-                    .fromInputStream(inputStream, file.getSize(), ThreadPoolFactory.getOssThreadPoolExecutor());
+            AsyncRequestBody requestBody = AsyncRequestBody.fromInputStream(inputStream, file.getSize(), ThreadPoolFactory.getOssThreadPoolExecutor());
             UploadRequest uploadRequest = UploadRequest.builder()
                     .requestBody(requestBody)
                     .putObjectRequest(request)
@@ -145,9 +142,7 @@ public final class S3OssClient extends BaseOssClient implements OssClient {
         uploaded.setBucketName(bucketName);
         uploaded.setKey(key);
 
-        try (S3TransferManager transferManager = S3TransferManager.builder()
-                .s3Client(internalS3AsyncClient)
-                .build()) {
+        try {
             PutObjectRequest request = PutObjectRequest
                     .builder()
                     .bucket(bucketName)
