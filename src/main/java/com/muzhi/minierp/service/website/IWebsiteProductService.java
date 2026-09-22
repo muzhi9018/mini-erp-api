@@ -3,6 +3,7 @@ package com.muzhi.minierp.service.website;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.muzhi.minierp.entity.website.WebsiteProduct;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.muzhi.minierp.enums.SysLocale;
 import com.muzhi.minierp.vo.website.WebsiteProductI18nVO;
 import com.muzhi.minierp.vo.website.WebsiteProductCreatedVO;
 import com.muzhi.minierp.vo.website.WebsiteProductVO;
@@ -26,7 +27,21 @@ public interface IWebsiteProductService extends IService<WebsiteProduct> {
     /** 为已有商品新增一个语言及其明细，重复语言拒绝新增。 */
     WebsiteProductCreatedVO addI18n(WebsiteProductI18nVO query);
 
+    /** 修改商品及指定语言的内容，语言标识保持不变。 */
+    void update(WebsiteProductI18nVO query);
+
     IPage<WebsiteProductI18nVO> list(WebsiteProductI18nVO query, Integer pageNum, Integer pageSize);
+
+    /**
+     * 根据商品 ID 和语言编码查询编辑回显详情，不回退到默认语言，并包含未展示的明细。
+     *
+     * @author Mr.Muzhi
+     * @since 2026/9/22
+     * @param productId 商品 ID
+     * @param locale 语言编码
+     * @return 指定语言的商品详情
+     */
+    WebsiteProductI18nVO detail(Long productId, String locale);
 
     /**
      * 官網列表
@@ -47,4 +62,13 @@ public interface IWebsiteProductService extends IService<WebsiteProduct> {
      * @return 官网商品详情
      */
     WebsiteProductI18nVO websiteDetail(String slug);
+
+    /**
+     * 商品中的语言列表
+     * @author Mr.Muzhi
+     * @since 2026/9/22 14:20
+     * @param productId 商品id
+     * @return 返回结果
+     */
+    List<SysLocale.Bean> productLocales(Long productId);
 }

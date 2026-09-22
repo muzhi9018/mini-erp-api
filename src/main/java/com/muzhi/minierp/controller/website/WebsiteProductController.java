@@ -60,6 +60,25 @@ public class WebsiteProductController {
         return JsonResult.success(product);
     }
 
+    /**
+     * 修改商品及指定语言的内容，已有语言不允许更换。
+     */
+    @PostMapping("/update")
+    public JsonResult<Void> update(@RequestBody WebsiteProductI18nVO query) {
+        Assert.isNull(query, "website.product.required", "商品信息不能为空");
+        Assert.isNull(query.getId(), "website.product.id-required", "商品 ID 不能为空");
+        Assert.isNull(query.getProductI18nId(), "website.product.translation-id-required", "商品语言内容 ID 不能为空");
+        Assert.isNull(query.getCategoryId(), "website.product.category-required", "商品分类 ID 不能为空");
+        Assert.isTrue(StringUtils.isBlank(query.getSlug()), "website.product.slug-required", "商品 slug 不能为空");
+        String slug = query.getSlug().trim();
+        Pattern slugPattern = Pattern.compile("[a-z0-9]+(?:-[a-z0-9]+)*");
+        Assert.isFalse(slugPattern.matcher(slug).matches(), "website.product.slug-invalid", "商品 slug 只能由小写字母、数字和中划线组成");
+        this.validateLocale(query.getLocale());
+        this.validateI18n(query);
+        websiteProductService.update(query);
+        return JsonResult.success();
+    }
+
 
     private SysLocale validateLocale(String code) {
         Assert.isTrue(StringUtils.isBlank(code), "website.locale.code-required", "语言编码不能为空");
@@ -106,6 +125,7 @@ public class WebsiteProductController {
             Assert.isNull(detailItem, code + ".item-required", name + "条目不能为空");
             Assert.isTrue(StringUtils.isBlank(detailItem.getTitle()), code + ".title-required", name + "标题不能为空");
             Assert.isTrue(StringUtils.isBlank(detailItem.getContent()), code + ".content-required", name + "内容不能为空");
+            detailItem.setItemType(detailItemType.getCode());
             detailItem.setSortOrder(index++);
         }
     }
@@ -138,6 +158,29 @@ public class WebsiteProductController {
         IPage<WebsiteProductI18nVO> list = websiteProductService.list(query, pageNum, pageSize);
         return JsonResult.success(list);
     }
+
+    /**
+     * 根据商品 ID 和语言编码查询编辑回显详情，包含未展示的明细。
+     * @author Mr.Muzhi
+     * @since 2026/9/22
+     * @param productId 商品 ID
+     * @param localeCode 语言编码
+     * @return 指定语言的商品详情
+     */
+    @GetMapping("/detail")
+    public JsonResult<WebsiteProductI18nVO> detail(@RequestParam("productId") Long productId, @RequestParam("locale") String localeCode) {
+        Assert.isNull(productId, "website.product.id-required", "商品 ID 不能为空");
+        SysLocale locale = this.validateLocale(localeCode);
+        WebsiteProductI18nVO product = websiteProductService.detail(productId, locale.getCode());
+        return JsonResult.success(product);
+    }
+
+    @GetMapping("/product/locales")
+    public JsonResult<List<SysLocale.Bean>> productLocales(@RequestParam("productId") Long productId) {
+        List<SysLocale.Bean> beans = websiteProductService.productLocales(productId);
+        return JsonResult.success(beans);
+    }
+
 
     @OpenApi
     @GetMapping("/website/list")

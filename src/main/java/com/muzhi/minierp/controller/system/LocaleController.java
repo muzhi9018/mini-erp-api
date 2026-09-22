@@ -22,18 +22,9 @@ public class LocaleController {
 
 
     @GetMapping("/systemLocals")
-    public JsonResult<List<Map<String, Object>>> systemLocals() {
-        List<Map<String, Object>> list = new ArrayList<>();
-        for (SysLocale value : SysLocale.values()) {
-            Map<String, Object> map = new HashMap<>(16);
-            map.put("id", value.getId());
-            map.put("code", value.getCode());
-            map.put("name", value.getName());
-            map.put("nativeName", value.getNativeName());
-            map.put("defaultLocal", value.isDefaultLocal());
-            list.add(map);
-        }
-        return JsonResult.success(list);
+    public JsonResult<List<SysLocale.Bean>> systemLocals() {
+        List<SysLocale.Bean> beans = SysLocale.beans();
+        return JsonResult.success(beans);
     }
 
 }

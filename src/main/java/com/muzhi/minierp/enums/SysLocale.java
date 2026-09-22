@@ -2,7 +2,10 @@ package com.muzhi.minierp.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import lombok.Getter;
+import lombok.Setter;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -43,6 +46,27 @@ public enum SysLocale {
         this.nativeName = nativeName;
         this.defaultLocal = defaultLocal;
         this.locale = locale;
+    }
+
+    public static List<Bean> beans(){
+        List<Bean> list = new ArrayList<>();
+        SysLocale[] values = SysLocale.values();
+        for (SysLocale value : values){
+            Bean bean = value.toBean();
+            list.add(bean);
+        }
+        return list;
+    }
+
+    public Bean toBean() {
+        Bean bean = new Bean();
+        bean.setId(this.id);
+        bean.setCode(this.code);
+        bean.setName(this.name);
+        bean.setNativeName(nativeName);
+        bean.setDefaultLocal(this.defaultLocal);
+        bean.setLocale(this.locale);
+        return bean;
     }
 
     /**
@@ -112,5 +136,26 @@ public enum SysLocale {
             }
         }
         return sysLocale;
+    }
+
+
+    @Setter
+    @Getter
+    public static class Bean implements Serializable {
+
+        @Serial
+        private static final long serialVersionUID = -8154338563403459947L;
+
+        private int id;
+
+        private String code;
+
+        private String name;
+
+        private String nativeName;
+
+        private boolean defaultLocal;
+
+        private Locale locale;
     }
 }

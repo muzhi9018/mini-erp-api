@@ -1,6 +1,7 @@
 package com.muzhi.minierp.service.website.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
@@ -33,7 +34,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** 官网商品新增与语言内容新增。 */
+/** 官网商品及其多语言内容管理服务。 */
 @Service
 @RequiredArgsConstructor
 public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper, WebsiteProduct> implements IWebsiteProductService {
@@ -96,16 +97,83 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         return this.insertI18n(productId, locale, query);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void update(WebsiteProductI18nVO query) {
+        Long productId = query.getId();
+        WebsiteProduct dbProduct = super.baseMapper.selectByIdForUpdate(productId);
+        Assert.isNull(dbProduct, "website.product.not-found", "商品不存在");
+
+        Long productI18nId = query.getProductI18nId();
+        WebsiteProductI18n dbTranslation = websiteProductI18nMapper.selectById(productI18nId);
+        boolean translationNotFound = dbTranslation == null
+                || !productId.equals(dbTranslation.getProductId());
+        Assert.isTrue(translationNotFound, "website.product.translation-not-found", "商品语言内容不存在");
+        boolean localeChanged = !Objects.equals(dbTranslation.getLocale(), query.getLocale());
+        Assert.isTrue(localeChanged, "website.product.locale-change-not-allowed", "商品语言不能更换");
+
+        WebsiteProductCategory dbCategory = websiteProductCategoryMapper.selectById(query.getCategoryId());
+        Assert.isNull(dbCategory, "website.product.category-not-found", "商品分类不存在");
+
+        String slug = query.getSlug().trim();
+        LambdaQueryWrapper<WebsiteProduct> slugQuery = Wrappers.lambdaQuery();
+        slugQuery.eq(WebsiteProduct::getSlug, slug);
+        slugQuery.ne(WebsiteProduct::getId, productId);
+        boolean slugExisted = super.baseMapper.exists(slugQuery);
+        Assert.isTrue(slugExisted, "website.product.slug-already-exists", "商品 slug 已存在");
+
+        List<Long> attachmentIds = this.collectAttachmentIds(query);
+        attachmentService.validateAttachments(attachmentIds);
+
+        WebsiteProduct product = new WebsiteProduct();
+        product.setId(productId);
+        product.setCategoryId(query.getCategoryId());
+        product.setSlug(slug);
+        product.setSortOrder(query.getSortOrder());
+        product.setIsShow(query.getIsShow());
+        product.setIsRecommended(query.getIsRecommended());
+        try {
+            super.baseMapper.updateById(product);
+        } catch (DuplicateKeyException exception) {
+            throw new BusinessException("website.product.slug-already-exists", "商品 slug 已存在", exception);
+        }
+
+        // 显式更新允许修改的字段，并允许清空可选文案和图片。
+        LambdaUpdateWrapper<WebsiteProductI18n> translationUpdate = Wrappers.lambdaUpdate();
+        translationUpdate.eq(WebsiteProductI18n::getId, productI18nId);
+        translationUpdate.set(WebsiteProductI18n::getName, query.getName().trim());
+        translationUpdate.set(WebsiteProductI18n::getSubtitle, query.getSubtitle());
+        translationUpdate.set(WebsiteProductI18n::getSummary, query.getSummary());
+        translationUpdate.set(WebsiteProductI18n::getTagline, query.getTagline());
+        translationUpdate.set(
+                WebsiteProductI18n::getFeatureIntroduction,
+                query.getFeatureIntroduction()
+        );
+        translationUpdate.set(
+                WebsiteProductI18n::getSpecificationIntroduction,
+                query.getSpecificationIntroduction()
+        );
+        translationUpdate.set(
+                WebsiteProductI18n::getApplicationIntroduction,
+                query.getApplicationIntroduction()
+        );
+        translationUpdate.set(WebsiteProductI18n::getCaseIntroduction, query.getCaseIntroduction());
+        translationUpdate.set(
+                WebsiteProductI18n::getCoverImageAttachmentId,
+                query.getCoverImageAttachmentId()
+        );
+        translationUpdate.set(
+                WebsiteProductI18n::getFeatureImageAttachmentId,
+                query.getFeatureImageAttachmentId()
+        );
+        websiteProductI18nMapper.update(translationUpdate);
+
+        this.replaceDetailItems(productI18nId, query);
+        this.replaceMediaItems(productI18nId, query);
+    }
+
     private WebsiteProductCreatedVO insertI18n(Long productId, String locale, WebsiteProductI18nVO query) {
-        List<Long> attachmentIds = new ArrayList<>();
-        attachmentIds.add(query.getCoverImageAttachmentId());
-        attachmentIds.add(query.getFeatureImageAttachmentId());
-        for (WebsiteProductMediaItem item : query.getApplications()) {
-            attachmentIds.add(item.getImageAttachmentId());
-        }
-        for (WebsiteProductMediaItem item : query.getCases()) {
-            attachmentIds.add(item.getImageAttachmentId());
-        }
+        List<Long> attachmentIds = this.collectAttachmentIds(query);
         attachmentService.validateAttachments(attachmentIds);
         WebsiteProductI18n translation = BeanConvertUtils.convert(query, WebsiteProductI18n.class);
         translation.setGmtCreate(null);
@@ -153,6 +221,57 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         return new WebsiteProductCreatedVO(productId, translation.getId(), locale);
     }
 
+    /**
+     * 收集商品语言内容关联的附件 ID。
+     */
+    private List<Long> collectAttachmentIds(WebsiteProductI18nVO query) {
+        List<Long> attachmentIds = new ArrayList<>();
+        attachmentIds.add(query.getCoverImageAttachmentId());
+        attachmentIds.add(query.getFeatureImageAttachmentId());
+        for (WebsiteProductMediaItem item : query.getApplications()) {
+            attachmentIds.add(item.getImageAttachmentId());
+        }
+        for (WebsiteProductMediaItem item : query.getCases()) {
+            attachmentIds.add(item.getImageAttachmentId());
+        }
+        return attachmentIds;
+    }
+
+    /**
+     * 使用请求中的特点和技术参数替换指定语言的原有文本明细。
+     */
+    private void replaceDetailItems(Long productI18nId, WebsiteProductI18nVO query) {
+        LambdaQueryWrapper<WebsiteProductDetailItem> detailQuery = Wrappers.lambdaQuery();
+        detailQuery.eq(WebsiteProductDetailItem::getProductI18nId, productI18nId);
+        websiteProductDetailItemMapper.delete(detailQuery);
+
+        List<WebsiteProductDetailItem> detailItems = new ArrayList<>(16);
+        detailItems.addAll(query.getFeatures());
+        detailItems.addAll(query.getSpecifications());
+        for (WebsiteProductDetailItem detailItem : detailItems) {
+            this.setDefaultDetailItemParams(detailItem, productI18nId);
+        }
+        websiteProductDetailItemMapper.insert(detailItems);
+    }
+
+    /**
+     * 使用请求中的应用场景和案例替换指定语言的原有媒体明细。
+     */
+    private void replaceMediaItems(Long productI18nId, WebsiteProductI18nVO query) {
+        LambdaQueryWrapper<WebsiteProductMediaItem> mediaQuery = Wrappers.lambdaQuery();
+        mediaQuery.eq(WebsiteProductMediaItem::getProductI18nId, productI18nId);
+        websiteProductMediaItemMapper.delete(mediaQuery);
+
+        List<WebsiteProductMediaItemVO> mediaViews = new ArrayList<>(16);
+        mediaViews.addAll(query.getApplications());
+        mediaViews.addAll(query.getCases());
+        List<WebsiteProductMediaItem> mediaItems = BeanConvertUtils.mapList(mediaViews, WebsiteProductMediaItem.class);
+        for (WebsiteProductMediaItem mediaItem : mediaItems) {
+            this.setDefaultMediaItemParams(mediaItem, productI18nId);
+        }
+        websiteProductMediaItemMapper.insert(mediaItems);
+    }
+
 
     /**
      * 设置默认 官网商品文本明细 参数
@@ -166,6 +285,10 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         detailItem.setProductI18nId(productI18nId);
         detailItem.setIsShow(!Boolean.FALSE.equals(detailItem.getIsShow()));
         detailItem.setIsDeleted(false);
+        detailItem.setGmtCreate(null);
+        detailItem.setGmtModified(null);
+        detailItem.setCreateUser(null);
+        detailItem.setUpdateUser(null);
     }
 
     /**
@@ -295,6 +418,20 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
     }
 
     @Override
+    public WebsiteProductI18nVO detail(Long productId, String locale) {
+        WebsiteProduct product = super.baseMapper.selectById(productId);
+        Assert.isNull(product, "website.product.not-found", "商品不存在");
+
+        LambdaQueryWrapper<WebsiteProductI18n> i18nQuery = Wrappers.lambdaQuery();
+        i18nQuery.eq(WebsiteProductI18n::getProductId, productId);
+        i18nQuery.eq(WebsiteProductI18n::getLocale, locale);
+        WebsiteProductI18n productI18n = websiteProductI18nMapper.selectOne(i18nQuery);
+        Assert.isNull(productI18n, "website.product.translation-not-found", "商品语言内容不存在");
+
+        return this.buildProductDetail(product, productI18n, false);
+    }
+
+    @Override
     public WebsiteProductI18nVO websiteDetail(String slug) {
         LambdaQueryWrapper<WebsiteProduct> productQuery = Wrappers.lambdaQuery();
         productQuery.eq(WebsiteProduct::getSlug, slug);
@@ -305,21 +442,54 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         WebsiteProductI18n productI18n = this.findWebsiteProductI18n(product.getId(), currentLocale);
         Assert.isNull(productI18n, "website.product.not-found", "商品不存在");
 
+        return this.buildProductDetail(product, productI18n, true);
+    }
+
+    @Override
+    public List<SysLocale.Bean> productLocales(Long productId) {
+        WebsiteProduct product = baseMapper.selectById(productId);
+        Assert.isNull(product, "website.product.not-found", "商品不存在");
+        LambdaQueryWrapper<WebsiteProductI18n> query = Wrappers.lambdaQuery();
+        query.eq(WebsiteProductI18n::getProductId, productId);
+        List<WebsiteProductI18n> websiteProductI18ns = websiteProductI18nMapper.selectList(query);
+        List<SysLocale.Bean> result = new ArrayList<>(16);
+        for (WebsiteProductI18n websiteProductI18n : websiteProductI18ns) {
+            SysLocale sysLocale = SysLocale.ofCode(websiteProductI18n.getLocale());
+            if (sysLocale != null) {
+                SysLocale.Bean bean = sysLocale.toBean();
+                result.add(bean);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 组装商品、语言内容、文本明细、媒体明细及图片访问地址。
+     */
+    private WebsiteProductI18nVO buildProductDetail(WebsiteProduct product, WebsiteProductI18n productI18n, boolean onlyShown) {
         WebsiteProductI18nVO productView = this.convertWebsiteProduct(product, productI18n);
         Long productI18nId = productI18n.getId();
         LambdaQueryWrapper<WebsiteProductDetailItem> detailQuery = Wrappers.lambdaQuery();
         detailQuery.eq(WebsiteProductDetailItem::getProductI18nId, productI18nId);
-        detailQuery.eq(WebsiteProductDetailItem::getIsShow, true);
+        if (onlyShown) {
+            detailQuery.eq(WebsiteProductDetailItem::getIsShow, true);
+        }
         detailQuery.orderByAsc(WebsiteProductDetailItem::getSortOrder, WebsiteProductDetailItem::getId);
         List<WebsiteProductDetailItem> detailItems = websiteProductDetailItemMapper.selectList(detailQuery);
-        List<WebsiteProductDetailItem> features = detailItems.stream().filter(item -> WebsiteProductEnum.DetailItemType.FEATURE.getCode().equals(item.getItemType())).toList();
-        List<WebsiteProductDetailItem> specifications = detailItems.stream().filter(item -> WebsiteProductEnum.DetailItemType.SPECIFICATION.getCode().equals(item.getItemType())).toList();
+        List<WebsiteProductDetailItem> features = detailItems.stream()
+                .filter(item -> WebsiteProductEnum.DetailItemType.FEATURE.getCode().equals(item.getItemType()))
+                .toList();
+        List<WebsiteProductDetailItem> specifications = detailItems.stream()
+                .filter(item -> WebsiteProductEnum.DetailItemType.SPECIFICATION.getCode().equals(item.getItemType()))
+                .toList();
         productView.setFeatures(features);
         productView.setSpecifications(specifications);
 
         LambdaQueryWrapper<WebsiteProductMediaItem> mediaQuery = Wrappers.lambdaQuery();
         mediaQuery.eq(WebsiteProductMediaItem::getProductI18nId, productI18nId);
-        mediaQuery.eq(WebsiteProductMediaItem::getIsShow, true);
+        if (onlyShown) {
+            mediaQuery.eq(WebsiteProductMediaItem::getIsShow, true);
+        }
         mediaQuery.orderByAsc(WebsiteProductMediaItem::getSortOrder, WebsiteProductMediaItem::getId);
         List<WebsiteProductMediaItem> mediaItems = websiteProductMediaItemMapper.selectList(mediaQuery);
         List<WebsiteProductMediaItemVO> mediaViews = BeanConvertUtils.mapList(mediaItems, WebsiteProductMediaItemVO.class);
@@ -338,8 +508,12 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
             mediaView.setImageUrl(imageUrl);
         }
 
-        List<WebsiteProductMediaItemVO> applications = mediaViews.stream().filter(item -> WebsiteProductEnum.MediaItemType.APPLICATION.getCode().equals(item.getItemType())).toList();
-        List<WebsiteProductMediaItemVO> cases = mediaViews.stream().filter(item -> WebsiteProductEnum.MediaItemType.CASE.getCode().equals(item.getItemType())).toList();
+        List<WebsiteProductMediaItemVO> applications = mediaViews.stream()
+                .filter(item -> WebsiteProductEnum.MediaItemType.APPLICATION.getCode().equals(item.getItemType()))
+                .toList();
+        List<WebsiteProductMediaItemVO> cases = mediaViews.stream()
+                .filter(item -> WebsiteProductEnum.MediaItemType.CASE.getCode().equals(item.getItemType()))
+                .toList();
         productView.setApplications(applications);
         productView.setCases(cases);
         return productView;
