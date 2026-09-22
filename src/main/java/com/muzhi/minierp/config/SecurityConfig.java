@@ -34,12 +34,13 @@ import java.util.Set;
 @EnableWebSecurity
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    WebApplicationContext webApplicationContext,
                                                    JwtAuthenticationEntryPoint authenticationEntryPoint,
                                                    JwtAuthenticationFilter jwtAuthenticationFilter,
-                                                   UserAuthenticationProvider userAuthenticationProvider) throws Exception {
+                                                   UserAuthenticationProvider userAuthenticationProvider) {
         Set<String> openApiPatterns = this.loadOpenApiPatterns(webApplicationContext);
         http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -59,14 +60,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) {
         return configuration.getAuthenticationManager();
     }
 
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider,
-                                                            ObjectMapper objectMapper,
-                                                            I18nHelper i18nHelper) {
+    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, ObjectMapper objectMapper, I18nHelper i18nHelper) {
         return new JwtAuthenticationFilter(jwtTokenProvider, objectMapper, i18nHelper);
     }
 
