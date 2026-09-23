@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <Property name="APPLICATION_NAME">${spring:spring.application.name:-application}</Property>
+        <Property name="LOG_PATH">${spring:logging.file.path:-logs}</Property>
+        <Property name="CONSOLE_LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n%throwable</Property>
+        <Property name="FILE_LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n%throwable</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${CONSOLE_LOG_PATTERN}" charset="UTF-8"/>
+        </Console>
+
+        <RollingFile name="ApplicationFile"
+                     fileName="${LOG_PATH}/${APPLICATION_NAME}.log"
+                     filePattern="${LOG_PATH}/archive/${APPLICATION_NAME}-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${FILE_LOG_PATTERN}" charset="UTF-8"/>
+            <Policies>
+                <OnStartupTriggeringPolicy/>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="100 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30">
+                <Delete basePath="${LOG_PATH}/archive" maxDepth="1">
+                    <IfFileName glob="${APPLICATION_NAME}-*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+        <RollingFile name="ErrorFile"
+                     fileName="${LOG_PATH}/${APPLICATION_NAME}-error.log"
+                     filePattern="${LOG_PATH}/archive/${APPLICATION_NAME}-error-%d{yyyy-MM-dd}-%i.log.gz">
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="${FILE_LOG_PATTERN}" charset="UTF-8"/>
+            <Policies>
+                <OnStartupTriggeringPolicy/>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="100 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30">
+                <Delete basePath="${LOG_PATH}/archive" maxDepth="1">
+                    <IfFileName glob="${APPLICATION_NAME}-error-*.log.gz"/>
+                    <IfLastModified age="30d"/>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ApplicationFile"/>
+            <AppenderRef ref="ErrorFile"/>
+        </Root>
+    </Loggers>
+</Configuration>

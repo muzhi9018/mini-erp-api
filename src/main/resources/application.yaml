@@ -22,8 +22,6 @@ spring:
   profiles:
     active: dev
 
-
-
 # Mybatis Plus 打印日志
 mybatis-plus:
   configuration:
@@ -35,8 +33,11 @@ mybatis-plus:
 
 # 设置日志等级
 logging:
+  config: classpath:log4j2-spring.xml
+  file:
+    path: logs
   level:
-    com.muzhi.user.mapper: debug
+    com.muzhi.minierp.mapper: debug
 
 security:
   jwt:
