@@ -30,6 +30,15 @@ public interface IWebsiteProductService extends IService<WebsiteProduct> {
     /** 修改商品及指定语言的内容，语言标识保持不变。 */
     void update(WebsiteProductI18nVO query);
 
+    /**
+     * 删除商品及其语言内容、文本明细、媒体明细和推荐关系。
+     *
+     * @author Mr.Muzhi
+     * @since 2026/9/23
+     * @param productId 商品 ID
+     */
+    void delete(Long productId);
+
     IPage<WebsiteProductI18nVO> list(WebsiteProductI18nVO query, Integer pageNum, Integer pageSize);
 
     /**

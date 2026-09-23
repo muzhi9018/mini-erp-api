@@ -79,6 +79,21 @@ public class WebsiteProductController {
         return JsonResult.success();
     }
 
+    /**
+     * 根据商品 ID 删除商品及其关联信息。
+     *
+     * @author Mr.Muzhi
+     * @since 2026/9/23
+     * @param productId 商品 ID
+     * @return 删除结果
+     */
+    @PostMapping("/delete/{productId}")
+    public JsonResult<Void> delete(@PathVariable("productId") Long productId) {
+        Assert.isNull(productId, "website.product.id-required", "商品 ID 不能为空");
+        websiteProductService.delete(productId);
+        return JsonResult.success();
+    }
+
 
     private SysLocale validateLocale(String code) {
         Assert.isTrue(StringUtils.isBlank(code), "website.locale.code-required", "语言编码不能为空");

@@ -19,7 +19,7 @@ public interface RedisKey {
      */
     enum User implements RedisKey {
 
-        USER_AUTHORITIES("USER_AUTHORITIES",  Duration.ofHours(1));
+        USER_AUTHORITIES("USER_AUTHORITIES",  Duration.ofHours(14));
 
         private final String key;
 

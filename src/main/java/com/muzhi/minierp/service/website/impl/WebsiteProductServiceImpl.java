@@ -18,6 +18,7 @@ import com.muzhi.minierp.mapper.website.WebsiteProductDetailItemMapper;
 import com.muzhi.minierp.mapper.website.WebsiteProductI18nMapper;
 import com.muzhi.minierp.mapper.website.WebsiteProductMapper;
 import com.muzhi.minierp.mapper.website.WebsiteProductMediaItemMapper;
+import com.muzhi.minierp.mapper.website.WebsiteProductRecommendMapper;
 import com.muzhi.minierp.service.website.IWebsiteProductService;
 import com.muzhi.minierp.service.system.IAttachmentService;
 import com.muzhi.minierp.util.Assert;
@@ -48,6 +49,8 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
     private final WebsiteProductDetailItemMapper websiteProductDetailItemMapper;
 
     private final WebsiteProductMediaItemMapper websiteProductMediaItemMapper;
+
+    private final WebsiteProductRecommendMapper websiteProductRecommendMapper;
 
 
     @Override
@@ -170,6 +173,38 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
 
         this.replaceDetailItems(productI18nId, query);
         this.replaceMediaItems(productI18nId, query);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(Long productId) {
+        WebsiteProduct product = super.baseMapper.selectByIdForUpdate(productId);
+        Assert.isNull(product, "website.product.not-found", "商品不存在");
+
+        LambdaQueryWrapper<WebsiteProductRecommend> recommendQuery = Wrappers.lambdaQuery();
+        recommendQuery.and(query -> query
+                .eq(WebsiteProductRecommend::getProductId, productId)
+                .or()
+                .eq(WebsiteProductRecommend::getRecommendProductId, productId));
+        websiteProductRecommendMapper.delete(recommendQuery);
+
+        LambdaQueryWrapper<WebsiteProductI18n> i18nQuery = Wrappers.lambdaQuery();
+        i18nQuery.eq(WebsiteProductI18n::getProductId, productId);
+        List<WebsiteProductI18n> translations = websiteProductI18nMapper.selectList(i18nQuery);
+        List<Long> productI18nIds = translations.stream()
+                .map(WebsiteProductI18n::getId)
+                .toList();
+        if (!productI18nIds.isEmpty()) {
+            LambdaQueryWrapper<WebsiteProductDetailItem> detailQuery = Wrappers.lambdaQuery();
+            detailQuery.in(WebsiteProductDetailItem::getProductI18nId, productI18nIds);
+            websiteProductDetailItemMapper.delete(detailQuery);
+
+            LambdaQueryWrapper<WebsiteProductMediaItem> mediaQuery = Wrappers.lambdaQuery();
+            mediaQuery.in(WebsiteProductMediaItem::getProductI18nId, productI18nIds);
+            websiteProductMediaItemMapper.delete(mediaQuery);
+        }
+        websiteProductI18nMapper.delete(i18nQuery);
+        super.baseMapper.deleteById(productId);
     }
 
     private WebsiteProductCreatedVO insertI18n(Long productId, String locale, WebsiteProductI18nVO query) {
