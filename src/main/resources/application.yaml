@@ -38,9 +38,3 @@ logging:
     path: logs
   level:
     com.muzhi.minierp.mapper: debug
-
-security:
-  jwt:
-    issuer: https://www.muzhi.store
-    secret: HaOB/RCKCb2VQyH8T72rryAGhGsdzrQDlAbMge8F93A2xrgswcxI+c0hI1UMbgYm
-    expire-minutes: 1440

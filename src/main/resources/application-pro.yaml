@@ -2,9 +2,9 @@ spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://100.64.88.3:5432/mini_erp
-    username: 'root'
-    password: 'postgres@root@602'
+    url: jdbc:postgresql://postgres:5432/mini_erp_prod
+    username: 'mini_erp_prod_user'
+    password: 'ns2k5uvak1+D9ch_UlWzJZKlt42TEFKG=9lX'
     druid:
       initial-size: 5
       min-idle: 5
@@ -20,8 +20,8 @@ spring:
       max-evictable-idle-time-millis: 900000
   data:
     redis:
-      host: 100.64.88.3
-      password: 'MYREDIS@123'
+      host: redis
+      password: 'A9d!K2m@P7q%W4x^Z8n&R3t_Y6u=L5'
       port: 6379
       database: 0
       timeout: 10s
@@ -31,6 +31,13 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: 10s
+
+security:
+  jwt:
+    issuer: 'https://www.greenbuild.tw.cn'
+    secret: 'A9d!K2m@P7q%W4x^Z8n&R3t_Y6u=L5v?B2c#D9fG4h*J7k+M1n-Q8r.S5t/U2w~9'
+    expire-minutes: 1440
+
 oss:
   access-key: 'VASONTyplDIOQk2ayR0k'
   secret-key: 'B1BQPfVXEOPjt4B3PswzYyhzdiyaNSZ2sCiajlN2'
