@@ -19,6 +19,26 @@ public enum DefaultRoleEnum {
     SUPER_ADMIN(1L, "超级管理员", "SUPER_ADMIN", " 建绿新材超级管理员"),
 
     /**
+     * 管理员
+     */
+    ADMIN(2L, "管理员", "ADMIN", "建绿新材管理员"),
+
+    /**
+     * 财务
+     */
+    FINANCE(3L, "管理员", "FINANCE", "建绿新材财务"),
+
+    /**
+     * 代理
+     */
+    PROXY(4L, "代理", "PROXY", "建绿新材代理"),
+
+    /**
+     * 销售
+     */
+    SALES(5L, "销售", "SALES", "建绿新材销售"),
+
+    /**
      * 系统监控管理员
      */
     SYSTEM_MONITOR_ADMIN(1694996817341935617L, "系统监控管理员", "SYSTEM_MONITOR_ADMIN", "系统监控管理员");
