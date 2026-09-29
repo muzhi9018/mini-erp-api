@@ -47,12 +47,19 @@ public interface ISysRoleService extends IService<SysRole> {
      * 角色分页查询
      * @author Mr.Muzhi
      * @since 2023/12/19 10:47
-     * @param current 当前页
+     * @param pageNum 当前页
      * @param pageSize 一页数量
      * @param query 查询条件
      * @return 返回结果
      */
-    IPage<SysRoleVO> findByPage(Integer current, Integer pageSize, SysRoleVO query);
+    IPage<SysRoleVO> findByPage(Integer pageNum, Integer pageSize, SysRoleVO query);
+
+    /**
+     * 查询全部角色的 ID、编码和名称，供用户授权时选择。
+     *
+     * @return 角色列表
+     */
+    List<SysRole> listAll();
 
     /**
      * 角色菜单详情

@@ -97,14 +97,22 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     }
 
     @Override
-    public IPage<SysRoleVO> findByPage(Integer current, Integer pageSize, SysRoleVO query) {
-        IPage<SysRoleVO> page = new Page<>(current, pageSize);
+    public IPage<SysRoleVO> findByPage(Integer pageNum, Integer pageSize, SysRoleVO query) {
+        IPage<SysRoleVO> page = new Page<>(pageNum, pageSize);
         baseMapper.findByPage(page, query);
         for (SysRoleVO sysRole : page.getRecords()) {
             DefaultRoleEnum defaultRole = DefaultRoleEnum.ofCode(sysRole.getRoleCode());
             sysRole.setSysDefRole(defaultRole != null);
         }
         return page;
+    }
+
+    @Override
+    public List<SysRole> listAll() {
+        LambdaQueryWrapper<SysRole> query = Wrappers.lambdaQuery();
+        query.select(SysRole::getId, SysRole::getRoleCode, SysRole::getRoleName);
+        query.orderByAsc(SysRole::getSort, SysRole::getId);
+        return baseMapper.selectList(query);
     }
 
     @Override

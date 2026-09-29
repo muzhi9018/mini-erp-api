@@ -104,7 +104,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
     @Transactional(rollbackFor = Exception.class)
     public void update(WebsiteProductI18nVO query) {
         Long productId = query.getId();
-        WebsiteProduct dbProduct = super.baseMapper.selectByIdForUpdate(productId);
+        WebsiteProduct dbProduct = baseMapper.selectByIdForUpdate(productId);
         Assert.isNull(dbProduct, "website.product.not-found", "商品不存在");
 
         Long productI18nId = query.getProductI18nId();
@@ -122,7 +122,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         LambdaQueryWrapper<WebsiteProduct> slugQuery = Wrappers.lambdaQuery();
         slugQuery.eq(WebsiteProduct::getSlug, slug);
         slugQuery.ne(WebsiteProduct::getId, productId);
-        boolean slugExisted = super.baseMapper.exists(slugQuery);
+        boolean slugExisted = baseMapper.exists(slugQuery);
         Assert.isTrue(slugExisted, "website.product.slug-already-exists", "商品 slug 已存在");
 
         List<Long> attachmentIds = this.collectAttachmentIds(query);
@@ -136,7 +136,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         product.setIsShow(query.getIsShow());
         product.setIsRecommended(query.getIsRecommended());
         try {
-            super.baseMapper.updateById(product);
+            baseMapper.updateById(product);
         } catch (DuplicateKeyException exception) {
             throw new BusinessException("website.product.slug-already-exists", "商品 slug 已存在", exception);
         }
@@ -178,7 +178,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long productId) {
-        WebsiteProduct product = super.baseMapper.selectByIdForUpdate(productId);
+        WebsiteProduct product = baseMapper.selectByIdForUpdate(productId);
         Assert.isNull(product, "website.product.not-found", "商品不存在");
 
         LambdaQueryWrapper<WebsiteProductRecommend> recommendQuery = Wrappers.lambdaQuery();
@@ -204,7 +204,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
             websiteProductMediaItemMapper.delete(mediaQuery);
         }
         websiteProductI18nMapper.delete(i18nQuery);
-        super.baseMapper.deleteById(productId);
+        baseMapper.deleteById(productId);
     }
 
     private WebsiteProductCreatedVO insertI18n(Long productId, String locale, WebsiteProductI18nVO query) {
@@ -410,7 +410,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         query.eq(WebsiteProduct::getIsShow, true);
         query.orderByAsc(WebsiteProduct::getSortOrder);
         query.orderByDesc(WebsiteProduct::getId);
-        List<WebsiteProduct> websiteProducts = super.baseMapper.selectList(query);
+        List<WebsiteProduct> websiteProducts = baseMapper.selectList(query);
         if (websiteProducts.isEmpty()) {
             return Collections.emptyList();
         }
@@ -454,7 +454,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
 
     @Override
     public WebsiteProductI18nVO detail(Long productId, String locale) {
-        WebsiteProduct product = super.baseMapper.selectById(productId);
+        WebsiteProduct product = baseMapper.selectById(productId);
         Assert.isNull(product, "website.product.not-found", "商品不存在");
 
         LambdaQueryWrapper<WebsiteProductI18n> i18nQuery = Wrappers.lambdaQuery();
@@ -470,7 +470,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
     public WebsiteProductI18nVO websiteDetail(String slug) {
         LambdaQueryWrapper<WebsiteProduct> productQuery = Wrappers.lambdaQuery();
         productQuery.eq(WebsiteProduct::getSlug, slug);
-        WebsiteProduct product = super.baseMapper.selectOne(productQuery);
+        WebsiteProduct product = baseMapper.selectOne(productQuery);
         Assert.isNull(product, "website.product.not-found", "商品不存在");
 
         SysLocale currentLocale = I18nContext.getCurrentLocale();

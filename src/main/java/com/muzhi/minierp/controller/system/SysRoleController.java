@@ -47,9 +47,20 @@ public class SysRoleController {
     }
 
     @GetMapping("/findByPage")
-    public JsonResult<IPage<SysRoleVO>> findByPage(@RequestParam(defaultValue = "1") Integer current, @RequestParam(defaultValue = "15") Integer pageSize, SysRoleVO query) {
-        IPage<SysRoleVO> page = sysRoleService.findByPage(current, pageSize, query);
+    public JsonResult<IPage<SysRoleVO>> findByPage(@RequestParam(name = "pageNum", defaultValue = "1") Integer pageNum, @RequestParam(defaultValue = "15") Integer pageSize, SysRoleVO query) {
+        IPage<SysRoleVO> page = sysRoleService.findByPage(pageNum, pageSize, query);
         return JsonResult.success(page);
+    }
+
+    /**
+     * 查询全部角色，供用户授权时选择。
+     *
+     * @return 角色列表
+     */
+    @GetMapping("/listAll")
+    public JsonResult<List<SysRole>> listAll() {
+        List<SysRole> roles = sysRoleService.listAll();
+        return JsonResult.success(roles);
     }
 
     @GetMapping("/roleMenuDetail")

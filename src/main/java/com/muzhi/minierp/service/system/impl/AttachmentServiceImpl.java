@@ -81,7 +81,7 @@ public class AttachmentServiceImpl extends ServiceImpl<AttachmentMapper, Attachm
         }
         LambdaQueryWrapper<Attachment> query = Wrappers.lambdaQuery();
         query.in(Attachment::getId, ids);
-        return super.baseMapper.selectList(query);
+        return baseMapper.selectList(query);
     }
 
     @Override
@@ -110,7 +110,7 @@ public class AttachmentServiceImpl extends ServiceImpl<AttachmentMapper, Attachm
         try {
             // 数据库事务仅覆盖入库阶段，避免网络上传期间占用连接。
             transactionTemplate.executeWithoutResult(status -> {
-                int inserted = super.baseMapper.insert(attachment);
+                int inserted = baseMapper.insert(attachment);
                 Assert.isTrue(inserted != 1, "system.attachment.save-failed", "保存附件记录失败");
             });
         } catch (RuntimeException e) {

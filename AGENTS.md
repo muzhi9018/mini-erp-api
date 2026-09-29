@@ -38,7 +38,7 @@ Assert.isTrue(
 // 正例：构造条件、查询、校验分别执行。
 LambdaQueryWrapper<WebsiteProductCategory> codeQuery = Wrappers.lambdaQuery();
 codeQuery.eq(WebsiteProductCategory::getCode, code);
-boolean codeExisted = super.baseMapper.exists(codeQuery);
+boolean codeExisted = baseMapper.exists(codeQuery);
 Assert.isTrue(codeExisted, "website.product-category.code-already-exists", "商品分类编码已存在");
 ```
 
@@ -54,7 +54,7 @@ Assert.isTrue(codeExisted, "website.product-category.code-already-exists", "商�
 // SysUserServiceImpl：本类方法、本类依赖、父类字段。
 SysUser dbUser = this.findByUsername(user.getUsername());
 String encodedPassword = passwordEncoder.encode(password);
-super.baseMapper.insert(user);
+baseMapper.insert(user);
 
 // UserServiceImpl：本类注入的 Mapper 直接使用字段名。
 userMapper.insert(user);
@@ -144,6 +144,12 @@ public interface OrderEnum {
 - 依赖数据库或其他业务数据的校验放在 Service，如记录是否存在、编码是否重复、关联数据是否有效、当前业务状态是否允许操作；Controller 不为校验直接查询 Mapper。需保证一致性的校验与写入放在同一事务中。
 - 使用本项目的 `com.muzhi.minierp.util.Assert`：**条件命中即抛异常**。例如 `Assert.isNull(dbUser, code, message)` 在对象为 `null` 时抛出，`Assert.isTrue(invalid, code, message)` 在条件为 `true` 时抛出；不要套用 Spring Assert 的语义。
 - 业务异常使用 `BusinessException`，提供国际化 key 和中文兜底；占位符采用 `{0}`，参数单独传入。新增提示同步维护 `src/main/resources/i18n/{模块}/messages*.properties` 的各语言版本。
+
+## 分页参数
+
+- 分页接口的请求参数统一命名为 `pageNum`、`pageSize`，分别表示页码和每页数量；Controller、Service 的对应方法参数和 Javadoc 保持一致，不使用 `current`、`pageNo` 等其他名称。
+- Mapper 接收的 `IPage` / `Page` 对象可以继续命名为 `page`，此规则针对页码和每页数量两个数值参数。
+- 分页参数校验的国际化提示统一维护在 `src/main/resources/i18n/common/messages*.properties`，各业务模块复用公共 key，不在模块资源中重复定义。
 
 ## 持久化与验证
 

@@ -50,7 +50,7 @@ public class WebsiteProductCategoryServiceImpl extends ServiceImpl<WebsiteProduc
         String code = query.getCode().trim();
         LambdaQueryWrapper<WebsiteProductCategory> codeQuery = Wrappers.lambdaQuery();
         codeQuery.eq(WebsiteProductCategory::getCode, code);
-        boolean codeExisted = super.baseMapper.exists(codeQuery);
+        boolean codeExisted = baseMapper.exists(codeQuery);
         Assert.isTrue(codeExisted, "website.product-category.code-already-exists", "商品分类编码已存在");
 
         int defaultSortOrder = 0;
@@ -70,7 +70,7 @@ public class WebsiteProductCategoryServiceImpl extends ServiceImpl<WebsiteProduc
         category.setCreateUser(null);
         category.setUpdateUser(null);
         try {
-            super.baseMapper.insert(category);
+            baseMapper.insert(category);
         } catch (DuplicateKeyException exception) {
             throw new BusinessException("website.product-category.code-already-exists", "商品分类编码已存在", exception);
         }
@@ -83,7 +83,7 @@ public class WebsiteProductCategoryServiceImpl extends ServiceImpl<WebsiteProduc
     public WebsiteProductCategoryI18n addI18n(WebsiteProductCategoryI18n query) {
         Long categoryId = query.getWebsiteProductCategoryId();
         // 在事务内锁住分类，避免并发添加同一种语言。
-        WebsiteProductCategory category = super.baseMapper.selectByIdForUpdate(categoryId);
+        WebsiteProductCategory category = baseMapper.selectByIdForUpdate(categoryId);
         Assert.isNull(category, "website.product-category.not-found", "商品分类不存在");
 
         LambdaQueryWrapper<WebsiteProductCategoryI18n> localeQuery = Wrappers.lambdaQuery();

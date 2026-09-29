@@ -27,8 +27,8 @@ public class SysMenuController {
     private final ISysMenuService sysMenuService;
 
     @GetMapping("/findTopLevelMenu")
-    public JsonResult<?> findTopLevelMenu(@RequestParam(defaultValue = "1") Integer current, @RequestParam(defaultValue = "15") Integer pageSize) {
-        IPage<SysMenu> page = sysMenuService.findTopLevelMenu(current, pageSize);
+    public JsonResult<?> findTopLevelMenu(@RequestParam(name = "pageNum", defaultValue = "1") Integer pageNum, @RequestParam(defaultValue = "15") Integer pageSize) {
+        IPage<SysMenu> page = sysMenuService.findTopLevelMenu(pageNum, pageSize);
         return JsonResult.success(page);
     }
 
