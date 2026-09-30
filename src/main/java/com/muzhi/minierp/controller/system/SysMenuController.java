@@ -6,6 +6,7 @@ import com.muzhi.minierp.model.JsonResult;
 import com.muzhi.minierp.service.system.ISysMenuService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,18 +40,21 @@ public class SysMenuController {
     }
 
     @PostMapping("/addMenu")
+    @PreAuthorize("hasAuthority('system-manage:menu-manage:add')")
     public JsonResult<?> addMenu(@RequestBody SysMenu sysMenu) {
         sysMenuService.addMenu(sysMenu);
         return JsonResult.success();
     }
 
     @PostMapping("/updateMenu")
+    @PreAuthorize("hasAuthority('system-manage:menu-manage:edit')")
     public JsonResult<?> updateMenu(@RequestBody SysMenu sysMenu) {
         sysMenuService.updateMenu(sysMenu);
         return JsonResult.success();
     }
 
     @PostMapping("/del")
+    @PreAuthorize("hasAuthority('system-manage:menu-manage:del')")
     public JsonResult<?> del(@RequestBody SysMenu sysMenu) {
         sysMenuService.delById(sysMenu.getId());
         return JsonResult.success();

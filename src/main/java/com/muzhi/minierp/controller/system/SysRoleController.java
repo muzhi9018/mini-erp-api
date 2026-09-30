@@ -8,6 +8,7 @@ import com.muzhi.minierp.vo.SysMenuVO;
 import com.muzhi.minierp.vo.SysRoleVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,18 +30,21 @@ public class SysRoleController {
     private final ISysRoleService sysRoleService;
 
     @PostMapping("/addRole")
+    @PreAuthorize("hasAuthority('system-manage:role-manage:add')")
     public JsonResult<Boolean> addRole(@RequestBody SysRole sysRole) {
         sysRoleService.addRole(sysRole);
         return JsonResult.success(true);
     }
 
     @PostMapping("/delRole")
+    @PreAuthorize("hasAuthority('system-manage:role-manage:del')")
     public JsonResult<Boolean> delRole(@RequestBody SysRole sysRole) {
         sysRoleService.delRole(sysRole);
         return JsonResult.success(true);
     }
 
     @PostMapping("/editRole")
+    @PreAuthorize("hasAuthority('system-manage:role-manage:edit')")
     public JsonResult<Boolean> editRole(@RequestBody SysRole sysRole) {
         sysRoleService.editRole(sysRole);
         return JsonResult.success(true);
@@ -70,6 +74,7 @@ public class SysRoleController {
     }
 
     @PostMapping("/roleAuthorize")
+    @PreAuthorize("hasAuthority('system-manage:role-manage:authorize')")
     public JsonResult<?> roleAuthorize(@RequestBody SysRoleVO sysRole) {
         sysRoleService.roleAuthorize(sysRole);
         return JsonResult.success();
