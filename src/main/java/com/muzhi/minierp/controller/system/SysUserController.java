@@ -95,6 +95,20 @@ public class SysUserController {
     }
 
     /**
+     * 切换指定用户的启用状态。
+     *
+     * @param user 用户对象
+     * @return 切换后的用户状态
+     */
+    @PostMapping("/change/status")
+    @PreAuthorize("hasAuthority('system-manage:user-manage:change-status')")
+    public JsonResult<Integer> changeStatus(@RequestBody SysUser user) {
+        Assert.isTrue(user == null || user.getId() == null, "system.user.change-status.user-id-required", "用户ID不能为空且必须大于0");
+        Integer status = sysUserService.changeStatus(user.getId());
+        return JsonResult.success(status);
+    }
+
+    /**
      * 分页查询用户及其已授权角色。
      *
      * @param pageNum 当前页

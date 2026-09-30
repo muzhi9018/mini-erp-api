@@ -56,6 +56,14 @@ public interface ISysUserService extends IService<SysUser> {
     void delete(Long userId);
 
     /**
+     * 切换用户的启用状态。
+     *
+     * @param userId 用户 ID
+     * @return 切换后的用户状态
+     */
+    Integer changeStatus(Long userId);
+
+    /**
      * 分页查询用户及其已授权角色。
      *
      * @param pageNum 当前页

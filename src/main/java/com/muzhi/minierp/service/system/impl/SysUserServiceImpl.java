@@ -1,6 +1,7 @@
 package com.muzhi.minierp.service.system.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -95,7 +96,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         userRole.setRoleId(roleId);
         sysUserRoleMapper.insert(userRole);
         if (StringUtils.isBlank(user.getCurrentRoleCode())) {
-            user.setCurrentRoleCode(role.getRoleCode());
+            SysUser updateUser = new SysUser();
+            updateUser.setId(user.getId());
+            updateUser.setCurrentRoleCode(role.getRoleCode());
+            baseMapper.updateById(updateUser);
         }
     }
 
@@ -134,9 +138,34 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
+    public Integer changeStatus(Long userId) {
+        SysUser user = baseMapper.selectById(userId);
+        Assert.isNull(user, "system.user.not-found", "用户不存在");
+
+        Integer currentStatus = user.getStatus();
+        SysUserStatus nextStatus;
+        if (SysUserStatus.ENABLED.eq(currentStatus)) {
+            nextStatus = SysUserStatus.DISABLED;
+        } else if (SysUserStatus.DISABLED.eq(currentStatus)) {
+            nextStatus = SysUserStatus.ENABLED;
+        } else {
+            throw new BusinessException("system.user.change-status.invalid-status", "用户状态无效，无法切换");
+        }
+
+        // 仅在状态未被其他请求修改时更新，避免并发切换互相覆盖。
+        LambdaUpdateWrapper<SysUser> statusCondition = Wrappers.lambdaUpdate();
+        statusCondition.eq(SysUser::getId, userId);
+        statusCondition.eq(SysUser::getStatus, currentStatus);
+        statusCondition.set(SysUser::getStatus, nextStatus.value());
+        int updated = baseMapper.update(null, statusCondition);
+        Assert.isTrue(updated != 1, "system.user.change-status.save-failed", "切换用户状态失败，请重试");
+        return nextStatus.value();
+    }
+
+    @Override
     public IPage<SysUserVO> findByPage(Integer pageNum, Integer pageSize, SysUser query) {
         IPage<SysUserVO> result = new Page<>(pageNum, pageSize);
-        result = super.baseMapper.findByPage(result, query);
+        result = baseMapper.findByPage(result, query);
         List<SysUserVO> users = result.getRecords();
         if (users.isEmpty()) {
             return result;
