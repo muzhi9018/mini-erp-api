@@ -18,11 +18,12 @@ import com.muzhi.minierp.service.system.ISysUserService;
 import com.muzhi.minierp.util.Assert;
 import com.muzhi.minierp.vo.SysUserVO;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -51,7 +52,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public SysUser findByUsername(String username) {
-        if (!StringUtils.hasText(username)) {
+        if (StringUtils.isBlank(username)) {
             return null;
         }
         LambdaQueryWrapper<SysUser> query = Wrappers.lambdaQuery();
@@ -93,6 +94,43 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         userRole.setUserId(userId);
         userRole.setRoleId(roleId);
         sysUserRoleMapper.insert(userRole);
+        if (StringUtils.isBlank(user.getCurrentRoleCode())) {
+            user.setCurrentRoleCode(role.getRoleCode());
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String resetPassword(Long userId) {
+        SysUser user = baseMapper.selectById(userId);
+        Assert.isNull(user, "system.user.not-found", "用户不存在");
+
+        int minimumEightDigitNumber = 10_000_000;
+        int firstNineDigitNumber = 100_000_000;
+        SecureRandom secureRandom = new SecureRandom();
+        String generatedPassword = Integer.toString(secureRandom.nextInt(minimumEightDigitNumber, firstNineDigitNumber));
+        String saltedPassword = SecurityUtils.passwordSaltAddition(user.getUsername(), generatedPassword);
+        String encodedPassword = passwordEncoder.encode(saltedPassword);
+        SysUser passwordUpdate = new SysUser();
+        passwordUpdate.setId(userId);
+        passwordUpdate.setPassword(encodedPassword);
+        int updated = baseMapper.updateById(passwordUpdate);
+        Assert.isTrue(updated != 1, "system.user.reset-password.save-failed", "重置密码失败");
+        return generatedPassword;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(Long userId) {
+        SysUser user = baseMapper.selectById(userId);
+        Assert.isNull(user, "system.user.not-found", "用户不存在");
+
+        LambdaQueryWrapper<SysUserRole> userRoleQuery = Wrappers.lambdaQuery();
+        userRoleQuery.eq(SysUserRole::getUserId, userId);
+        sysUserRoleMapper.delete(userRoleQuery);
+
+        int deleted = baseMapper.deleteById(userId);
+        Assert.isTrue(deleted != 1, "system.user.not-found", "用户不存在");
     }
 
     @Override

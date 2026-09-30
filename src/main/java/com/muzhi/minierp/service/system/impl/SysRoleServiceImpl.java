@@ -10,6 +10,7 @@ import com.muzhi.minierp.entity.system.SysMenu;
 import com.muzhi.minierp.entity.system.SysRole;
 import com.muzhi.minierp.entity.system.SysRolePermission;
 import com.muzhi.minierp.enums.DefaultRoleEnum;
+import com.muzhi.minierp.enums.SysRoleEnum;
 import com.muzhi.minierp.exception.BusinessException;
 import com.muzhi.minierp.mapper.system.SysMenuMapper;
 import com.muzhi.minierp.mapper.system.SysRoleMapper;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * <p>
@@ -47,6 +49,39 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     private final SysRolePermissionMapper sysRolePermissionMapper;
 
     private final SysMenuMapper sysMenuMapper;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void initializeDefaultRoles() {
+        int insertedCount = 0;
+        for (DefaultRoleEnum defaultRole : DefaultRoleEnum.values()) {
+            SysRole role = new SysRole();
+            role.setId(defaultRole.getId());
+            role.setRoleCode(defaultRole.getRoleCode());
+            role.setRoleName(defaultRole.getRoleName());
+            role.setCreateUser(1L);
+            role.setUpdateUser(1L);
+            role.setRemark(defaultRole.getRemark());
+            role.setStatus(SysRoleEnum.Status.ENABLED.getValue());
+            role.setSort((int) defaultRole.getId());
+
+            insertedCount += baseMapper.insertDefaultRoleIfAbsent(role);
+
+            // 同时检查编码、固定 ID 和逻辑删除记录，避免忽略历史数据冲突。
+            List<SysRole> matches = baseMapper.findByIdOrCodeIncludingDeleted(role.getId(), role.getRoleCode());
+            if (matches.size() != 1) {
+                throw new IllegalStateException("系统默认角色数据冲突：" + role.getRoleCode());
+            }
+            SysRole savedRole = matches.getFirst();
+            boolean conflicted = savedRole.isDeleted()
+                    || !Objects.equals(savedRole.getId(), role.getId())
+                    || !Objects.equals(savedRole.getRoleCode(), role.getRoleCode());
+            if (conflicted) {
+                throw new IllegalStateException("系统默认角色数据冲突：" + role.getRoleCode());
+            }
+        }
+        log.info("系统默认角色初始化完成，新增 {} 个角色", insertedCount);
+    }
 
     @Override
     @Transactional

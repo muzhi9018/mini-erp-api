@@ -19,8 +19,7 @@
 
     <!-- 通用查询结果列 -->
     <sql id="base_column_list">
-        id
-        ,
+        id,
         gmt_create,
         gmt_modified,
         create_user,
@@ -32,6 +31,44 @@
         remark,
         role_code
     </sql>
+
+    <insert id="insertDefaultRoleIfAbsent">
+        insert into sys_role
+            (
+                id,
+                role_code,
+                role_name,
+                remark,
+                status,
+                sort,
+                create_user,
+                update_user,
+                is_deleted,
+                gmt_create,
+                gmt_modified
+            )
+        values
+            (
+                #{role.id},
+                #{role.roleCode},
+                #{role.roleName},
+                #{role.remark},
+                #{role.status},
+                #{role.sort},
+                #{role.createUser},
+                #{role.updateUser},
+                false,
+                current_timestamp,
+                current_timestamp
+            )
+        on conflict do nothing
+    </insert>
+
+    <select id="findByIdOrCodeIncludingDeleted" resultMap="baseResultMap">
+        select id, role_code, is_deleted
+        from sys_role
+        where id = #{id} or lower(role_code) = lower(#{roleCode})
+    </select>
 
     <select id="findByPage" resultType="com.muzhi.minierp.vo.SysRoleVO">
         select

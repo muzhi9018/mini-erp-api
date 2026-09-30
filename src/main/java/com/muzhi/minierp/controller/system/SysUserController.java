@@ -12,7 +12,8 @@ import com.muzhi.minierp.vo.SysUserVO;
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,8 +40,9 @@ public class SysUserController {
     private final I18nHelper i18nHelper;
 
     @PostMapping("/create")
+    @PreAuthorize("hasAuthority('system-manage:user-manage:add')")
     public JsonResult<Boolean> create(@RequestBody SysUser user, HttpServletRequest request) {
-        if (user == null || !StringUtils.hasText(user.getUsername()) || !StringUtils.hasText(user.getPassword())) {
+        if (user == null || StringUtils.isBlank(user.getUsername()) || StringUtils.isBlank(user.getPassword())) {
             throw new BusinessException("system.user.username-password-required", "用户名和密码不能为空");
         }
         sysUserService.create(user);
@@ -54,11 +56,41 @@ public class SysUserController {
      * @return 授权结果
      */
     @PostMapping("/authorize/role")
+    @PreAuthorize("hasAuthority('system-manage:user-manage:authorize-role')")
     public JsonResult<Boolean> authorizeRole(@RequestBody SysUserRole userRole) {
         Assert.isNull(userRole, "system.user-role.request-required", "授权信息不能为空");
         Assert.isTrue(userRole.getUserId() == null || userRole.getUserId() <= 0, "system.user-role.user-id-required", "用户ID不能为空且必须大于0");
         Assert.isTrue(userRole.getRoleId() == null || userRole.getRoleId() <= 0, "system.user-role.role-id-required", "角色ID不能为空且必须大于0");
         sysUserService.authorizeRole(userRole.getUserId(), userRole.getRoleId());
+        return JsonResult.success(true);
+    }
+
+    /**
+     * 重置指定用户的密码。
+     *
+     * @param user 包含用户 ID 的请求信息
+     * @return 系统生成的八位数字密码
+     */
+    @PostMapping("/reset/password")
+    @PreAuthorize("hasAuthority('system-manage:user-manage:reset-password')")
+    public JsonResult<String> resetPassword(@RequestBody SysUser user) {
+        Assert.isNull(user, "system.user.reset-password.request-required", "重置密码信息不能为空");
+        Assert.isTrue(user.getId() == null || user.getId() <= 0, "system.user.reset-password.user-id-required", "用户ID不能为空且必须大于0");
+        String password = sysUserService.resetPassword(user.getId());
+        return JsonResult.success(password);
+    }
+
+    /**
+     * 删除用户及其授权角色。
+     *
+     * @param user 包含用户 ID 的请求信息
+     * @return 删除结果
+     */
+    @PostMapping("/delete")
+    @PreAuthorize("hasAuthority('system-manage:user-manage:delete')")
+    public JsonResult<Boolean> delete(@RequestBody SysUser user) {
+        Assert.isTrue(user == null || user.getId() == null || user.getId() <= 0, "system.user.delete.user-id-required", "用户ID不能为空且必须大于0");
+        sysUserService.delete(user.getId());
         return JsonResult.success(true);
     }
 

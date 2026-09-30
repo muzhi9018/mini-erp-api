@@ -20,6 +20,23 @@ import java.util.Set;
 public interface SysRoleMapper extends BaseMapper<SysRole> {
 
     /**
+     * 缺失时插入系统默认角色。
+     *
+     * @param role 默认角色
+     * @return 插入行数
+     */
+    int insertDefaultRoleIfAbsent(@Param("role") SysRole role);
+
+    /**
+     * 按固定 ID 或角色编码查询，包括逻辑删除记录。
+     *
+     * @param id 固定 ID
+     * @param roleCode 角色编码
+     * @return 冲突或已存在的角色
+     */
+    List<SysRole> findByIdOrCodeIncludingDeleted(@Param("id") Long id, @Param("roleCode") String roleCode);
+
+    /**
      * 分页查询
      * @author Mr.Muzhi
      * @since 2023/12/19 10:49

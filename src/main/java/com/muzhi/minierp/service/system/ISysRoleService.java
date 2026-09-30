@@ -20,6 +20,11 @@ import java.util.List;
 public interface ISysRoleService extends IService<SysRole> {
 
     /**
+     * 初始化系统默认角色。
+     */
+    void initializeDefaultRoles();
+
+    /**
      * 添加角色
      * @author Mr.Muzhi
      * @since 2023/12/19 10:47

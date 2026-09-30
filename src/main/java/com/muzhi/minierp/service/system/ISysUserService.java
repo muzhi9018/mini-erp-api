@@ -41,6 +41,21 @@ public interface ISysUserService extends IService<SysUser> {
     void authorizeRole(Long userId, Long roleId);
 
     /**
+     * 重置指定用户的密码。
+     *
+     * @param userId 用户 ID
+     * @return 系统生成的八位数字密码
+     */
+    String resetPassword(Long userId);
+
+    /**
+     * 删除用户及其授权角色。
+     *
+     * @param userId 用户 ID
+     */
+    void delete(Long userId);
+
+    /**
      * 分页查询用户及其已授权角色。
      *
      * @param pageNum 当前页
