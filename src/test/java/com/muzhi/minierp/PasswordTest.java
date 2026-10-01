@@ -6,7 +6,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * <p>
- * {@code PasswordTest}: TODO
+ * {@code PasswordTest}: 密码测试类
  * </p>
  *
  * @author Mr.Muzhi
