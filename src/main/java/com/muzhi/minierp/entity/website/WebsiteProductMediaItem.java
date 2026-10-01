@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.muzhi.minierp.enums.WebsiteProductEnum;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -15,7 +16,7 @@ import java.time.OffsetDateTime;
 
 /**
  * <p>
- * 官网商品媒体明细（应用场景、案例展示）
+ * 官网商品媒体明细（应用场景、案例展示、商品轮播图、商品详情图）
  * </p>
  *
  * @author Mr.Muzhi
@@ -74,25 +75,25 @@ public class WebsiteProductMediaItem implements Serializable {
     private Long productI18nId;
 
     /**
-     * 明细类型：APPLICATION=应用场景，CASE=案例展示
+     * 明细类型，见 {@link WebsiteProductEnum.MediaItemType}
      */
     @TableField("item_type")
     private String itemType;
 
     /**
-     * 应用场景或案例标题
+     * 媒体标题，商品轮播图和详情图未填写时自动生成
      */
     @TableField("title")
     private String title;
 
     /**
-     * 应用场景或案例描述
+     * 媒体描述
      */
     @TableField("description")
     private String description;
 
     /**
-     * 应用场景或案例图片附件 ID（关联 attachment.id）
+     * 媒体图片附件 ID（关联 attachment.id）
      */
     @TableField("image_attachment_id")
     private Long imageAttachmentId;

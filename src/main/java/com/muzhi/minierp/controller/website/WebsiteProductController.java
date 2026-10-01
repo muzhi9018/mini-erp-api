@@ -121,6 +121,11 @@ public class WebsiteProductController {
         this.validateMediaItem(applications, WebsiteProductEnum.MediaItemType.APPLICATION);
         List<WebsiteProductMediaItemVO> cases = query.getCases();
         this.validateMediaItem(cases, WebsiteProductEnum.MediaItemType.CASE);
+
+        List<WebsiteProductMediaItemVO> carouselImages = query.getCarouselImages();
+        this.validateImageItems(carouselImages, WebsiteProductEnum.MediaItemType.CAROUSEL_IMAGE);
+        List<WebsiteProductMediaItemVO> detailImages = query.getDetailImages();
+        this.validateImageItems(detailImages, WebsiteProductEnum.MediaItemType.DETAIL_IMAGE);
     }
 
     /**
@@ -167,6 +172,27 @@ public class WebsiteProductController {
         }
     }
 
+
+    /**
+     * 校验可选的商品轮播图和详情图，按请求顺序设置类型与排序。
+     *
+     * @param imageItems 图片列表
+     * @param mediaItemType 图片类型
+     */
+    private void validateImageItems(List<WebsiteProductMediaItemVO> imageItems, WebsiteProductEnum.MediaItemType mediaItemType) {
+        if (imageItems == null || imageItems.isEmpty()) {
+            return;
+        }
+        String name = mediaItemType.getName();
+        String code = mediaItemType == WebsiteProductEnum.MediaItemType.CAROUSEL_IMAGE ? "website.product.carousel-image" : "website.product.detail-image";
+        int index = 0;
+        for (WebsiteProductMediaItemVO imageItem : imageItems) {
+            Assert.isNull(imageItem, code + ".item-required", name + "条目不能为空");
+            Assert.isNull(imageItem.getImageAttachmentId(), code + ".image-required", name + "图片附件 ID 不能为空");
+            imageItem.setItemType(mediaItemType.getCode());
+            imageItem.setSortOrder(index++);
+        }
+    }
 
     @GetMapping("/list")
     public JsonResult<IPage<WebsiteProductI18nVO>> list(WebsiteProductI18nVO query, @RequestParam(name = "pageNum", defaultValue = "1") Integer pageNum, @RequestParam(value = "pageSize", defaultValue = "15") Integer pageSize) {

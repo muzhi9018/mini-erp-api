@@ -27,6 +27,7 @@ import com.muzhi.minierp.vo.website.WebsiteProductCreatedVO;
 import com.muzhi.minierp.vo.website.WebsiteProductMediaItemVO;
 import com.muzhi.minierp.vo.website.WebsiteProductVO;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -241,18 +242,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
 
         websiteProductDetailItemMapper.insert(detailItems);
 
-        List<WebsiteProductMediaItem> mediaItems = new ArrayList<>(16);
-        List<WebsiteProductMediaItem> applications = BeanConvertUtils.mapList(query.getApplications(), WebsiteProductMediaItem.class);
-        for (WebsiteProductMediaItem application : applications) {
-            this.setDefaultMediaItemParams(application, translation.getId());
-            mediaItems.add(application);
-        }
-        List<WebsiteProductMediaItem> cases = BeanConvertUtils.mapList(query.getCases(), WebsiteProductMediaItem.class);
-        for (WebsiteProductMediaItem item : cases) {
-             this.setDefaultMediaItemParams(item, translation.getId());
-            mediaItems.add(item);
-        }
-        websiteProductMediaItemMapper.insert(mediaItems);
+        this.insertMediaItems(translation.getId(), query);
         return new WebsiteProductCreatedVO(productId, translation.getId(), locale);
     }
 
@@ -263,13 +253,29 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         List<Long> attachmentIds = new ArrayList<>();
         attachmentIds.add(query.getCoverImageAttachmentId());
         attachmentIds.add(query.getFeatureImageAttachmentId());
-        for (WebsiteProductMediaItem item : query.getApplications()) {
-            attachmentIds.add(item.getImageAttachmentId());
-        }
-        for (WebsiteProductMediaItem item : query.getCases()) {
+        List<WebsiteProductMediaItemVO> mediaViews = this.collectMediaViews(query);
+        for (WebsiteProductMediaItem item : mediaViews) {
             attachmentIds.add(item.getImageAttachmentId());
         }
         return attachmentIds;
+    }
+
+    /**
+     * 收集语言下的全部媒体，可选图片列表未传入时不参与保存。
+     */
+    private List<WebsiteProductMediaItemVO> collectMediaViews(WebsiteProductI18nVO query) {
+        List<WebsiteProductMediaItemVO> mediaViews = new ArrayList<>();
+        mediaViews.addAll(query.getApplications());
+        mediaViews.addAll(query.getCases());
+        List<WebsiteProductMediaItemVO> carouselImages = query.getCarouselImages();
+        if (carouselImages != null) {
+            mediaViews.addAll(carouselImages);
+        }
+        List<WebsiteProductMediaItemVO> detailImages = query.getDetailImages();
+        if (detailImages != null) {
+            mediaViews.addAll(detailImages);
+        }
+        return mediaViews;
     }
 
     /**
@@ -290,16 +296,21 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
     }
 
     /**
-     * 使用请求中的应用场景和案例替换指定语言的原有媒体明细。
+     * 使用请求中的全部媒体替换指定语言的原有媒体明细。
      */
     private void replaceMediaItems(Long productI18nId, WebsiteProductI18nVO query) {
         LambdaQueryWrapper<WebsiteProductMediaItem> mediaQuery = Wrappers.lambdaQuery();
         mediaQuery.eq(WebsiteProductMediaItem::getProductI18nId, productI18nId);
         websiteProductMediaItemMapper.delete(mediaQuery);
 
-        List<WebsiteProductMediaItemVO> mediaViews = new ArrayList<>(16);
-        mediaViews.addAll(query.getApplications());
-        mediaViews.addAll(query.getCases());
+        this.insertMediaItems(productI18nId, query);
+    }
+
+    /**
+     * 保存指定语言的媒体明细，重置主键、关联 ID 和审计字段。
+     */
+    private void insertMediaItems(Long productI18nId, WebsiteProductI18nVO query) {
+        List<WebsiteProductMediaItemVO> mediaViews = this.collectMediaViews(query);
         List<WebsiteProductMediaItem> mediaItems = BeanConvertUtils.mapList(mediaViews, WebsiteProductMediaItem.class);
         for (WebsiteProductMediaItem mediaItem : mediaItems) {
             this.setDefaultMediaItemParams(mediaItem, productI18nId);
@@ -327,13 +338,24 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
     }
 
     /**
-     * 设置默认 官网商品媒体明细 参数
+     * 设置默认官网商品媒体明细参数，未填写的图片标题按类型和顺序生成。
      * @author Mr.Muzhi
      * @since 2026/9/10 18:15
      * @param mediaItem 官网商品媒体明细
      * @param productI18nId 国际化id
      */
     private void setDefaultMediaItemParams(WebsiteProductMediaItem mediaItem, Long productI18nId) {
+        String itemType = mediaItem.getItemType();
+        boolean carouselImage = WebsiteProductEnum.MediaItemType.CAROUSEL_IMAGE.getCode().equals(itemType);
+        boolean detailImage = WebsiteProductEnum.MediaItemType.DETAIL_IMAGE.getCode().equals(itemType);
+        if (StringUtils.isBlank(mediaItem.getTitle()) && (carouselImage || detailImage)) {
+            String titlePrefix = carouselImage ? "轮播图" : "详情图";
+            Integer sortOrder = mediaItem.getSortOrder();
+            int imageNumber = sortOrder == null ? 1 : sortOrder + 1;
+            String defaultTitle = String.format(Locale.ROOT, "%s-%02d", titlePrefix, imageNumber);
+            mediaItem.setTitle(defaultTitle);
+        }
+
         mediaItem.setId(IdWorker.getId());
         mediaItem.setProductI18nId(productI18nId);
         mediaItem.setIsShow(!Boolean.FALSE.equals(mediaItem.getIsShow()));
@@ -350,9 +372,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         SysLocale currentLocale = I18nContext.getCurrentLocale();
         query.setLocale(currentLocale.getCode());
         Page<WebsiteProductI18nVO> page = new Page<>(pageNum, pageSize);
-        IPage<WebsiteProductI18nVO> result = websiteProductI18nMapper.list(page, query);
-        this.fillImageUrls(result.getRecords());
-        return result;
+        return websiteProductI18nMapper.list(page, query);
     }
 
     /**
@@ -386,14 +406,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
             product.setCoverImageUrl(product.getCoverImageAttachmentId() == null ? null : urls.get(product.getCoverImageAttachmentId()));
             product.setFeatureImageUrl(product.getFeatureImageAttachmentId() == null ? null : urls.get(product.getFeatureImageAttachmentId()));
             List<WebsiteProductMediaItemVO> translationMedia = mediaByTranslation.getOrDefault(product.getProductI18nId(), List.of());
-            List<WebsiteProductMediaItemVO> applications = translationMedia.stream()
-                    .filter(item -> WebsiteProductEnum.MediaItemType.APPLICATION.getCode().equals(item.getItemType()))
-                    .toList();
-            List<WebsiteProductMediaItemVO> cases = translationMedia.stream()
-                    .filter(item -> WebsiteProductEnum.MediaItemType.CASE.getCode().equals(item.getItemType()))
-                    .toList();
-            product.setApplications(applications);
-            product.setCases(cases);
+            this.fillMediaViews(product, translationMedia);
         }
     }
 
@@ -511,12 +524,8 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
         }
         detailQuery.orderByAsc(WebsiteProductDetailItem::getSortOrder, WebsiteProductDetailItem::getId);
         List<WebsiteProductDetailItem> detailItems = websiteProductDetailItemMapper.selectList(detailQuery);
-        List<WebsiteProductDetailItem> features = detailItems.stream()
-                .filter(item -> WebsiteProductEnum.DetailItemType.FEATURE.getCode().equals(item.getItemType()))
-                .toList();
-        List<WebsiteProductDetailItem> specifications = detailItems.stream()
-                .filter(item -> WebsiteProductEnum.DetailItemType.SPECIFICATION.getCode().equals(item.getItemType()))
-                .toList();
+        List<WebsiteProductDetailItem> features = detailItems.stream().filter(item -> WebsiteProductEnum.DetailItemType.FEATURE.getCode().equals(item.getItemType())).toList();
+        List<WebsiteProductDetailItem> specifications = detailItems.stream().filter(item -> WebsiteProductEnum.DetailItemType.SPECIFICATION.getCode().equals(item.getItemType())).toList();
         productView.setFeatures(features);
         productView.setSpecifications(specifications);
 
@@ -543,15 +552,22 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
             mediaView.setImageUrl(imageUrl);
         }
 
-        List<WebsiteProductMediaItemVO> applications = mediaViews.stream()
-                .filter(item -> WebsiteProductEnum.MediaItemType.APPLICATION.getCode().equals(item.getItemType()))
-                .toList();
-        List<WebsiteProductMediaItemVO> cases = mediaViews.stream()
-                .filter(item -> WebsiteProductEnum.MediaItemType.CASE.getCode().equals(item.getItemType()))
-                .toList();
+        this.fillMediaViews(productView, mediaViews);
+        return productView;
+    }
+
+    /**
+     * 按媒体类型填充商品列表与详情中的媒体数据。
+     */
+    private void fillMediaViews(WebsiteProductI18nVO productView, List<WebsiteProductMediaItemVO> mediaViews) {
+        List<WebsiteProductMediaItemVO> applications = mediaViews.stream().filter(item -> WebsiteProductEnum.MediaItemType.APPLICATION.getCode().equals(item.getItemType())).toList();
+        List<WebsiteProductMediaItemVO> cases = mediaViews.stream().filter(item -> WebsiteProductEnum.MediaItemType.CASE.getCode().equals(item.getItemType())).toList();
+        List<WebsiteProductMediaItemVO> carouselImages = mediaViews.stream().filter(item -> WebsiteProductEnum.MediaItemType.CAROUSEL_IMAGE.getCode().equals(item.getItemType())).toList();
+        List<WebsiteProductMediaItemVO> detailImages = mediaViews.stream().filter(item -> WebsiteProductEnum.MediaItemType.DETAIL_IMAGE.getCode().equals(item.getItemType())).toList();
         productView.setApplications(applications);
         productView.setCases(cases);
-        return productView;
+        productView.setCarouselImages(carouselImages);
+        productView.setDetailImages(detailImages);
     }
 
     /**

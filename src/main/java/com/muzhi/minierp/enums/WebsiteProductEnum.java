@@ -41,6 +41,10 @@ public interface WebsiteProductEnum {
 
 
         CASE("CASE", "案例展示"),
+
+        CAROUSEL_IMAGE("CAROUSEL_IMAGE", "商品轮播图"),
+
+        DETAIL_IMAGE("DETAIL_IMAGE", "商品详情图"),
         ;
 
         private final String code;
