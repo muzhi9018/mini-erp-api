@@ -261,7 +261,7 @@ public class WebsiteProductServiceImpl extends ServiceImpl<WebsiteProductMapper,
     }
 
     /**
-     * 收集语言下的全部媒体，可选图片列表未传入时不参与保存。
+     * 收集语言下的应用场景、案例、商品轮播图和详情图。
      */
     private List<WebsiteProductMediaItemVO> collectMediaViews(WebsiteProductI18nVO query) {
         List<WebsiteProductMediaItemVO> mediaViews = new ArrayList<>();

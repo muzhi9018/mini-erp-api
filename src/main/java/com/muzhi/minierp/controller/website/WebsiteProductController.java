@@ -174,17 +174,15 @@ public class WebsiteProductController {
 
 
     /**
-     * 校验可选的商品轮播图和详情图，按请求顺序设置类型与排序。
+     * 校验商品轮播图和详情图各至少一张，按请求顺序设置类型与排序。
      *
      * @param imageItems 图片列表
      * @param mediaItemType 图片类型
      */
     private void validateImageItems(List<WebsiteProductMediaItemVO> imageItems, WebsiteProductEnum.MediaItemType mediaItemType) {
-        if (imageItems == null || imageItems.isEmpty()) {
-            return;
-        }
         String name = mediaItemType.getName();
         String code = mediaItemType == WebsiteProductEnum.MediaItemType.CAROUSEL_IMAGE ? "website.product.carousel-image" : "website.product.detail-image";
+        Assert.isEmpty(imageItems, code + ".minimum-count", name + "最少上传一张");
         int index = 0;
         for (WebsiteProductMediaItemVO imageItem : imageItems) {
             Assert.isNull(imageItem, code + ".item-required", name + "条目不能为空");

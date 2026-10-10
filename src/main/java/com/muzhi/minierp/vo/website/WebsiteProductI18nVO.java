@@ -85,12 +85,12 @@ public class WebsiteProductI18nVO extends WebsiteProductI18n {
     private List<WebsiteProductMediaItemVO> cases;
 
     /**
-     * 商品轮播图列表，可为空
+     * 商品轮播图列表，至少一张
      */
     private List<WebsiteProductMediaItemVO> carouselImages;
 
     /**
-     * 商品详情图列表，可为空
+     * 商品详情图列表，至少一张
      */
     private List<WebsiteProductMediaItemVO> detailImages;
 
