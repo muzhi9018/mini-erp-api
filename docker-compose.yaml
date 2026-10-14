@@ -1,0 +1,39 @@
+services:
+  mini-erp:
+    image: ${APP_IMAGE:-mini-erp:1.0.0}
+    container_name: mini-erp-service
+    user: "1001:1001"
+    restart: always
+    init: true
+    # 应用优雅停机需要 15 秒，容器预留更长的退出时间。
+    stop_grace_period: 30s
+    # IDEA 按字节值静态校验此项，Compose 会先展开环境变量。
+    # noinspection ComposeUnknownValues
+    mem_limit: "${APP_MEMORY_LIMIT:-1g}"
+    networks:
+      - muzhi-cloud-net
+    # 默认使用生产配置，可通过 .env 覆盖数据库、Redis、JWT 和 OSS。
+    # 可选 env_file 需要 Docker Compose 2.24.0 或更高版本。
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-pro}
+      SERVER_PORT: "8081"
+      LOGGING_FILE_PATH: /service/logs
+    ports:
+      - "${APP_PORT:-8081}:8081"
+    # 命名卷沿用镜像中日志目录的权限，允许非 root 用户写入。
+    volumes:
+      - /data/docker/services/mini-erp-api/logs:/service/logs
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  # 复用已有共享网络，数据库和 Redis 容器也应连接此网络。
+  muzhi-cloud-net:
+    external: true

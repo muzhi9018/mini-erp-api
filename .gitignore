@@ -32,3 +32,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# 本地部署配置仅保留无敏感信息的示例。
+.env
+.env.*
+!.env.example

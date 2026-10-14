@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.muzhi</groupId>
     <artifactId>mini-erp-api</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>mini-erp-api</name>
     <description>mini-erp-api</description>
 
