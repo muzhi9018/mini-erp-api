@@ -41,6 +41,6 @@ security:
 oss:
   access-key: 'VASONTyplDIOQk2ayR0k'
   secret-key: 'B1BQPfVXEOPjt4B3PswzYyhzdiyaNSZ2sCiajlN2'
-  internal-endpoint: 'http://rusts:9000'
+  internal-endpoint: 'http://rustfs-server:9000'
   external-endpoint: 'https://greenbuild.cfd'
   bucket-name: 'mini-erp-pro'
