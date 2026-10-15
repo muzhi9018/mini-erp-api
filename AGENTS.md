@@ -2,6 +2,11 @@
 
 适用于整个仓库。基于现有代码整理；对历史上混用的写法，新增或修改的代码按下述规则统一，不顺带重排无关代码。
 
+## 修改范围
+
+- 禁止修改前端代码，包括前端项目 `/Users/muzhi/WorkSpace/PersonalProject/Web/mini-erp-web` 中的源码、样式、资源、依赖及配置文件。
+- 后端需求涉及前端配合时，仅说明所需的前端调整，不直接修改前端文件。
+
 ## 分层与命名
 
 - Java 25、Spring Boot、MyBatis-Plus、Lombok、MapStruct Plus；依赖和版本以 `pom.xml` 为准。
