@@ -1,19 +1,15 @@
 package com.muzhi.minierp.entity.vault;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+import com.muzhi.minierp.mapper.vault.type.*;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 
 /**
  * <p>
- * 数据库事务内产生的 Redis 旧会话撤销任务；认证代次是立即生效的授权依据
+ * {@code VaultSessionRevocationOutbox}：数据库事务内产生的 Redis 旧会话撤销任务；认证代次是立即生效的授权依据
  * </p>
  *
  * @author Mr.Muzhi
@@ -21,16 +17,13 @@ import java.time.LocalDateTime;
  */
 @Getter
 @Setter
-@ToString
-@TableName("vault_session_revocation_outbox")
-public class VaultSessionRevocationOutbox implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+@TableName(value = "vault_session_revocation_outbox", schema = "public", autoResultMap = true)
+public class VaultSessionRevocationOutbox extends VaultAuditEntity {
 
     /**
      * 内部逻辑 ID，由应用使用 IdWorker / ASSIGN_ID 生成
      */
-    @TableField("id")
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
@@ -47,6 +40,7 @@ public class VaultSessionRevocationOutbox implements Serializable {
 
     /**
      * PENDING=待重试，PROCESSING=持有租约，DONE=已完成
+     * {@link com.muzhi.minierp.enums.VaultEnum.OutboxStatus}
      */
     @TableField("status")
     private String status;
@@ -61,13 +55,13 @@ public class VaultSessionRevocationOutbox implements Serializable {
      * 下一次可领取时间，失败按退避策略重试
      */
     @TableField("available_at")
-    private LocalDateTime availableAt;
+    private OffsetDateTime availableAt;
 
     /**
      * 工作线程租约截止，崩溃后可重新领取
      */
     @TableField("lease_until")
-    private LocalDateTime leaseUntil;
+    private OffsetDateTime leaseUntil;
 
     /**
      * 服务端固定错误码，不记录异常正文或 Session ID
@@ -79,48 +73,5 @@ public class VaultSessionRevocationOutbox implements Serializable {
      * 完成清理时间
      */
     @TableField("completed_at")
-    private LocalDateTime completedAt;
-
-    /**
-     * 创建时间
-     */
-    @TableField(value = "gmt_create", fill = FieldFill.INSERT)
-    private LocalDateTime gmtCreate;
-
-    /**
-     * 更新时间，由应用更新，DEFAULT 不会自动更新
-     */
-    @TableField(value = "gmt_modified", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime gmtModified;
-
-    /**
-     * 创建人系统用户 ID，由服务端填充；系统任务或未知身份事件可为空
-     */
-    @TableField(value = "create_user", fill = FieldFill.INSERT)
-    private Long createUser;
-
-    /**
-     * 最近更新人系统用户 ID，由服务端填充；系统任务可为空
-     */
-    @TableField(value = "update_user", fill = FieldFill.INSERT_UPDATE)
-    private Long updateUser;
-
-    /**
-     * 逻辑删除标记，false=有效、true=已删除
-     */
-    @TableLogic
-    @TableField("is_deleted")
-    private Boolean isDeleted;
-
-    /**
-     * 执行逻辑删除的系统用户 ID；系统清理任务可为空，不使用伪造的用户 ID
-     */
-    @TableField("delete_user")
-    private Long deleteUser;
-
-    /**
-     * 逻辑删除时间，删除时与标记及删除人一起写入
-     */
-    @TableField("gmt_deleted")
-    private LocalDateTime gmtDeleted;
+    private OffsetDateTime completedAt;
 }

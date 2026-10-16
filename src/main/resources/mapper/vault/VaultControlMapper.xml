@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.muzhi.minierp.mapper.vault.VaultControlMapper">
+    
+    <select id="lockLoginUser" resultType="java.lang.Long">
+        select
+            id
+        from sys_user
+        where username = #{username}
+        and is_deleted = false
+        for share
+    </select>
+    
+    <insert id="ensureAccount">
+        insert into vault_account
+            (
+                id,
+                owner_id,
+                webauthn_user_handle,
+                create_user,
+                update_user
+            )
+        values
+            (
+                #{id},
+                #{ownerId},
+                #{handle},
+                #{ownerId},
+                #{ownerId}
+            )
+        on conflict (owner_id) do nothing
+    </insert>
+    
+    <select id="lockAccount" resultType="com.muzhi.minierp.entity.vault.VaultAccount">
+        select
+            *
+        from vault_account
+        where owner_id = #{ownerId}
+        for update
+    </select>
+    
+    <select id="activeAccount" resultType="com.muzhi.minierp.entity.vault.VaultAccount">
+        select
+            a.*
+        from vault_account a
+        join sys_user u ON u.id = a.owner_id
+        where a.owner_id = #{ownerId}
+        and a.is_deleted = false
+        and u.is_deleted = false
+        and u.status = 1
+        and not exists (select 1 from vault_info v where v.account_id = a.id and v.is_deleted = true)
+    </select>
+    
+    <select id="lockVault" resultType="com.muzhi.minierp.entity.vault.VaultInfo">
+        select
+            *
+        from vault_info
+        where account_id = #{accountId}
+        and is_deleted = false
+        for update
+    </select>
+    
+    <select id="lockRotation" resultType="com.muzhi.minierp.entity.vault.VaultRotation">
+        select
+            *
+        from vault_rotation
+        where vault_id = #{vaultId}
+        and rotation_id = #{rotationId}
+        and is_deleted = false
+        for update
+    </select>
+    
+    <select id="ownerOfAccount" resultType="java.lang.Long">
+        select
+            owner_id
+        from vault_account
+        where id = #{accountId}
+    </select>
+    
+    <select id="ownerOfVault" resultType="java.lang.Long">
+        select
+            a.owner_id
+        from vault_account a
+        join vault_info v ON v.account_id = a.id
+        where v.id = #{vaultId}
+    </select>
+    
+    <select id="generation" resultType="com.muzhi.minierp.entity.vault.VaultGeneration">
+        select
+            *
+        from vault_generation
+        where vault_id = #{vaultId}
+        and generation = #{generation}
+    </select>
+    
+    <select id="maxGeneration" resultType="java.lang.Long">
+        select
+            coalesce(max(generation), 0)
+        from vault_generation
+        where vault_id = #{vaultId}
+    </select>
+    
+    <select id="databaseNow" resultType="java.time.OffsetDateTime">
+        select clock_timestamp()
+    </select>
+    
+    <select id="receipt" resultType="com.muzhi.minierp.entity.vault.VaultIdempotencyRecord">
+        select
+            *
+        from vault_idempotency_record
+        where account_id = #{accountId}
+        and operation = #{operation}
+        and idempotency_key = #{key}
+    </select>
+    
+    <select id="claimRevocations" resultType="com.muzhi.minierp.entity.vault.VaultSessionRevocationOutbox">
+        select
+            *
+        from vault_session_revocation_outbox
+        where is_deleted = false
+        and ((status = 'PENDING' and available_at &lt;= clock_timestamp())
+        or (status = 'PROCESSING' and lease_until &lt;= clock_timestamp()))
+        order by available_at, id
+        limit 20 for update skip locked
+    </select>
+    
+    <select id="expiredRotations" resultType="com.muzhi.minierp.entity.vault.VaultRotation">
+        select
+            *
+        from vault_rotation
+        where status = 'UPLOADING' AND is_deleted = false
+        and expires_at &lt;= clock_timestamp()
+        order by expires_at limit 20
+    </select>
+    
+    <delete id="purgeDeletedItems">
+        delete from vault_item
+        where id in (
+            select
+                i.id
+            from vault_item i
+            join vault_info v ON v.id = i.vault_id
+            where i.is_deleted = true
+            and i.gmt_deleted &lt;= #{before}
+            and not exists (select 1 from vault_rotation r where r.vault_id = v.id and r.status = 'UPLOADING')
+            limit 100 for update of i skip locked
+        )
+    </delete>
+    
+    <delete id="purgeDeletedSlots">
+        delete from vault_key_slot
+        where id in (
+            select
+                s.id
+            from vault_key_slot s
+            join vault_info v on v.id = s.vault_id
+            where s.is_deleted = true
+            and s.gmt_deleted &lt;= #{before}
+            and not exists (select 1 from vault_rotation r where r.vault_id = v.id and r.status = 'UPLOADING')
+            limit 100 for update of s skip locked
+        )
+    </delete>
+    
+    <delete id="purgeGenerationItems">
+        delete from vault_item
+        where vault_id = #{vaultId}
+        and generation = #{generation}
+        and exists (
+            select
+                1
+            from vault_generation g
+            join vault_info v on v.id = g.vault_id
+            where g.vault_id = #{vaultId}
+            and g.generation = #{generation}
+            and g.status in ('RETIRED', 'ABORTED')
+            and (v.active_generation is null or v.active_generation &lt;&gt; g.generation)
+        )
+    </delete>
+    
+    <delete id="purgeGenerationSlots">
+        delete fROM vault_key_slot
+        where vault_id = #{vaultId}
+        and generation = #{generation}
+        and exists (
+            select
+                1
+            from vault_generation g
+            join vault_info v on v.id = g.vault_id
+            where g.vault_id = #{vaultId}
+            and g.generation = #{generation}
+            and g.status IN ('RETIRED', 'ABORTED')
+            and (v.active_generation is null or v.active_generation &lt;&gt; g.generation)
+        )
+    </delete>
+</mapper>

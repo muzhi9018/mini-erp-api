@@ -1,6 +1,7 @@
 package com.muzhi.minierp.security;
 
 import com.muzhi.minierp.enums.HttpStatus;
+import com.muzhi.minierp.security.vault.VaultPaths;
 import com.muzhi.minierp.i18n.I18nHelper;
 import com.muzhi.minierp.model.JsonResult;
 import jakarta.servlet.FilterChain;
@@ -27,6 +28,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.jwtTokenProvider = jwtTokenProvider;
         this.objectMapper = objectMapper;
         this.i18nHelper = i18nHelper;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return VaultPaths.matches(request);
     }
 
     @Override

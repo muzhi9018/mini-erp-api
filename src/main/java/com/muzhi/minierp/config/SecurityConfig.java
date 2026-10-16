@@ -3,6 +3,9 @@ package com.muzhi.minierp.config;
 import com.muzhi.minierp.annotation.OpenApi;
 import com.muzhi.minierp.i18n.I18nHelper;
 import com.muzhi.minierp.security.*;
+import com.muzhi.minierp.security.vault.VaultPaths;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.core.annotation.Order;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -38,13 +41,15 @@ import java.util.Set;
 public class SecurityConfig {
 
     @Bean
+    @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    WebApplicationContext webApplicationContext,
                                                    JwtAuthenticationEntryPoint authenticationEntryPoint,
                                                    JwtAuthenticationFilter jwtAuthenticationFilter,
                                                    UserAuthenticationProvider userAuthenticationProvider) {
         Set<String> openApiPatterns = this.loadOpenApiPatterns(webApplicationContext);
-        http.csrf(AbstractHttpConfigurer::disable)
+        http.securityMatcher(request -> !VaultPaths.matches(request))
+                .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
                 .authorizeHttpRequests(auth -> {
@@ -69,6 +74,16 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, ObjectMapper objectMapper, I18nHelper i18nHelper) {
         return new JwtAuthenticationFilter(jwtTokenProvider, objectMapper, i18nHelper);
+    }
+
+    /**
+     * JWT 过滤器只由 ERP 安全链执行，禁止容器全局重复注册。
+     */
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean

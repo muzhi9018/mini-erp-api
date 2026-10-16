@@ -2,6 +2,8 @@ package com.muzhi.minierp.mapper.vault;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.muzhi.minierp.entity.vault.VaultItem;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.cursor.Cursor;
 
 /**
  * <p>
@@ -13,4 +15,11 @@ import com.muzhi.minierp.entity.vault.VaultItem;
  */
 public interface VaultItemMapper extends BaseMapper<VaultItem> {
 
+    /**
+     * 在事务内使用 PostgreSQL 游标逐条读取当前代的有效密文。
+     */
+    Cursor<VaultItem> snapshotItems(
+            @Param("vaultId") Long vaultId,
+            @Param("generation") Long generation
+    );
 }

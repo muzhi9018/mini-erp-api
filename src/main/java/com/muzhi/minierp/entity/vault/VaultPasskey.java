@@ -1,19 +1,15 @@
 package com.muzhi.minierp.entity.vault;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableLogic;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+import com.muzhi.minierp.mapper.vault.type.*;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
-
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 
 /**
  * <p>
- * WebAuthn 凭据；保存公钥和验证元数据，不保存认证器私钥
+ * {@code VaultPasskey}：WebAuthn 凭据；保存公钥和验证元数据，不保存认证器私钥
  * </p>
  *
  * @author Mr.Muzhi
@@ -21,16 +17,13 @@ import java.time.LocalDateTime;
  */
 @Getter
 @Setter
-@ToString
-@TableName("vault_passkey")
-public class VaultPasskey implements Serializable {
-
-    private static final long serialVersionUID = 1L;
+@TableName(value = "vault_passkey", schema = "public", autoResultMap = true)
+public class VaultPasskey extends VaultAuditEntity {
 
     /**
      * 内部逻辑 ID，由应用使用 IdWorker / ASSIGN_ID 生成
      */
-    @TableField("id")
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     /**
@@ -60,14 +53,14 @@ public class VaultPasskey implements Serializable {
     /**
      * 认证器传输提示；不作为认证成功依据
      */
-    @TableField("transports")
-    private Object transports;
+    @TableField(value = "transports", typeHandler = VaultArrayTypeHandler.class)
+    private String[] transports;
 
     /**
      * 认证器型号标识，由已验证的注册结果取得
      */
-    @TableField("aaguid")
-    private Object aaguid;
+    @TableField(value = "aaguid", typeHandler = VaultUuidTypeHandler.class)
+    private UUID aaguid;
 
     /**
      * 凭据是否允许同步或备份
@@ -91,54 +84,11 @@ public class VaultPasskey implements Serializable {
      * 最近一次成功认证时间
      */
     @TableField("last_used_at")
-    private LocalDateTime lastUsedAt;
+    private OffsetDateTime lastUsedAt;
 
     /**
      * 撤销时间；被撤销的凭据不得用于认证
      */
     @TableField("revoked_at")
-    private LocalDateTime revokedAt;
-
-    /**
-     * 创建时间
-     */
-    @TableField(value = "gmt_create", fill = FieldFill.INSERT)
-    private LocalDateTime gmtCreate;
-
-    /**
-     * 更新时间，由应用更新，DEFAULT 不会自动更新
-     */
-    @TableField(value = "gmt_modified", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime gmtModified;
-
-    /**
-     * 创建人系统用户 ID，由服务端填充；系统任务或未知身份事件可为空
-     */
-    @TableField(value = "create_user", fill = FieldFill.INSERT)
-    private Long createUser;
-
-    /**
-     * 最近更新人系统用户 ID，由服务端填充；系统任务可为空
-     */
-    @TableField(value = "update_user", fill = FieldFill.INSERT_UPDATE)
-    private Long updateUser;
-
-    /**
-     * 逻辑删除标记，false=有效、true=已删除
-     */
-    @TableLogic
-    @TableField("is_deleted")
-    private Boolean isDeleted;
-
-    /**
-     * 执行逻辑删除的系统用户 ID；系统清理任务可为空，不使用伪造的用户 ID
-     */
-    @TableField("delete_user")
-    private Long deleteUser;
-
-    /**
-     * 逻辑删除时间，删除时与标记及删除人一起写入
-     */
-    @TableField("gmt_deleted")
-    private LocalDateTime gmtDeleted;
+    private OffsetDateTime revokedAt;
 }

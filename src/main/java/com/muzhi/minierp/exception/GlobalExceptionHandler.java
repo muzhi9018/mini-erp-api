@@ -3,6 +3,8 @@ package com.muzhi.minierp.exception;
 import com.muzhi.minierp.enums.HttpStatus;
 import com.muzhi.minierp.i18n.I18nHelper;
 import com.muzhi.minierp.model.JsonResult;
+import com.muzhi.minierp.security.vault.VaultPaths;
+import com.muzhi.minierp.security.vault.VaultErrorWriter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -33,11 +35,16 @@ public class GlobalExceptionHandler {
 
     private final I18nHelper i18nHelper;
 
+    private final VaultErrorWriter vaultErrors;
+
     /**
      * 500 未知异常
      */
     @ExceptionHandler(value = Exception.class)
     public JsonResult<?> exceptionHandler(HttpServletRequest request, HttpServletResponse response, Exception e) {
+        if (VaultPaths.matches(request)) {
+            return vaultErrors.handle(request, response, e);
+        }
         this.logError(request, e);
         JsonResult<?> error = this.error(HttpStatus.INTERNAL_SERVER_ERROR, request);
         this.feignCallHandler(request, response, error);
@@ -49,6 +56,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(value = BadCredentialsException.class)
     public JsonResult<?> badCredentialsExceptionHandler(HttpServletRequest request, HttpServletResponse response, BadCredentialsException e) {
+        if (VaultPaths.matches(request)) {
+            return vaultErrors.handle(request, response, e);
+        }
         this.logError(request, e);
         String msg = e.getMessage();
         String message = this.i18nHelper.getMessage(msg, msg, request);
@@ -62,6 +72,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(value = DisabledException.class)
     public JsonResult<?> disabledExceptionHandler(HttpServletRequest request, HttpServletResponse response, DisabledException e) {
+        if (VaultPaths.matches(request)) {
+            return vaultErrors.handle(request, response, e);
+        }
         this.logError(request, e);
         String msg = e.getMessage();
         String message = this.i18nHelper.getMessage(msg, msg, request);
@@ -76,6 +89,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(value = BusinessException.class)
     public JsonResult<?> businessHandler(HttpServletRequest request, HttpServletResponse response, BusinessException e) {
+        if (VaultPaths.matches(request)) {
+            return vaultErrors.handle(request, response, e);
+        }
         String message = this.i18nHelper.getMessage(e, request);
         JsonResult<?> error = JsonResult.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), message);
         this.feignCallHandler(request, response, error);
@@ -88,6 +104,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler({MethodArgumentTypeMismatchException.class})
     public JsonResult<?> methodArgumentTypeMismatchHandler(HttpServletRequest request, HttpServletResponse response, MethodArgumentTypeMismatchException e) {
+        if (VaultPaths.matches(request)) {
+            return vaultErrors.handle(request, response, e);
+        }
         this.logDebug(request, e);
         String i18nMessage = this.i18nHelper.getMessage(HttpStatus.BAD_REQUEST_PARAM_TYPE_ERROR, request);
         JsonResult<?> error = JsonResult.error(HttpStatus.BAD_REQUEST_PARAM_TYPE_ERROR.value(),  i18nMessage + "[" + e.getName() + "]");
@@ -100,6 +119,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler({MissingServletRequestParameterException.class})
     public JsonResult<?> missingServletRequestParameterHandler(HttpServletRequest request, HttpServletResponse response, MissingServletRequestParameterException e) {
+        if (VaultPaths.matches(request)) {
+            return vaultErrors.handle(request, response, e);
+        }
         this.logDebug(request, e);
         String i18nMessage = this.i18nHelper.getMessage(HttpStatus.BAD_REQUEST_MISSING_PARAM, request);
         JsonResult<?> error = JsonResult.error(
@@ -114,6 +136,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AccessDeniedException.class)
     public JsonResult<?> handleAccessDeniedException(HttpServletRequest request, HttpServletResponse response, AccessDeniedException e) {
+        if (VaultPaths.matches(request)) {
+            return vaultErrors.handle(request, response, e);
+        }
         this.logDebug(request, e);
         JsonResult<?> error = this.error(HttpStatus.FORBIDDEN, request);
         this.feignCallHandler(request, response, error);
@@ -125,6 +150,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler({NoHandlerFoundException.class})
     public JsonResult<?> noHandlerFoundHandler(HttpServletRequest request, HttpServletResponse response, NoHandlerFoundException e) {
+        if (VaultPaths.matches(request)) {
+            return vaultErrors.handle(request, response, e);
+        }
         this.logDebug(request, e);
         JsonResult<?> error = this.error(HttpStatus.NOT_FOUND, request);
         this.feignCallHandler(request, response, error);
@@ -136,6 +164,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler({HttpRequestMethodNotSupportedException.class})
     public JsonResult<?> httpRequestMethodNotSupportedHandler(HttpServletRequest request, HttpServletResponse response, HttpRequestMethodNotSupportedException e) {
+        if (VaultPaths.matches(request)) {
+            return vaultErrors.handle(request, response, e);
+        }
         this.logDebug(request, e);
         JsonResult<?> error = this.error(HttpStatus.METHOD_NOT_ALLOWED, request);
         this.feignCallHandler(request, response, error);

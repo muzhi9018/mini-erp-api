@@ -17,6 +17,8 @@ import com.muzhi.minierp.mapper.system.SysUserRoleMapper;
 import com.muzhi.minierp.security.SecurityUtils;
 import com.muzhi.minierp.service.system.ISysUserService;
 import com.muzhi.minierp.util.Assert;
+import com.muzhi.minierp.service.vault.IVaultIdentityService;
+import org.springframework.beans.factory.ObjectProvider;
 import com.muzhi.minierp.vo.SysUserVO;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -46,6 +48,8 @@ import java.util.Set;
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements ISysUserService {
 
     private final PasswordEncoder passwordEncoder;
+
+    private final ObjectProvider<IVaultIdentityService> vaultIdentities;
 
     private final SysRoleMapper sysRoleMapper;
 
@@ -120,6 +124,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         passwordUpdate.setPassword(encodedPassword);
         int updated = baseMapper.updateById(passwordUpdate);
         Assert.isTrue(updated != 1, "system.user.reset-password.save-failed", "重置密码失败");
+        vaultIdentities.ifAvailable(service -> service.revokeOwner(userId));
         return generatedPassword;
     }
 
@@ -135,9 +140,11 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
         int deleted = baseMapper.deleteById(userId);
         Assert.isTrue(deleted != 1, "system.user.not-found", "用户不存在");
+        vaultIdentities.ifAvailable(service -> service.revokeOwner(userId));
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Integer changeStatus(Long userId) {
         SysUser user = baseMapper.selectById(userId);
         Assert.isNull(user, "system.user.not-found", "用户不存在");
@@ -159,6 +166,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         statusCondition.set(SysUser::getStatus, nextStatus.value());
         int updated = baseMapper.update(null, statusCondition);
         Assert.isTrue(updated != 1, "system.user.change-status.save-failed", "切换用户状态失败，请重试");
+        vaultIdentities.ifAvailable(service -> service.revokeOwner(userId));
         return nextStatus.value();
     }
 

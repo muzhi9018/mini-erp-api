@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.muzhi.minierp.mapper.vault.VaultItemMapper">
+
+    <select id="snapshotItems" resultType="com.muzhi.minierp.entity.vault.VaultItem"
+            fetchSize="100" resultSetType="FORWARD_ONLY" useCache="false">
+        select
+            *
+        from public.vault_item
+        where vault_id = #{vaultId}
+        and generation = #{generation}
+        and is_deleted = false
+        order by item_id
+    </select>
+</mapper>

@@ -11,7 +11,7 @@ spring:
     resources:
       add-mappings: false
   messages:
-    basename: i18n/common/messages,i18n/system/messages,i18n/website/messages
+    basename: i18n/common/messages,i18n/system/messages,i18n/website/messages,i18n/vault/messages
     encoding: UTF-8
     fallback-to-system-locale: false
   lifecycle:
@@ -24,6 +24,7 @@ spring:
 
 # Mybatis Plus 打印日志
 mybatis-plus:
+  type-handlers-package: com.muzhi.minierp.mapper.vault.type
   configuration:
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
@@ -38,3 +39,10 @@ logging:
     path: logs
   level:
     com.muzhi.minierp.mapper: debug
+    com.muzhi.minierp.mapper.vault: off
+
+# 完成密码库建表和受控域名配置后显式启用。
+vault:
+  enabled: true
+  origin: https://vault.local.muzhi.store
+  rp-id: vault.local.muzhi.store
