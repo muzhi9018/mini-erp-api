@@ -6,6 +6,8 @@ import com.muzhi.minierp.entity.vault.*;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.mapper.vault.*;
 import com.muzhi.minierp.model.vault.*;
+import com.muzhi.minierp.util.BeanConvertUtils;
+import com.muzhi.minierp.vo.vault.VaultMetaVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -154,20 +156,16 @@ public class VaultCipherStore {
         return value == null ? null : VaultCodec.encode(value);
     }
 
-    public Map<String, Object> meta(VaultInfo vault) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("initialized", vault.getActiveGeneration() != null);
-        result.put("vaultId", vault.getVaultId().toString());
-        result.put("status", vault.getStatus());
-        result.put("generation", vault.getActiveGeneration());
-        result.put("metaRevision", vault.getMetaRevision());
-        result.put("collectionRevision", vault.getCollectionRevision());
+    public VaultMetaVO meta(VaultInfo vault) {
+        VaultMetaVO result = BeanConvertUtils.convert(vault, VaultMetaVO.class);
+        result.setInitialized(vault.getActiveGeneration() != null);
         if (vault.getActiveGeneration() != null) {
             VaultGeneration current = this.generation(vault, vault.getActiveGeneration());
             VaultEnum.Error.VERSION_CONFLICT.rejectIf(!VaultEnum.GenerationStatus.ACTIVE.getCode().equals(current.getStatus()));
-            result.put("keyEpoch", current.getKeyEpoch());
+            result.setKeyEpoch(current.getKeyEpoch());
             List<VaultKeySlot> activeSlots = this.slots(vault, current.getGeneration());
-            result.put("keySlots", activeSlots.stream().map(this::view).toList());
+            List<VaultProtocol.Slot> keySlots = activeSlots.stream().map(this::view).toList();
+            result.setKeySlots(keySlots);
         }
         return result;
     }

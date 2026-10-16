@@ -1,9 +1,11 @@
 package com.muzhi.minierp.security.vault;
 
+import com.alibaba.fastjson2.JSON;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.exception.BusinessException;
 import com.muzhi.minierp.i18n.I18nHelper;
 import com.muzhi.minierp.model.JsonResult;
+import com.muzhi.minierp.vo.vault.VaultErrorVO;
 import jakarta.servlet.http.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataAccessException;
@@ -16,10 +18,8 @@ import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -33,8 +33,6 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class VaultErrorWriter {
-    private final ObjectMapper objectMapper;
-
     private final I18nHelper i18nHelper;
 
     private final org.springframework.beans.factory.ObjectProvider<com.muzhi.minierp.service.vault.VaultFailureAudit> audit;
@@ -76,8 +74,11 @@ public class VaultErrorWriter {
         String requestId = this.requestId(request);
         audit.ifAvailable(recorder -> recorder.record(request, error));
         String message = i18nHelper.getMessage(error.getI18nCode(), error.getMessage(), request);
-        JsonResult<Map<String, String>> result = JsonResult.error(error.getStatus(), message);
-        result.setData(Map.of("errorCode", error.getMachineCode(), "requestId", requestId));
+        VaultErrorVO detail = new VaultErrorVO();
+        detail.setErrorCode(error.getMachineCode());
+        detail.setRequestId(requestId);
+        JsonResult<VaultErrorVO> result = JsonResult.error(error.getStatus(), message);
+        result.setData(detail);
         response.setStatus(error.getStatus());
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("X-Request-ID", requestId);
@@ -91,14 +92,16 @@ public class VaultErrorWriter {
         JsonResult<?> result = this.result(request, response, error);
         response.setContentType("application/json");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        objectMapper.writeValue(response.getWriter(), result);
+        String json = JSON.toJSONString(result);
+        response.getWriter().write(json);
     }
 
     public void writeException(HttpServletRequest request, HttpServletResponse response, Exception failure) throws IOException {
         JsonResult<?> result = this.handle(request, response, failure);
         response.setContentType("application/json");
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        objectMapper.writeValue(response.getWriter(), result);
+        String json = JSON.toJSONString(result);
+        response.getWriter().write(json);
     }
 
     public String requestId(HttpServletRequest request) {

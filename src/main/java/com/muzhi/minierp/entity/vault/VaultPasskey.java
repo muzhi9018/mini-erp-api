@@ -2,6 +2,9 @@ package com.muzhi.minierp.entity.vault;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.muzhi.minierp.mapper.vault.type.*;
+import com.muzhi.minierp.vo.vault.VaultPasskeyVO;
+import io.github.linpeilie.annotations.AutoMapper;
+import io.github.linpeilie.annotations.AutoMapping;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.OffsetDateTime;
@@ -17,6 +20,7 @@ import java.util.UUID;
  */
 @Getter
 @Setter
+@AutoMapper(target = VaultPasskeyVO.class, reverseConvertGenerate = false)
 @TableName(value = "vault_passkey", schema = "public", autoResultMap = true)
 public class VaultPasskey extends VaultAuditEntity {
 
@@ -36,6 +40,7 @@ public class VaultPasskey extends VaultAuditEntity {
      * WebAuthn 凭据 ID；HTTP 中使用无填充 Base64url
      */
     @TableField("credential_id")
+    @AutoMapping(target = "credentialId", ignore = true)
     private byte[] credentialId;
 
     /**

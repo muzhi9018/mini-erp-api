@@ -1,10 +1,13 @@
 package com.muzhi.minierp.model.vault;
 
+import com.alibaba.fastjson2.annotation.JSONType;
+
 import java.util.List;
 
 /**
  * <p>
  * {@code VaultProtocol}：客户端密文协议的传输模型；不接收数据库审计或归属字段
+ * 参与请求摘要的记录保留字段声明顺序，以兼容历史幂等摘要。
  * </p>
  *
  * @author Mr.Muzhi
@@ -20,27 +23,36 @@ public final class VaultProtocol {
 
     private VaultProtocol() { }
 
+    @JSONType(alphabetic = false)
     public record Box(Integer formatVersion, String algorithm, String iv, String ciphertext) { }
 
+    @JSONType(alphabetic = false)
     public record Slot(String slotId, String slotType, String keyId, String kdfProfile,
             String kdfSalt, String wrapSalt, String recoverySalt, Box wrappedVmk) { }
 
+    @JSONType(alphabetic = false)
     public record Item(String itemId, Long contentVersion, Long rowVersion, Long keyEpoch,
             Box wrappedDek, Box encryptedItem) { }
 
+    @JSONType(alphabetic = false)
     public record Setup(String vaultId, List<Slot> keySlots, String idempotencyKey) { }
 
+    @JSONType(alphabetic = false)
     public record ItemWrite(String itemId, Long generation, Long keyEpoch, Long expectedRowVersion,
             Long contentVersion, Box wrappedDek, Box encryptedItem, String idempotencyKey) { }
 
+    @JSONType(alphabetic = false)
     public record MasterChange(Long expectedMetaRevision, Slot normalSlot, String idempotencyKey) { }
 
+    @JSONType(alphabetic = false)
     public record RotationStart(String rotationId, String vaultId, Long expectedMetaRevision,
             Long expectedCollectionRevision, List<Slot> keySlots, List<String> itemIds, String idempotencyKey) { }
 
+    @JSONType(alphabetic = false)
     public record RotationCommand(String rotationId, Long expectedCollectionRevision,
             String verifiedManifestDigest, String idempotencyKey) { }
 
+    @JSONType(alphabetic = false)
     public record RotationBatch(String rotationId, String batchId, List<Item> items) { }
 
     public record RecoveryInput(String code) { }

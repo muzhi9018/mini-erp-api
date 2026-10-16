@@ -2,6 +2,9 @@ package com.muzhi.minierp.entity.vault;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.muzhi.minierp.mapper.vault.type.*;
+import com.muzhi.minierp.vo.vault.VaultMetaVO;
+import io.github.linpeilie.annotations.AutoMapper;
+import io.github.linpeilie.annotations.AutoMapping;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.OffsetDateTime;
@@ -17,6 +20,7 @@ import java.util.UUID;
  */
 @Getter
 @Setter
+@AutoMapper(target = VaultMetaVO.class, reverseConvertGenerate = false)
 @TableName(value = "vault_info", schema = "public", autoResultMap = true)
 public class VaultInfo extends VaultAuditEntity {
 
@@ -49,6 +53,7 @@ public class VaultInfo extends VaultAuditEntity {
      * 当前活动代；空库占位为 NULL，逻辑关联 vault_generation，由 Service 事务校验
      */
     @TableField("active_generation")
+    @AutoMapping(target = "generation")
     private Long activeGeneration;
 
     /**

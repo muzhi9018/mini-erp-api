@@ -3,6 +3,7 @@ package com.muzhi.minierp.service.vault;
 import com.muzhi.minierp.entity.vault.VaultAccount;
 import com.muzhi.minierp.model.LoginQuery;
 import com.muzhi.minierp.model.vault.*;
+import com.muzhi.minierp.vo.vault.*;
 import com.muzhi.minierp.enums.VaultEnum;
 import java.util.*;
 
@@ -22,7 +23,7 @@ public interface IVaultIdentityService {
     VaultAccount checkSession(VaultSession session);
 
     /** 为当前身份生成单次、两分钟有效的 WebAuthn 挑战。 */
-    Map<String, Object> options(VaultSession session, VaultEnum.ChallengePurpose purpose);
+    VaultWebAuthnOptionsVO options(VaultSession session, VaultEnum.ChallengePurpose purpose);
 
     /** 校验注册结果，注册本身不提升 MFA 权限。 */
     void register(VaultSession session, VaultProtocol.Registration registration);
@@ -31,7 +32,7 @@ public interface IVaultIdentityService {
     VaultSession authenticate(VaultSession session, VaultProtocol.Credential credential);
 
     /** 签发仅返回一次明文的新恢复码批次。 */
-    Map<String, Object> issueRecoveryCodes(VaultSession session, Long expectedCredentialRevision);
+    VaultRecoveryCodesVO issueRecoveryCodes(VaultSession session, Long expectedCredentialRevision);
 
     /** 确认新恢复码并在身份恢复场景完成新会话交接。 */
     VaultSession confirmRecoveryCodes(VaultSession session, VaultProtocol.RecoveryConfirmation confirmation);
@@ -40,7 +41,7 @@ public interface IVaultIdentityService {
     VaultSession recover(VaultSession session, String code);
 
     /** 查看当前账户的凭据摘要。 */
-    List<Map<String, Object>> passkeys(VaultSession session);
+    List<VaultPasskeyVO> passkeys(VaultSession session);
 
     /** 近期 MFA 后撤销凭据，同时撤销旧会话。 */
     void revokePasskey(VaultSession session, VaultProtocol.CredentialCommand command);

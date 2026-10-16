@@ -1,5 +1,7 @@
 package com.muzhi.minierp.service.vault;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.muzhi.minierp.config.VaultProperties;
 import com.muzhi.minierp.entity.vault.VaultPasskey;
 import com.muzhi.minierp.enums.VaultEnum;
@@ -16,7 +18,6 @@ import com.webauthn4j.credential.CredentialRecordImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import tools.jackson.databind.json.JsonMapper;
 import java.security.MessageDigest;
 import java.util.*;
 
@@ -106,8 +107,8 @@ public class VaultWebAuthn {
     }
 
     private void checkClient(byte[] client) {
-        var data = JsonMapper.builder().build().readTree(client);
-        VaultEnum.Error.PASSKEY_INVALID.rejectIf(data.path("crossOrigin").asBoolean(false)
-                || !properties.getOrigin().equals(data.path("origin").asString()));
+        JSONObject data = JSON.parseObject(client);
+        VaultEnum.Error.PASSKEY_INVALID.rejectIf(data == null || data.getBooleanValue("crossOrigin")
+                || !properties.getOrigin().equals(data.getString("origin")));
     }
 }

@@ -1,10 +1,9 @@
 package com.muzhi.minierp.service.vault;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.vault.VaultProtocol;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.MapperFeature;
-import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.*;
 
@@ -17,7 +16,6 @@ import java.util.*;
  * @since 2026-10-15
  */
 public final class VaultCodec {
-    private static final JsonMapper JSON = JsonMapper.builder().enable(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY).build();
 
     private VaultCodec() { }
 
@@ -50,7 +48,8 @@ public final class VaultCodec {
     }
 
     public static byte[] digest(Object value) {
-        byte[] bytes = VaultCodec.json(value).getBytes(StandardCharsets.UTF_8);
+        // 摘要保留协议对象的 null 字段，沿用历史紧凑 JSON，避免既有幂等请求失效。
+        byte[] bytes = JSON.toJSONBytes(value, JSONWriter.Feature.WriteNulls);
         return VaultCodec.sha256(bytes);
     }
 
@@ -63,12 +62,11 @@ public final class VaultCodec {
     }
 
     public static String json(Object value) {
-        return JSON.writeValueAsString(value);
+        return JSON.toJSONString(value);
     }
 
-    @SuppressWarnings("unchecked")
-    public static Map<String, Object> receipt(String value) {
-        return JSON.readValue(value, Map.class);
+    public static <T> T receipt(String value, Class<T> responseType) {
+        return JSON.parseObject(value, responseType);
     }
 
     public static long version(Long value) {

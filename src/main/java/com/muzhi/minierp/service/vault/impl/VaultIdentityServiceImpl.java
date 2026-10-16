@@ -10,6 +10,9 @@ import com.muzhi.minierp.model.LoginUser;
 import com.muzhi.minierp.model.vault.*;
 import com.muzhi.minierp.security.vault.VaultContexts;
 import com.muzhi.minierp.service.vault.*;
+import com.muzhi.minierp.util.BeanConvertUtils;
+import com.muzhi.minierp.vo.vault.*;
+import com.webauthn4j.data.attestation.statement.COSEAlgorithmIdentifier;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.authentication.*;
@@ -98,41 +101,63 @@ public class VaultIdentityServiceImpl implements IVaultIdentityService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> options(VaultSession session, VaultEnum.ChallengePurpose purpose) {
+    public VaultWebAuthnOptionsVO options(VaultSession session, VaultEnum.ChallengePurpose purpose) {
         VaultAccount account = access.lock(session);
         List<VaultPasskey> keys = this.activeKeys(account.getId());
         byte[] challenge;
-        Map<String, Object> result = new LinkedHashMap<>();
+        VaultWebAuthnOptionsVO result = new VaultWebAuthnOptionsVO();
         if (purpose == VaultEnum.ChallengePurpose.REGISTER) {
             this.registrationAllowed(session, account, keys);
             challenge = challenges.issue(session, purpose, account.getCredentialRevision());
-            result.put("rp", Map.of("id", properties.getRpId(), "name", properties.getRpName()));
-            result.put("user", Map.of("id", VaultCodec.encode(account.getWebauthnUserHandle()),
-                    "name", session.ownerId().toString(), "displayName", session.ownerId().toString()));
-            result.put("pubKeyCredParams", List.of(Map.of("type", VaultProtocol.CREDENTIAL_TYPE, "alg", com.webauthn4j.data.attestation.statement.COSEAlgorithmIdentifier.ES256.getValue()),
-                    Map.of("type", VaultProtocol.CREDENTIAL_TYPE, "alg", com.webauthn4j.data.attestation.statement.COSEAlgorithmIdentifier.RS256.getValue()), Map.of("type", VaultProtocol.CREDENTIAL_TYPE, "alg", com.webauthn4j.data.attestation.statement.COSEAlgorithmIdentifier.EdDSA.getValue())));
-            result.put("attestation", VaultProtocol.ATTESTATION);
-            result.put("authenticatorSelection", Map.of("residentKey", VaultProtocol.REQUIRED, "userVerification", VaultProtocol.REQUIRED));
-            result.put("excludeCredentials", this.descriptors(keys));
+            VaultWebAuthnOptionsVO.RpVO rp = new VaultWebAuthnOptionsVO.RpVO();
+            rp.setId(properties.getRpId());
+            rp.setName(properties.getRpName());
+            result.setRp(rp);
+
+            VaultWebAuthnOptionsVO.UserVO user = new VaultWebAuthnOptionsVO.UserVO();
+            user.setId(VaultCodec.encode(account.getWebauthnUserHandle()));
+            user.setName(session.ownerId().toString());
+            user.setDisplayName(session.ownerId().toString());
+            result.setUser(user);
+
+            List<VaultWebAuthnOptionsVO.CredentialParameterVO> parameters = new ArrayList<>();
+            for (COSEAlgorithmIdentifier algorithm : List.of(COSEAlgorithmIdentifier.ES256, COSEAlgorithmIdentifier.RS256, COSEAlgorithmIdentifier.EdDSA)) {
+                VaultWebAuthnOptionsVO.CredentialParameterVO parameter = new VaultWebAuthnOptionsVO.CredentialParameterVO();
+                parameter.setType(VaultProtocol.CREDENTIAL_TYPE);
+                parameter.setAlg(algorithm.getValue());
+                parameters.add(parameter);
+            }
+            result.setPubKeyCredParams(parameters);
+            result.setAttestation(VaultProtocol.ATTESTATION);
+            VaultWebAuthnOptionsVO.AuthenticatorSelectionVO selection = new VaultWebAuthnOptionsVO.AuthenticatorSelectionVO();
+            selection.setResidentKey(VaultProtocol.REQUIRED);
+            selection.setUserVerification(VaultProtocol.REQUIRED);
+            result.setAuthenticatorSelection(selection);
+            List<VaultWebAuthnOptionsVO.CredentialDescriptorVO> excluded = this.descriptors(keys);
+            result.setExcludeCredentials(excluded);
         } else {
             VaultEnum.Error.MFA_REQUIRED.rejectIf(keys.isEmpty());
             VaultEnum.Error.MFA_REQUIRED.rejectIf(session.stage() == VaultEnum.Stage.RECOVERY_ENROLLMENT
                     && session.recoveryUntil().isBefore(Instant.now()));
             challenge = challenges.issue(session, purpose, account.getCredentialRevision());
-            result.put("rpId", properties.getRpId());
-            result.put("userVerification", VaultProtocol.REQUIRED);
-            result.put("allowCredentials", this.descriptors(keys));
+            result.setRpId(properties.getRpId());
+            result.setUserVerification(VaultProtocol.REQUIRED);
+            List<VaultWebAuthnOptionsVO.CredentialDescriptorVO> allowed = this.descriptors(keys);
+            result.setAllowCredentials(allowed);
         }
-        result.put("challenge", VaultCodec.encode(challenge));
-        result.put("timeout", 120000);
-        result.put("credentialRevision", account.getCredentialRevision());
+        result.setChallenge(VaultCodec.encode(challenge));
+        result.setTimeout(120000);
+        result.setCredentialRevision(account.getCredentialRevision());
         return result;
     }
 
-    private List<Map<String, String>> descriptors(List<VaultPasskey> keys) {
-        List<Map<String, String>> result = new ArrayList<>();
+    private List<VaultWebAuthnOptionsVO.CredentialDescriptorVO> descriptors(List<VaultPasskey> keys) {
+        List<VaultWebAuthnOptionsVO.CredentialDescriptorVO> result = new ArrayList<>();
         for (VaultPasskey key : keys) {
-            result.add(Map.of("type", VaultProtocol.CREDENTIAL_TYPE, "id", VaultCodec.encode(key.getCredentialId())));
+            VaultWebAuthnOptionsVO.CredentialDescriptorVO descriptor = new VaultWebAuthnOptionsVO.CredentialDescriptorVO();
+            descriptor.setType(VaultProtocol.CREDENTIAL_TYPE);
+            descriptor.setId(VaultCodec.encode(key.getCredentialId()));
+            result.add(descriptor);
         }
         return result;
     }
@@ -180,7 +205,7 @@ public class VaultIdentityServiceImpl implements IVaultIdentityService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> issueRecoveryCodes(VaultSession session, Long expectedCredentialRevision) {
+    public VaultRecoveryCodesVO issueRecoveryCodes(VaultSession session, Long expectedCredentialRevision) {
         VaultContexts.requireRecentPasskey(session);
         VaultEnum.Error.MFA_REQUIRED.rejectIf(session.stage() != VaultEnum.Stage.MFA && session.stage() != VaultEnum.Stage.RECOVERY_SETUP);
         VaultAccount account = access.lock(session);
@@ -212,8 +237,13 @@ public class VaultIdentityServiceImpl implements IVaultIdentityService {
             Arrays.fill(raw, (byte) 0);
         }
         access.audit(session, null, VaultEnum.AuditAction.RECOVERY_CODES_ISSUE);
-        return Map.of("formatVersion", 1, "batchId", batchId.toString(), "ownerSubject", session.ownerId().toString(),
-                "codes", values, "credentialRevision", account.getCredentialRevision());
+        VaultRecoveryCodesVO result = new VaultRecoveryCodesVO();
+        result.setFormatVersion(1);
+        result.setBatchId(batchId.toString());
+        result.setOwnerSubject(session.ownerId().toString());
+        result.setCodes(values);
+        result.setCredentialRevision(account.getCredentialRevision());
+        return result;
     }
 
     @Override
@@ -290,17 +320,15 @@ public class VaultIdentityServiceImpl implements IVaultIdentityService {
     }
 
     @Override
-    public List<Map<String, Object>> passkeys(VaultSession session) {
+    public List<VaultPasskeyVO> passkeys(VaultSession session) {
         VaultContexts.requireMfa(session);
         access.check(session);
         List<VaultPasskey> keys = this.activeKeys(session.accountId());
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (VaultPasskey key : keys) {
-            Map<String, Object> view = new LinkedHashMap<>();
-            view.put("credentialId", VaultCodec.encode(key.getCredentialId()));
-            view.put("label", key.getLabel());
-            view.put("lastUsedAt", key.getLastUsedAt());
-            result.add(view);
+        List<VaultPasskeyVO> result = BeanConvertUtils.mapList(keys, VaultPasskeyVO.class);
+        for (int index = 0; index < keys.size(); index++) {
+            VaultPasskey key = keys.get(index);
+            VaultPasskeyVO view = result.get(index);
+            view.setCredentialId(VaultCodec.encode(key.getCredentialId()));
         }
         return result;
     }

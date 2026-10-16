@@ -30,15 +30,25 @@ public class VaultIdempotency {
 
     private final VaultAccess access;
 
-    public Map<String, Object> execute(VaultSession session, VaultEnum.Operation operation, String key, Object payload, Supplier<Map<String, Object>> action) {
+    /**
+     * 在当前事务中执行操作，重试时按同一响应类型读取已持久化的公开回执。
+     */
+    public <T> T execute(
+            VaultSession session,
+            VaultEnum.Operation operation,
+            String key,
+            Object payload,
+            Class<T> responseType,
+            Supplier<T> action
+    ) {
         UUID id = VaultCodec.uuid(key);
         byte[] digest = VaultCodec.digest(List.of(session.ownerId().toString(), operation.getCode(), payload));
         VaultIdempotencyRecord previous = control.receipt(session.accountId(), operation.getCode(), id);
         if (previous != null) {
             VaultEnum.Error.IDEMPOTENCY_CONFLICT.rejectIf(!MessageDigest.isEqual(previous.getRequestDigest(), digest));
-            return VaultCodec.receipt(previous.getResponseBody());
+            return VaultCodec.receipt(previous.getResponseBody(), responseType);
         }
-        Map<String, Object> result = action.get();
+        T result = action.get();
         VaultIdempotencyRecord record = new VaultIdempotencyRecord();
         record.setId(IdWorker.getId());
         record.setAccountId(session.accountId());

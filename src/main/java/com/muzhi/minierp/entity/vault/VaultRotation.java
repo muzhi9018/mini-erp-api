@@ -2,6 +2,11 @@ package com.muzhi.minierp.entity.vault;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.muzhi.minierp.mapper.vault.type.*;
+import com.muzhi.minierp.vo.vault.VaultRotationVO;
+import com.muzhi.minierp.vo.vault.VaultRotationStatusVO;
+import io.github.linpeilie.annotations.AutoMapper;
+import io.github.linpeilie.annotations.AutoMappers;
+import io.github.linpeilie.annotations.AutoMapping;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.OffsetDateTime;
@@ -17,6 +22,10 @@ import java.util.UUID;
  */
 @Getter
 @Setter
+@AutoMappers({
+        @AutoMapper(target = VaultRotationVO.class, reverseConvertGenerate = false),
+        @AutoMapper(target = VaultRotationStatusVO.class, reverseConvertGenerate = false)
+})
 @TableName(value = "vault_rotation", schema = "public", autoResultMap = true)
 public class VaultRotation extends VaultAuditEntity {
 
@@ -62,6 +71,7 @@ public class VaultRotation extends VaultAuditEntity {
      * 全新暂存代，取消后不复用
      */
     @TableField("target_generation")
+    @AutoMapping(target = "generation")
     private Long targetGeneration;
 
     /**
@@ -92,6 +102,7 @@ public class VaultRotation extends VaultAuditEntity {
      * 登记的预期条目数量；提交还必须检查逐项集合
      */
     @TableField("expected_item_count")
+    @AutoMapping(targetClass = VaultRotationStatusVO.class, target = "expectedItemCount", ignore = true)
     private Integer expectedItemCount;
 
     /**
@@ -104,12 +115,14 @@ public class VaultRotation extends VaultAuditEntity {
      * 仅含提交结果、代次和版本的公开回执，不能含秘密或会话令牌
      */
     @TableField(value = "commit_receipt", typeHandler = VaultJsonTypeHandler.class)
+    @AutoMapping(targetClass = VaultRotationStatusVO.class, target = "commitReceipt", ignore = true)
     private String commitReceipt;
 
     /**
      * 最长 30 分钟绝对截止时间；二次认证不会延长
      */
     @TableField("expires_at")
+    @AutoMapping(target = "expiresAt", ignore = true)
     private OffsetDateTime expiresAt;
 
     /**

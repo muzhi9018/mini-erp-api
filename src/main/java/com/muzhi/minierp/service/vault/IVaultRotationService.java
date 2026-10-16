@@ -2,7 +2,7 @@ package com.muzhi.minierp.service.vault;
 
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.vault.*;
-import java.util.Map;
+import com.muzhi.minierp.vo.vault.*;
 
 /**
  * <p>
@@ -14,25 +14,25 @@ import java.util.Map;
  */
 public interface IVaultRotationService {
     /** 冻结源版本和逐项集合，创建新代并暂停写入。 */
-    Map<String, Object> start(VaultSession session, VaultProtocol.RotationStart request, VaultEnum.RotationMode mode);
+    VaultRotationVO start(VaultSession session, VaultProtocol.RotationStart request, VaultEnum.RotationMode mode);
 
     /** 查询当前用户任务的持久化进度和提交回执。 */
-    Map<String, Object> status(VaultSession session, String rotationId);
+    VaultRotationStatusVO status(VaultSession session, String rotationId);
 
     /** 幂等接收不可覆盖的暂存批次。 */
-    Map<String, Object> batch(VaultSession session, VaultProtocol.RotationBatch request);
+    VaultRotationBatchVO batch(VaultSession session, VaultProtocol.RotationBatch request);
 
     /** 返回暂存代密文供客户端逐条解密验证。 */
-    Map<String, Object> items(VaultSession session, String rotationId, String cursor, int pageSize);
+    VaultItemPageVO items(VaultSession session, String rotationId, String cursor, int pageSize);
 
     /** 近期 MFA、集合校验和清单匹配后原子切代并撤销旧会话。 */
-    Map<String, Object> commit(VaultSession session, VaultProtocol.RotationCommand request);
+    VaultRotationReceiptVO commit(VaultSession session, VaultProtocol.RotationCommand request);
 
     /** 近期 MFA 后由新登录会话显式接管仍有效的任务。 */
-    Map<String, Object> resume(VaultSession session, VaultProtocol.RotationCommand request);
+    VaultRotationVO resume(VaultSession session, VaultProtocol.RotationCommand request);
 
     /** 取消任务，保留旧活动代并清理暂存。 */
-    Map<String, Object> cancel(VaultSession session, VaultProtocol.RotationCommand request);
+    VaultRotationVO cancel(VaultSession session, VaultProtocol.RotationCommand request);
 
     /** 后台按数据库时间回收超时任务，不撤销已成功提交的代。 */
     void expire(Long ownerId, String rotationId);

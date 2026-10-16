@@ -3,6 +3,7 @@ package com.muzhi.minierp.security.vault;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.vault.VaultSession;
 import jakarta.servlet.http.*;
+import com.muzhi.minierp.vo.vault.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DataAccessException;
@@ -30,7 +31,7 @@ public class VaultBrowserSession {
 
     private final HttpSessionCsrfTokenRepository csrf;
 
-    public Map<String, Object> save(VaultSession identity, HttpServletRequest request, HttpServletResponse response) {
+    public VaultSessionVO save(VaultSession identity, HttpServletRequest request, HttpServletResponse response) {
         request.getSession(true);
         request.changeSessionId();
         String authority = "VAULT_" + identity.stage().getCode();
@@ -44,22 +45,24 @@ public class VaultBrowserSession {
         return this.view(identity, request, response);
     }
 
-    public Map<String, Object> view(VaultSession identity, HttpServletRequest request, HttpServletResponse response) {
+    public VaultSessionVO view(VaultSession identity, HttpServletRequest request, HttpServletResponse response) {
         request.getSession(true);
         CsrfToken token = csrf.loadToken(request);
         if (token == null) {
             token = csrf.generateToken(request);
             csrf.saveToken(token, request, response);
         }
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("loginMethod", "LOCAL_PASSKEY");
-        result.put("csrfToken", token.getToken());
-        result.put("csrfHeader", token.getHeaderName());
+        VaultSessionVO result = new VaultSessionVO();
+        result.setLoginMethod("LOCAL_PASSKEY");
+        result.setCsrfToken(token.getToken());
+        result.setCsrfHeader(token.getHeaderName());
         if (identity != null) {
-            result.put("ownerSubject", identity.ownerId().toString());
-            result.put("stage", identity.stage().getCode());
-            result.put("mfa", identity.stage() == VaultEnum.Stage.MFA);
-            result.put("recentAuthentication", identity.mfaAt() != null && identity.mfaAt().isAfter(java.time.Instant.now().minusSeconds(300)));
+            result.setOwnerSubject(identity.ownerId().toString());
+            result.setStage(identity.stage().getCode());
+            result.setMfa(identity.stage() == VaultEnum.Stage.MFA);
+            boolean recentAuthentication = identity.mfaAt() != null
+                    && identity.mfaAt().isAfter(java.time.Instant.now().minusSeconds(300));
+            result.setRecentAuthentication(recentAuthentication);
         }
         return result;
     }

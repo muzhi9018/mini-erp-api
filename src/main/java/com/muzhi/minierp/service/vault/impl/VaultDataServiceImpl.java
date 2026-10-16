@@ -9,6 +9,7 @@ import com.muzhi.minierp.mapper.vault.*;
 import com.muzhi.minierp.model.vault.*;
 import com.muzhi.minierp.security.vault.VaultContexts;
 import com.muzhi.minierp.service.vault.*;
+import com.muzhi.minierp.vo.vault.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -52,24 +53,38 @@ public class VaultDataServiceImpl implements IVaultDataService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> meta(VaultSession session) {
+    public VaultMetaVO meta(VaultSession session) {
         VaultContexts.requireMfa(session);
         VaultAccount account = access.lock(session);
         access.dataAccess(account);
         VaultInfo vault = control.lockVault(account.getId());
-        return vault == null ? Map.of("initialized", false, "metaRevision", 1, "collectionRevision", 1) : cipher.meta(vault);
+        if (vault != null) {
+            return cipher.meta(vault);
+        }
+        VaultMetaVO result = new VaultMetaVO();
+        result.setInitialized(false);
+        result.setMetaRevision(1L);
+        result.setCollectionRevision(1L);
+        return result;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> initialize(VaultSession session, VaultProtocol.Setup setup) {
+    public VaultMetaVO initialize(VaultSession session, VaultProtocol.Setup setup) {
         VaultContexts.requireRecent(session);
         VaultAccount account = access.lock(session);
         access.dataAccess(account);
-        return idempotency.execute(session, VaultEnum.Operation.INITIALIZE, setup.idempotencyKey(), setup, () -> this.createVault(session, setup));
+        return idempotency.execute(
+                session,
+                VaultEnum.Operation.INITIALIZE,
+                setup.idempotencyKey(),
+                setup,
+                VaultMetaVO.class,
+                () -> this.createVault(session, setup)
+        );
     }
 
-    private Map<String, Object> createVault(VaultSession session, VaultProtocol.Setup setup) {
+    private VaultMetaVO createVault(VaultSession session, VaultProtocol.Setup setup) {
         VaultInfo vault = control.lockVault(session.accountId());
         if (vault == null) {
             vault = new VaultInfo();
@@ -98,7 +113,7 @@ public class VaultDataServiceImpl implements IVaultDataService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> items(VaultSession session, String cursor, int pageSize) {
+    public VaultItemPageVO items(VaultSession session, String cursor, int pageSize) {
         VaultContexts.requireMfa(session);
         VaultAccount account = access.lock(session);
         access.dataAccess(account);
@@ -125,32 +140,39 @@ public class VaultDataServiceImpl implements IVaultDataService {
         List<VaultItem> found = items.selectList(query);
         boolean more = found.size() > pageSize;
         List<VaultItem> page = more ? found.subList(0, pageSize) : found;
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("generation", vault.getActiveGeneration());
-        result.put("collectionRevision", vault.getCollectionRevision());
-        result.put("items", page.stream().map(cipher::view).toList());
+        VaultItemPageVO result = new VaultItemPageVO();
+        result.setGeneration(vault.getActiveGeneration());
+        result.setCollectionRevision(vault.getCollectionRevision());
+        List<VaultProtocol.Item> pageItems = page.stream().map(cipher::view).toList();
+        result.setItems(pageItems);
         String next = null;
         if (more) {
             String value = session.ownerId() + ":" + vault.getVaultId() + ":" + vault.getActiveGeneration() + ":"
                     + vault.getCollectionRevision() + ":" + page.getLast().getItemId();
             next = VaultCodec.encode(value.getBytes(StandardCharsets.UTF_8));
         }
-        result.put("nextCursor", next);
+        result.setNextCursor(next);
         return result;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> save(VaultSession session, VaultProtocol.ItemWrite request, boolean create) {
+    public VaultItemResultVO save(VaultSession session, VaultProtocol.ItemWrite request, boolean create) {
         VaultContexts.requireMfa(session);
         VaultAccount account = access.lock(session);
         access.dataAccess(account);
         VaultEnum.Operation operation = create ? VaultEnum.Operation.CREATE_ITEM : VaultEnum.Operation.UPDATE_ITEM;
-        return idempotency.execute(session, operation, request.idempotencyKey(), request,
-                () -> this.saveItem(session, request, create));
+        return idempotency.execute(
+                session,
+                operation,
+                request.idempotencyKey(),
+                request,
+                VaultItemResultVO.class,
+                () -> this.saveItem(session, request, create)
+        );
     }
 
-    private Map<String, Object> saveItem(VaultSession session, VaultProtocol.ItemWrite request, boolean create) {
+    private VaultItemResultVO saveItem(VaultSession session, VaultProtocol.ItemWrite request, boolean create) {
         VaultInfo vault = access.lockVault(session);
         cipher.writable(vault);
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(!Objects.equals(vault.getActiveGeneration(), request.generation()));
@@ -177,8 +199,12 @@ public class VaultDataServiceImpl implements IVaultDataService {
         }
         this.bump(vault, session.ownerId());
         access.audit(session, vault.getId(), create ? VaultEnum.AuditAction.ITEM_CREATE : VaultEnum.AuditAction.ITEM_UPDATE);
-        return Map.of("itemId", item.getItemId().toString(), "rowVersion", item.getRowVersion(),
-                "contentVersion", item.getContentVersion(), "collectionRevision", vault.getCollectionRevision());
+        VaultItemResultVO result = new VaultItemResultVO();
+        result.setItemId(item.getItemId().toString());
+        result.setRowVersion(item.getRowVersion());
+        result.setContentVersion(item.getContentVersion());
+        result.setCollectionRevision(vault.getCollectionRevision());
+        return result;
     }
 
     private VaultItem item(VaultInfo vault, String itemId) {
@@ -200,15 +226,21 @@ public class VaultDataServiceImpl implements IVaultDataService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> delete(VaultSession session, VaultProtocol.ItemWrite request) {
+    public VaultItemResultVO delete(VaultSession session, VaultProtocol.ItemWrite request) {
         VaultContexts.requireMfa(session);
         VaultAccount account = access.lock(session);
         access.dataAccess(account);
-        return idempotency.execute(session, VaultEnum.Operation.DELETE_ITEM, request.idempotencyKey(), request,
-                () -> this.deleteItem(session, request));
+        return idempotency.execute(
+                session,
+                VaultEnum.Operation.DELETE_ITEM,
+                request.idempotencyKey(),
+                request,
+                VaultItemResultVO.class,
+                () -> this.deleteItem(session, request)
+        );
     }
 
-    private Map<String, Object> deleteItem(VaultSession session, VaultProtocol.ItemWrite request) {
+    private VaultItemResultVO deleteItem(VaultSession session, VaultProtocol.ItemWrite request) {
         VaultInfo vault = access.lockVault(session);
         cipher.writable(vault);
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(!Objects.equals(vault.getActiveGeneration(), request.generation()));
@@ -227,20 +259,29 @@ public class VaultDataServiceImpl implements IVaultDataService {
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(changed != 1);
         this.bump(vault, session.ownerId());
         access.audit(session, vault.getId(), VaultEnum.AuditAction.ITEM_DELETE);
-        return Map.of("deleted", true, "collectionRevision", vault.getCollectionRevision());
+        VaultItemResultVO result = new VaultItemResultVO();
+        result.setDeleted(true);
+        result.setCollectionRevision(vault.getCollectionRevision());
+        return result;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> changeMaster(VaultSession session, VaultProtocol.MasterChange request) {
+    public VaultMetaVO changeMaster(VaultSession session, VaultProtocol.MasterChange request) {
         VaultContexts.requireRecent(session);
         VaultAccount account = access.lock(session);
         access.dataAccess(account);
-        return idempotency.execute(session, VaultEnum.Operation.CHANGE_MASTER, request.idempotencyKey(), request,
-                () -> this.replaceMaster(session, account, request));
+        return idempotency.execute(
+                session,
+                VaultEnum.Operation.CHANGE_MASTER,
+                request.idempotencyKey(),
+                request,
+                VaultMetaVO.class,
+                () -> this.replaceMaster(session, account, request)
+        );
     }
 
-    private Map<String, Object> replaceMaster(VaultSession session, VaultAccount account, VaultProtocol.MasterChange request) {
+    private VaultMetaVO replaceMaster(VaultSession session, VaultAccount account, VaultProtocol.MasterChange request) {
         VaultInfo vault = access.lockVault(session);
         cipher.writable(vault);
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(!vault.getMetaRevision().equals(request.expectedMetaRevision()));

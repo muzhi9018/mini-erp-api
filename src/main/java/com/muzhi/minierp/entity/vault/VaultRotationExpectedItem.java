@@ -2,6 +2,9 @@ package com.muzhi.minierp.entity.vault;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.muzhi.minierp.mapper.vault.type.*;
+import com.muzhi.minierp.vo.vault.VaultRotationStatusVO;
+import io.github.linpeilie.annotations.AutoMapper;
+import io.github.linpeilie.annotations.AutoMapping;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.OffsetDateTime;
@@ -17,6 +20,7 @@ import java.util.UUID;
  */
 @Getter
 @Setter
+@AutoMapper(target = VaultRotationStatusVO.ExpectedItemVO.class, reverseConvertGenerate = false)
 @TableName(value = "vault_rotation_expected_item", schema = "public", autoResultMap = true)
 public class VaultRotationExpectedItem extends VaultAuditEntity {
 
@@ -48,5 +52,6 @@ public class VaultRotationExpectedItem extends VaultAuditEntity {
      * 完整轮换保持源版本；备份恢复在新上下文中固定从 1 开始
      */
     @TableField("target_content_version")
+    @AutoMapping(target = "contentVersion")
     private Long targetContentVersion;
 }
