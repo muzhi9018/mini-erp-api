@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.muzhi.minierp.mapper.vault.type.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.Serial;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -19,6 +21,9 @@ import java.util.UUID;
 @Setter
 @TableName(value = "vault_auth_recovery_code", schema = "public", autoResultMap = true)
 public class VaultAuthRecoveryCode extends VaultAuditEntity {
+
+    @Serial
+    private static final long serialVersionUID = 2177338620261053262L;
 
     /**
      * 内部逻辑 ID，由应用使用 IdWorker / ASSIGN_ID 生成

@@ -7,6 +7,8 @@ import io.github.linpeilie.annotations.AutoMapper;
 import io.github.linpeilie.annotations.AutoMapping;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.Serial;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -23,6 +25,9 @@ import java.util.UUID;
 @AutoMapper(target = VaultPasskeyVO.class, reverseConvertGenerate = false)
 @TableName(value = "vault_passkey", schema = "public", autoResultMap = true)
 public class VaultPasskey extends VaultAuditEntity {
+
+    @Serial
+    private static final long serialVersionUID = -2189813775553397668L;
 
     /**
      * 内部逻辑 ID，由应用使用 IdWorker / ASSIGN_ID 生成

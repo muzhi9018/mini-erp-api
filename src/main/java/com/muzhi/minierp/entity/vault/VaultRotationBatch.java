@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.*;
 import com.muzhi.minierp.mapper.vault.type.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.Serial;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -19,6 +21,9 @@ import java.util.UUID;
 @Setter
 @TableName(value = "vault_rotation_batch", schema = "public", autoResultMap = true)
 public class VaultRotationBatch extends VaultAuditEntity {
+
+    @Serial
+    private static final long serialVersionUID = -2031482809820484274L;
 
     /**
      * 内部逻辑 ID，由应用使用 IdWorker / ASSIGN_ID 生成

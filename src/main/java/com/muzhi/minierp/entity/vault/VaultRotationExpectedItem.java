@@ -7,6 +7,8 @@ import io.github.linpeilie.annotations.AutoMapper;
 import io.github.linpeilie.annotations.AutoMapping;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.Serial;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -23,6 +25,9 @@ import java.util.UUID;
 @AutoMapper(target = VaultRotationStatusVO.ExpectedItemVO.class, reverseConvertGenerate = false)
 @TableName(value = "vault_rotation_expected_item", schema = "public", autoResultMap = true)
 public class VaultRotationExpectedItem extends VaultAuditEntity {
+
+    @Serial
+    private static final long serialVersionUID = -183624090733933301L;
 
     /**
      * 内部轮换任务逻辑 ID

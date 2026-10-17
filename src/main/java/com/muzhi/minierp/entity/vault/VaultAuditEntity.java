@@ -3,6 +3,9 @@ package com.muzhi.minierp.entity.vault;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.OffsetDateTime;
 
 /**
@@ -15,8 +18,9 @@ import java.time.OffsetDateTime;
  */
 @Getter
 @Setter
-public abstract class VaultAuditEntity implements java.io.Serializable {
-    @java.io.Serial
+public abstract class VaultAuditEntity implements Serializable {
+
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**

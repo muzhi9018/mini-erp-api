@@ -2,8 +2,10 @@ package com.muzhi.minierp.service.vault.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.*;
+import com.muzhi.minierp.entity.system.SysUser;
 import com.muzhi.minierp.entity.vault.*;
 import com.muzhi.minierp.enums.VaultEnum;
+import com.muzhi.minierp.mapper.system.SysUserMapper;
 import com.muzhi.minierp.mapper.vault.*;
 import com.muzhi.minierp.model.LoginQuery;
 import com.muzhi.minierp.model.LoginUser;
@@ -38,7 +40,9 @@ public class VaultIdentityServiceImpl implements IVaultIdentityService {
 
     private final AuthenticationManager authenticationManager;
 
-    private final VaultControlMapper control;
+    private final VaultControlMapper vaultControl;
+
+    private final SysUserMapper sysUserMapper;
 
     private final VaultAccountMapper accounts;
 
@@ -56,15 +60,15 @@ public class VaultIdentityServiceImpl implements IVaultIdentityService {
     @Transactional(rollbackFor = Exception.class)
     public VaultSession login(LoginQuery query) {
         // 与系统密码重置、禁用和删除使用同一用户行，避免校验旧密码后继承新认证代次。
-        Long lockedOwner = control.lockLoginUser(query.getUsername());
+        Long lockedOwner = vaultControl.lockLoginUser(query.getUsername());
         VaultEnum.Error.INVALID_CREDENTIALS.rejectIf(lockedOwner == null);
         UsernamePasswordAuthenticationToken request = new UsernamePasswordAuthenticationToken(query.getUsername(), query.getPassword());
         Authentication verified = authenticationManager.authenticate(request);
         LoginUser user = (LoginUser) verified.getPrincipal();
         Long ownerId = user.getId();
         VaultEnum.Error.INVALID_CREDENTIALS.rejectIf(!lockedOwner.equals(ownerId));
-        control.ensureAccount(ownerId, IdWorker.getId(), VaultCodec.random(32));
-        VaultAccount account = control.lockAccount(ownerId);
+        vaultControl.ensureAccount(ownerId, IdWorker.getId(), VaultCodec.random(32));
+        VaultAccount account = vaultControl.lockAccount(ownerId);
         VaultEnum.Error.SESSION_REVOKED.rejectIf(account == null || Boolean.TRUE.equals(account.getIsDeleted()));
         Instant now = Instant.now();
         VaultSession session = new VaultSession(ownerId, account.getId(), account.getAuthEpoch(), VaultEnum.Stage.PASSWORD, now, now, null, null, UUID.randomUUID(), false);
@@ -89,7 +93,7 @@ public class VaultIdentityServiceImpl implements IVaultIdentityService {
         if (session.stage() == VaultEnum.Stage.PASSWORD || session.stage() == VaultEnum.Stage.RECOVERY_ENROLLMENT) {
             VaultEnum.Error.MFA_REQUIRED.rejectIf(!keys.isEmpty());
             if (session.stage() == VaultEnum.Stage.PASSWORD) {
-                VaultInfo vault = control.lockVault(account.getId());
+                VaultInfo vault = vaultControl.lockVault(account.getId());
                 VaultEnum.Error.MFA_REQUIRED.rejectIf(vault != null && vault.getActiveGeneration() != null);
             }
         } else {
@@ -108,6 +112,13 @@ public class VaultIdentityServiceImpl implements IVaultIdentityService {
         VaultWebAuthnOptionsVO result = new VaultWebAuthnOptionsVO();
         if (purpose == VaultEnum.ChallengePurpose.REGISTER) {
             this.registrationAllowed(session, account, keys);
+            LambdaQueryWrapper<SysUser> userQuery = Wrappers.lambdaQuery();
+            userQuery.select(SysUser::getUsername);
+            userQuery.eq(SysUser::getId, session.ownerId());
+            SysUser owner = sysUserMapper.selectOne(userQuery);
+            VaultEnum.Error.SESSION_REVOKED.rejectIf(owner == null);
+            String username = owner.getUsername();
+
             challenge = challenges.issue(session, purpose, account.getCredentialRevision());
             VaultWebAuthnOptionsVO.RpVO rp = new VaultWebAuthnOptionsVO.RpVO();
             rp.setId(properties.getRpId());
@@ -116,8 +127,8 @@ public class VaultIdentityServiceImpl implements IVaultIdentityService {
 
             VaultWebAuthnOptionsVO.UserVO user = new VaultWebAuthnOptionsVO.UserVO();
             user.setId(VaultCodec.encode(account.getWebauthnUserHandle()));
-            user.setName(session.ownerId().toString());
-            user.setDisplayName(session.ownerId().toString());
+            user.setName(username);
+            user.setDisplayName(username);
             result.setUser(user);
 
             List<VaultWebAuthnOptionsVO.CredentialParameterVO> parameters = new ArrayList<>();
@@ -361,7 +372,7 @@ public class VaultIdentityServiceImpl implements IVaultIdentityService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void revokeOwner(Long ownerId) {
-        VaultAccount account = control.lockAccount(ownerId);
+        VaultAccount account = vaultControl.lockAccount(ownerId);
         if (account != null) {
             access.revoke(account, null);
         }
