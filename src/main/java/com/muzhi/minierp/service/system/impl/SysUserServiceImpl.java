@@ -18,6 +18,7 @@ import com.muzhi.minierp.security.SecurityUtils;
 import com.muzhi.minierp.service.system.ISysUserService;
 import com.muzhi.minierp.util.Assert;
 import com.muzhi.minierp.service.vault.IVaultIdentityService;
+import com.muzhi.minierp.service.vault.VaultUserDeletionGuard;
 import org.springframework.beans.factory.ObjectProvider;
 import com.muzhi.minierp.vo.SysUserVO;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +51,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     private final PasswordEncoder passwordEncoder;
 
     private final ObjectProvider<IVaultIdentityService> vaultIdentities;
+
+    private final VaultUserDeletionGuard vaultUserDeletionGuard;
 
     private final SysRoleMapper sysRoleMapper;
 
@@ -131,8 +134,13 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long userId) {
-        SysUser user = baseMapper.selectById(userId);
+        // 与密码库登录的用户行共享锁互斥，避免检查后又创建密码库账户。
+        LambdaQueryWrapper<SysUser> userQuery = Wrappers.lambdaQuery();
+        userQuery.eq(SysUser::getId, userId);
+        userQuery.last("FOR UPDATE");
+        SysUser user = super.baseMapper.selectOne(userQuery);
         Assert.isNull(user, "system.user.not-found", "用户不存在");
+        vaultUserDeletionGuard.requireNoRetainedData(userId);
 
         LambdaQueryWrapper<SysUserRole> userRoleQuery = Wrappers.lambdaQuery();
         userRoleQuery.eq(SysUserRole::getUserId, userId);

@@ -57,6 +57,41 @@ public final class VaultProtocolValidator {
         VaultProtocolValidator.box(item.encryptedItem(), true);
     }
 
+    /**
+     * 校验原子变更的格式和动作字段约束，不解析加密内容。
+     */
+    public static void itemBatch(VaultProtocol.ItemBatch batch) {
+        VaultEnum.Error.INVALID_REQUEST.rejectIf(batch == null);
+        VaultCodec.uuid(batch.idempotencyKey());
+        VaultCodec.version(batch.generation());
+        VaultCodec.version(batch.keyEpoch());
+        VaultCodec.version(batch.expectedCollectionRevision());
+        int maximumChanges = 100;
+        VaultEnum.Error.INVALID_REQUEST.rejectIf(batch.changes() == null || batch.changes().isEmpty()
+                || batch.changes().size() > maximumChanges);
+        Set<String> seen = new HashSet<>();
+        for (VaultProtocol.ItemChange change : batch.changes()) {
+            VaultEnum.Error.INVALID_REQUEST.rejectIf(change == null);
+            VaultCodec.uuid(change.itemId());
+            VaultEnum.Error.INVALID_REQUEST.rejectIf(!seen.add(change.itemId()));
+            VaultEnum.ItemChangeAction action = VaultEnum.ofCode(VaultEnum.ItemChangeAction.class, change.action());
+            if (action == VaultEnum.ItemChangeAction.CREATE) {
+                VaultEnum.Error.INVALID_REQUEST.rejectIf(change.expectedRowVersion() != null
+                        || !Long.valueOf(1).equals(change.contentVersion()));
+            } else {
+                VaultCodec.version(change.expectedRowVersion());
+            }
+            if (action == VaultEnum.ItemChangeAction.DELETE) {
+                VaultEnum.Error.INVALID_REQUEST.rejectIf(change.contentVersion() != null
+                        || change.wrappedDek() != null || change.encryptedItem() != null);
+            } else {
+                VaultCodec.version(change.contentVersion());
+                VaultProtocolValidator.box(change.wrappedDek(), false);
+                VaultProtocolValidator.box(change.encryptedItem(), true);
+            }
+        }
+    }
+
     public static void credential(VaultProtocol.Credential credential, boolean registration) {
         VaultEnum.Error.INVALID_REQUEST.rejectIf(credential == null || credential.response() == null
                 || !VaultProtocol.CREDENTIAL_TYPE.equals(credential.type()) || !Objects.equals(credential.id(), credential.rawId()));

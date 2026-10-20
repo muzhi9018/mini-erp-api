@@ -28,6 +28,15 @@ public interface IVaultDataService {
     /** 原子逻辑删除条目并记录删除人和时间。 */
     VaultItemResultVO delete(VaultSession session, VaultProtocol.ItemWrite request);
 
+    /**
+     * 在同一事务中提交密文变更，集合版本必须与客户端管理组成员时的快照一致。
+     *
+     * @param session 当前完整认证会话
+     * @param request 同一活动代的新增、更新与删除集合
+     * @return 按请求顺序排列的公开回执；不含密文或关联关系
+     */
+    VaultItemBatchResultVO batch(VaultSession session, VaultProtocol.ItemBatch request);
+
     /** 保持 VMK 不变，原子替换正常槽并撤销旧会话。 */
     VaultMetaVO changeMaster(VaultSession session, VaultProtocol.MasterChange request);
 

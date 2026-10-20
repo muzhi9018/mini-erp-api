@@ -16,6 +16,9 @@ import java.util.UUID;
  */
 public interface VaultControlMapper {
 
+    /** 判断密码库表是否已迁移，供模块关闭时的用户删除保护使用。 */
+    boolean accountTableExists();
+
     Long lockLoginUser(@Param("username") String username);
 
     int ensureAccount(@Param("ownerId") Long ownerId, @Param("id") Long id, @Param("handle") byte[] handle);
@@ -33,6 +36,9 @@ public interface VaultControlMapper {
     Long ownerOfVault(@Param("vaultId") Long vaultId);
 
     VaultGeneration generation(@Param("vaultId") Long vaultId, @Param("generation") Long generation);
+
+    /** 检查活动代内的标识占用，包含尚未清理的逻辑删除条目。 */
+    boolean itemIdExists(@Param("vaultId") Long vaultId, @Param("generation") Long generation, @Param("itemId") UUID itemId);
 
     Long maxGeneration(@Param("vaultId") Long vaultId);
 

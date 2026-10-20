@@ -94,6 +94,16 @@ public class VaultController {
         return JsonResult.success(result);
     }
 
+    /**
+     * 原子保存账号组及必要的独立条目变更，任意变更失败时整批回滚。
+     */
+    @PostMapping("/items/batch")
+    public JsonResult<VaultItemBatchResultVO> batch(@RequestBody VaultProtocol.ItemBatch value) {
+        VaultProtocolValidator.itemBatch(value);
+        VaultItemBatchResultVO result = data.batch(VaultContexts.current(), value);
+        return JsonResult.success(result);
+    }
+
     private void validateItem(VaultProtocol.ItemWrite value, boolean content) {
         VaultEnum.Error.INVALID_REQUEST.rejectIf(value == null);
         VaultCodec.uuid(value.itemId());

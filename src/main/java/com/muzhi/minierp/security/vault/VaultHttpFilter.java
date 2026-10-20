@@ -3,6 +3,7 @@ package com.muzhi.minierp.security.vault;
 import com.muzhi.minierp.config.VaultProperties;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.vault.VaultSession;
+import com.muzhi.minierp.model.vault.VaultProtocol;
 import com.muzhi.minierp.service.vault.IVaultIdentityService;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
@@ -63,11 +64,20 @@ public class VaultHttpFilter extends OncePerRequestFilter {
             }
             HttpServletRequest actual = request;
             if (unsafe) {
+                String path = request.getRequestURI().substring(request.getContextPath().length());
+                if (path.startsWith("/api/v1/vault/")) {
+                    // 客户端必须兼容既有账号内容与账号组，才能写入或提交轮换。
+                    var versions = request.getHeaders(VaultProtocol.CLIENT_SCHEMA_HEADER);
+                    String expected = Integer.toString(VaultProtocol.ITEM_SCHEMA_VERSION);
+                    VaultEnum.Error.CLIENT_UPGRADE_REQUIRED.rejectIf(!versions.hasMoreElements()
+                            || !expected.equals(versions.nextElement()) || versions.hasMoreElements());
+                }
                 String contentType = request.getContentType();
                 VaultEnum.Error.UNSUPPORTED_MEDIA_TYPE.rejectIf(contentType == null
                         || !contentType.split(";", 2)[0].trim().equalsIgnoreCase("application/json"));
                 int maximum = (request.getRequestURI().endsWith("/rotations/batch")
-                        || request.getRequestURI().endsWith("/restores/start")) ? 1048576 : 65536;
+                        || request.getRequestURI().endsWith("/restores/start")
+                        || request.getRequestURI().endsWith("/items/batch")) ? 1048576 : 65536;
                 VaultEnum.Error.PAYLOAD_TOO_LARGE.rejectIf(request.getContentLengthLong() > maximum);
                 body = request.getInputStream().readNBytes(maximum + 1);
                 VaultEnum.Error.PAYLOAD_TOO_LARGE.rejectIf(body.length > maximum);

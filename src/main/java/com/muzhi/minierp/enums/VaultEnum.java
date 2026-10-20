@@ -163,6 +163,26 @@ public interface VaultEnum {
         }
     }
 
+    /**
+     * 原子密文变更动作，与加密内容中的业务类型无关。
+     */
+    @Getter
+    enum ItemChangeAction implements Coded {
+
+        CREATE("CREATE", "新增"),
+        UPDATE("UPDATE", "更新"),
+        DELETE("DELETE", "删除");
+
+        private final String code;
+
+        private final String name;
+
+        ItemChangeAction(String code, String name) {
+            this.code = code;
+            this.name = name;
+        }
+    }
+
     @Getter
     enum Operation implements Coded {
 
@@ -170,6 +190,7 @@ public interface VaultEnum {
         CREATE_ITEM("CREATE_ITEM", "CREATE_ITEM"),
         UPDATE_ITEM("UPDATE_ITEM", "UPDATE_ITEM"),
         DELETE_ITEM("DELETE_ITEM", "DELETE_ITEM"),
+        BATCH_ITEMS("BATCH_ITEMS", "BATCH_ITEMS"),
         CHANGE_MASTER("CHANGE_MASTER", "CHANGE_MASTER"),
         ROTATION_START("ROTATION_START", "ROTATION_START"),
         ROTATION_COMMIT("ROTATION_COMMIT", "ROTATION_COMMIT"),
@@ -273,6 +294,7 @@ public interface VaultEnum {
         NOT_FOUND(404, "vault.not-found", "记录不存在"),
         METHOD_NOT_ALLOWED(405, "vault.method-not-allowed", "不支持的请求方法"),
         VERSION_CONFLICT(409, "vault.version-conflict", "数据已更新，请重新同步"),
+        CLIENT_UPGRADE_REQUIRED(409, "vault.client-upgrade-required", "请升级密码库客户端后重试，当前客户端不能安全保留条目内容"),
         IDEMPOTENCY_CONFLICT(409, "vault.idempotency-conflict", "重复请求的内容不一致"),
         ROTATION_EXPIRED(409, "vault.rotation-expired", "轮换任务已过期，请重新开始"),
         LAST_PASSKEY(409, "vault.last-passkey", "不能撤销最后一个有效 Passkey"),

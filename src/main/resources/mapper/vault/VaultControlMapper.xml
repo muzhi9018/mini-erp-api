@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.muzhi.minierp.mapper.vault.VaultControlMapper">
+    <select id="accountTableExists" resultType="boolean">
+        select to_regclass('public.vault_account') is not null
+    </select>
     
     <select id="lockLoginUser" resultType="java.lang.Long">
         select
@@ -93,6 +96,15 @@
         and generation = #{generation}
     </select>
     
+    <select id="itemIdExists" resultType="boolean">
+        select exists (
+            select 1 from vault_item
+            where vault_id = #{vaultId}
+            and generation = #{generation}
+            and item_id = #{itemId}
+        )
+    </select>
+
     <select id="maxGeneration" resultType="java.lang.Long">
         select
             coalesce(max(generation), 0)

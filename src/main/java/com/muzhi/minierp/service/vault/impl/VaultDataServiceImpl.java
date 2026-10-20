@@ -180,9 +180,12 @@ public class VaultDataServiceImpl implements IVaultDataService {
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(!generation.getKeyEpoch().equals(request.keyEpoch()));
         VaultItem item;
         if (create) {
-            List<VaultItem> current = cipher.items(vault, request.generation());
+            LambdaQueryWrapper<VaultItem> countQuery = Wrappers.lambdaQuery();
+            countQuery.eq(VaultItem::getVaultId, vault.getId());
+            countQuery.eq(VaultItem::getGeneration, request.generation());
+            Long currentCount = items.selectCount(countQuery);
             int maximumItems = 2000;
-            VaultEnum.Error.INVALID_REQUEST.rejectIf(current.size() >= maximumItems);
+            VaultEnum.Error.INVALID_REQUEST.rejectIf(currentCount >= maximumItems);
             VaultProtocol.Item value = new VaultProtocol.Item(request.itemId(), 1L, 1L, request.keyEpoch(), request.wrappedDek(), request.encryptedItem());
             item = cipher.newItem(vault, request.generation(), value, session.ownerId());
             items.insert(item);
@@ -262,6 +265,71 @@ public class VaultDataServiceImpl implements IVaultDataService {
         VaultItemResultVO result = new VaultItemResultVO();
         result.setDeleted(true);
         result.setCollectionRevision(vault.getCollectionRevision());
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VaultItemBatchResultVO batch(VaultSession session, VaultProtocol.ItemBatch request) {
+        VaultContexts.requireMfa(session);
+        VaultAccount account = access.lock(session);
+        access.dataAccess(account);
+        return idempotency.execute(
+                session,
+                VaultEnum.Operation.BATCH_ITEMS,
+                request.idempotencyKey(),
+                request,
+                VaultItemBatchResultVO.class,
+                () -> this.applyBatch(session, request)
+        );
+    }
+
+    private VaultItemBatchResultVO applyBatch(VaultSession session, VaultProtocol.ItemBatch request) {
+        VaultInfo vault = access.lockVault(session);
+        cipher.writable(vault);
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!Objects.equals(vault.getActiveGeneration(), request.generation())
+                || !vault.getCollectionRevision().equals(request.expectedCollectionRevision()));
+        VaultGeneration generation = cipher.generation(vault, request.generation());
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!generation.getKeyEpoch().equals(request.keyEpoch()));
+        for (VaultProtocol.ItemChange change : request.changes()) {
+            VaultEnum.ItemChangeAction action = VaultEnum.ofCode(VaultEnum.ItemChangeAction.class, change.action());
+            if (action == VaultEnum.ItemChangeAction.CREATE) {
+                UUID itemId = VaultCodec.uuid(change.itemId());
+                boolean occupied = control.itemIdExists(vault.getId(), request.generation(), itemId);
+                VaultEnum.Error.VERSION_CONFLICT.rejectIf(occupied);
+            }
+        }
+        Map<String, VaultItemResultVO> receipts = new HashMap<>();
+        // 先解除删除条目的容量占用，使满库时也能原子替换；回执仍按请求顺序返回。
+        List<VaultProtocol.ItemChange> ordered = new ArrayList<>(request.changes());
+        ordered.sort(Comparator.comparing(change ->
+                VaultEnum.ItemChangeAction.DELETE.getCode().equals(change.action()) ? 0 : 1));
+        for (VaultProtocol.ItemChange change : ordered) {
+            VaultEnum.ItemChangeAction action = VaultEnum.ofCode(VaultEnum.ItemChangeAction.class, change.action());
+            VaultProtocol.ItemWrite write = new VaultProtocol.ItemWrite(change.itemId(), request.generation(),
+                    request.keyEpoch(), change.expectedRowVersion(), change.contentVersion(),
+                    change.wrappedDek(), change.encryptedItem(), request.idempotencyKey());
+            VaultItemResultVO receipt;
+            if (action == VaultEnum.ItemChangeAction.DELETE) {
+                receipt = this.deleteItem(session, write);
+                receipt.setItemId(change.itemId());
+                receipt.setRowVersion(change.expectedRowVersion() + 1);
+            } else {
+                receipt = this.saveItem(session, write, action == VaultEnum.ItemChangeAction.CREATE);
+            }
+            receipts.put(change.itemId(), receipt);
+        }
+        VaultInfo updated = access.lockVault(session);
+        List<VaultItemResultVO> results = new ArrayList<>();
+        for (VaultProtocol.ItemChange change : request.changes()) {
+            VaultItemResultVO receipt = receipts.get(change.itemId());
+            receipt.setCollectionRevision(updated.getCollectionRevision());
+            results.add(receipt);
+        }
+        VaultItemBatchResultVO result = new VaultItemBatchResultVO();
+        result.setGeneration(request.generation());
+        result.setCollectionRevision(updated.getCollectionRevision());
+        result.setResults(results);
         return result;
     }
 
