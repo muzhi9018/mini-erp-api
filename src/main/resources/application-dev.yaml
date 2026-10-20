@@ -32,15 +32,22 @@ spring:
           min-idle: 0
           max-wait: 10s
 
+
 security:
   jwt:
-    issuer: 'https://www.muzhi.store'
+    issuer: 'https://www.mini.com'
     secret: 'HaOB/RCKCb2VQyH8T72rryAGhGsdzrQDlAbMge8F93A2xrgswcxI+c0hI1UMbgYm'
     expire-minutes: 1440
 
 oss:
   access-key: 'VASONTyplDIOQk2ayR0k'
   secret-key: 'B1BQPfVXEOPjt4B3PswzYyhzdiyaNSZ2sCiajlN2'
-  internal-endpoint: 'https://greenbuild.cfd'
-  external-endpoint: 'https://greenbuild.cfd'
+  internal-endpoint: ${OSS_INTERNAL_ENDPOINT}
+  external-endpoint: ${OSS_EXTERNAL_ENDPOINT}
   bucket-name: 'mini-erp-dev'
+
+
+vault:
+  enabled: true
+  origin: ${VAULT_ORIGIN}
+  rp-id: ${VAULT_RP_ID}

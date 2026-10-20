@@ -19,7 +19,7 @@ FROM eclipse-temurin:25-jre-noble
 WORKDIR /service
 
 ENV TZ=Asia/Shanghai \
-    SPRING_PROFILES_ACTIVE=pro \
+    SPRING_PROFILES_ACTIVE=prod \
     JAVA_TOOL_OPTIONS="-Djava.security.egd=file:/dev/urandom -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
 
 # 使用与宿主机一致的 UID/GID，并授予应用用户日志目录的写入权限。

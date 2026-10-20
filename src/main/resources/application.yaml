@@ -22,6 +22,7 @@ spring:
   profiles:
     active: dev
 
+
 # Mybatis Plus 打印日志
 mybatis-plus:
   type-handlers-package: com.muzhi.minierp.mapper.vault.type
@@ -32,6 +33,7 @@ mybatis-plus:
       logic-delete-value: true
       logic-not-delete-value: false
 
+
 # 设置日志等级
 logging:
   config: classpath:log4j2-spring.xml
@@ -41,8 +43,3 @@ logging:
     com.muzhi.minierp.mapper: debug
     com.muzhi.minierp.mapper.vault: off
 
-# 完成密码库建表和受控域名配置后显式启用。
-vault:
-  enabled: true
-  origin: https://vault.local.muzhi.store
-  rp-id: vault.local.muzhi.store
