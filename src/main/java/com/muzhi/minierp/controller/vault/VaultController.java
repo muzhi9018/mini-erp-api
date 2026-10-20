@@ -1,5 +1,7 @@
 package com.muzhi.minierp.controller.vault;
 
+import com.muzhi.minierp.component.vault.VaultCodec;
+import com.muzhi.minierp.component.vault.VaultProtocolValidator;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.JsonResult;
 import com.muzhi.minierp.model.vault.*;

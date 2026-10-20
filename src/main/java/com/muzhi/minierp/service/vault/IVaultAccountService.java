@@ -1,16 +1,15 @@
 package com.muzhi.minierp.service.vault;
 
-import com.muzhi.minierp.entity.vault.VaultAccount;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.muzhi.minierp.entity.vault.VaultAccount;
 
 /**
  * <p>
- * 密码库独立认证账户；不保存主密码、账户密钥、恢复密钥或条目明文 服务类
+ * {@code IVaultAccountService}：密码库认证账户数据服务
  * </p>
  *
  * @author Mr.Muzhi
- * @since 2026-10-15
+ * @since 2026-10-20
  */
 public interface IVaultAccountService extends IService<VaultAccount> {
-
 }

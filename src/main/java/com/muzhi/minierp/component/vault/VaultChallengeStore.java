@@ -1,4 +1,4 @@
-package com.muzhi.minierp.service.vault;
+package com.muzhi.minierp.component.vault;
 
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.vault.VaultSession;
@@ -23,6 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
 public class VaultChallengeStore {
+
     private final StringRedisTemplate redis;
 
     public byte[] issue(VaultSession session, VaultEnum.ChallengePurpose purpose, long revision) {

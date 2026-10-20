@@ -2,6 +2,10 @@ package com.muzhi.minierp.service.vault.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.*;
+import com.muzhi.minierp.component.vault.VaultAccess;
+import com.muzhi.minierp.component.vault.VaultChallengeStore;
+import com.muzhi.minierp.component.vault.VaultCodec;
+import com.muzhi.minierp.component.vault.VaultWebAuthn;
 import com.muzhi.minierp.entity.system.SysUser;
 import com.muzhi.minierp.entity.vault.*;
 import com.muzhi.minierp.enums.VaultEnum;

@@ -1,13 +1,16 @@
-package com.muzhi.minierp.service.vault;
+package com.muzhi.minierp.component.vault;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.muzhi.minierp.entity.vault.VaultIdempotencyRecord;
+import com.muzhi.minierp.enums.HttpStatus;
 import com.muzhi.minierp.enums.VaultEnum;
-import com.muzhi.minierp.mapper.vault.*;
 import com.muzhi.minierp.model.vault.VaultSession;
+import com.muzhi.minierp.service.vault.IVaultControlService;
+import com.muzhi.minierp.service.vault.IVaultIdempotencyRecordService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+
 import java.security.MessageDigest;
 import java.util.*;
 import java.util.function.Supplier;
@@ -24,26 +27,20 @@ import java.util.function.Supplier;
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
 public class VaultIdempotency {
-    private final VaultControlMapper control;
 
-    private final VaultIdempotencyRecordMapper receipts;
+    private final IVaultControlService vaultControlService;
 
-    private final VaultAccess access;
+    private final IVaultIdempotencyRecordService vaultIdempotencyRecordService;
+
+    private final VaultAccess vaultAccess;
 
     /**
      * 在当前事务中执行操作，重试时按同一响应类型读取已持久化的公开回执。
      */
-    public <T> T execute(
-            VaultSession session,
-            VaultEnum.Operation operation,
-            String key,
-            Object payload,
-            Class<T> responseType,
-            Supplier<T> action
-    ) {
+    public <T> T execute(VaultSession session, VaultEnum.Operation operation, String key, Object payload, Class<T> responseType, Supplier<T> action) {
         UUID id = VaultCodec.uuid(key);
         byte[] digest = VaultCodec.digest(List.of(session.ownerId().toString(), operation.getCode(), payload));
-        VaultIdempotencyRecord previous = control.receipt(session.accountId(), operation.getCode(), id);
+        VaultIdempotencyRecord previous = vaultControlService.receipt(session.accountId(), operation, id);
         if (previous != null) {
             VaultEnum.Error.IDEMPOTENCY_CONFLICT.rejectIf(!MessageDigest.isEqual(previous.getRequestDigest(), digest));
             return VaultCodec.receipt(previous.getResponseBody(), responseType);
@@ -55,10 +52,10 @@ public class VaultIdempotency {
         record.setOperation(operation.getCode());
         record.setIdempotencyKey(id);
         record.setRequestDigest(digest);
-        record.setHttpStatus(200);
+        record.setHttpStatus(HttpStatus.OK.value());
         record.setResponseBody(VaultCodec.json(result));
-        access.create(record, session.ownerId());
-        receipts.insert(record);
+        vaultAccess.create(record, session.ownerId());
+        vaultIdempotencyRecordService.save(record);
         return result;
     }
 }

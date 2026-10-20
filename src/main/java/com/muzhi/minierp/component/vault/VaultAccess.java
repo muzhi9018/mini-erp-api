@@ -1,10 +1,13 @@
-package com.muzhi.minierp.service.vault;
+package com.muzhi.minierp.component.vault;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.muzhi.minierp.entity.vault.*;
 import com.muzhi.minierp.enums.VaultEnum;
-import com.muzhi.minierp.mapper.vault.*;
 import com.muzhi.minierp.model.vault.VaultSession;
+import com.muzhi.minierp.service.vault.IVaultAccountService;
+import com.muzhi.minierp.service.vault.IVaultAuditEventService;
+import com.muzhi.minierp.service.vault.IVaultControlService;
+import com.muzhi.minierp.service.vault.IVaultSessionRevocationOutboxService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -22,16 +25,17 @@ import java.time.OffsetDateTime;
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
 public class VaultAccess {
-    private final VaultControlMapper control;
 
-    private final VaultAccountMapper accounts;
+    private final IVaultControlService vaultControlService;
 
-    private final VaultSessionRevocationOutboxMapper revocations;
+    private final IVaultAccountService vaultAccountService;
 
-    private final VaultAuditEventMapper audits;
+    private final IVaultSessionRevocationOutboxService vaultSessionRevocationOutboxService;
+
+    private final IVaultAuditEventService vaultAuditEventService;
 
     public VaultAccount check(VaultSession session) {
-        VaultAccount account = control.activeAccount(session.ownerId());
+        VaultAccount account = vaultControlService.activeAccount(session.ownerId());
         VaultEnum.Error.SESSION_REVOKED.rejectIf(account == null || Boolean.TRUE.equals(account.getIsDeleted()) || !account.getId().equals(session.accountId())
                 || account.getAuthEpoch() != session.authEpoch());
         return account;
@@ -41,16 +45,16 @@ public class VaultAccess {
      * 写操作必须在事务内先锁定认证账户，再访问库、任务或条目。
      */
     public VaultAccount lock(VaultSession session) {
-        VaultAccount account = control.lockAccount(session.ownerId());
+        VaultAccount account = vaultControlService.lockAccount(session.ownerId());
         VaultEnum.Error.SESSION_REVOKED.rejectIf(account == null || Boolean.TRUE.equals(account.getIsDeleted()) || !account.getId().equals(session.accountId())
                 || account.getAuthEpoch() != session.authEpoch());
-        VaultAccount active = control.activeAccount(session.ownerId());
+        VaultAccount active = vaultControlService.activeAccount(session.ownerId());
         VaultEnum.Error.SESSION_REVOKED.rejectIf(active == null);
         return account;
     }
 
     public VaultInfo lockVault(VaultSession session) {
-        VaultInfo vault = control.lockVault(session.accountId());
+        VaultInfo vault = vaultControlService.lockVault(session.accountId());
         VaultEnum.Error.NOT_FOUND.rejectIf(vault == null);
         return vault;
     }
@@ -94,7 +98,7 @@ public class VaultAccess {
         event.setResult(VaultEnum.AuditResult.SUCCESS.getCode());
         event.setRequestId(com.muzhi.minierp.security.vault.VaultContexts.auditRequestId());
         this.create(event, actor);
-        audits.insert(event);
+        vaultAuditEventService.save(event);
     }
 
     /**
@@ -104,7 +108,7 @@ public class VaultAccess {
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(account.getAuthEpoch() >= com.muzhi.minierp.model.vault.VaultProtocol.MAX_VERSION);
         account.setAuthEpoch(account.getAuthEpoch() + 1);
         this.touch(account, actor);
-        accounts.updateById(account);
+        vaultAccountService.updateById(account);
         VaultSessionRevocationOutbox job = new VaultSessionRevocationOutbox();
         job.setId(IdWorker.getId());
         job.setAccountId(account.getId());
@@ -113,7 +117,7 @@ public class VaultAccess {
         job.setAttempts(0);
         job.setAvailableAt(OffsetDateTime.now());
         this.create(job, actor);
-        revocations.insert(job);
+        vaultSessionRevocationOutboxService.save(job);
         return account.getAuthEpoch();
     }
 }

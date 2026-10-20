@@ -1,4 +1,4 @@
-package com.muzhi.minierp.service.vault;
+package com.muzhi.minierp.service.vault.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.muzhi.minierp.entity.vault.VaultAuditEvent;
@@ -6,6 +6,7 @@ import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.mapper.vault.VaultAuditEventMapper;
 import com.muzhi.minierp.model.vault.VaultSession;
 import com.muzhi.minierp.security.vault.VaultContexts;
+import com.muzhi.minierp.service.vault.IVaultFailureAuditService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,7 @@ import java.util.UUID;
 
 /**
  * <p>
- * {@code VaultFailureAudit}：失败审计独立提交，只保存固定动作和错误码
+ * {@code VaultFailureAuditServiceImpl}：失败审计独立提交，只保存固定动作和错误码
  * </p>
  *
  * @author Mr.Muzhi
@@ -30,13 +31,14 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
-public class VaultFailureAudit {
+public class VaultFailureAuditServiceImpl implements IVaultFailureAuditService {
     private final VaultAuditEventMapper audits;
 
     private final PlatformTransactionManager transactionManager;
 
+    @Override
     public void record(HttpServletRequest request, VaultEnum.Error error) {
-        String marker = VaultFailureAudit.class.getName();
+        String marker = IVaultFailureAuditService.class.getName();
         if (request.getAttribute(marker) != null) {
             return;
         }

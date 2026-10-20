@@ -5,9 +5,11 @@ import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.exception.BusinessException;
 import com.muzhi.minierp.i18n.I18nHelper;
 import com.muzhi.minierp.model.JsonResult;
+import com.muzhi.minierp.service.vault.IVaultFailureAuditService;
 import com.muzhi.minierp.vo.vault.VaultErrorVO;
 import jakarta.servlet.http.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -35,7 +37,7 @@ import java.util.UUID;
 public class VaultErrorWriter {
     private final I18nHelper i18nHelper;
 
-    private final org.springframework.beans.factory.ObjectProvider<com.muzhi.minierp.service.vault.VaultFailureAudit> audit;
+    private final ObjectProvider<IVaultFailureAuditService> audit;
 
     public JsonResult<?> handle(HttpServletRequest request, HttpServletResponse response, Exception failure) {
         VaultEnum.Error error;

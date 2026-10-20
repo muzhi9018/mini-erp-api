@@ -18,7 +18,7 @@ import com.muzhi.minierp.security.SecurityUtils;
 import com.muzhi.minierp.service.system.ISysUserService;
 import com.muzhi.minierp.util.Assert;
 import com.muzhi.minierp.service.vault.IVaultIdentityService;
-import com.muzhi.minierp.service.vault.VaultUserDeletionGuard;
+import com.muzhi.minierp.component.vault.VaultUserDeletionGuard;
 import org.springframework.beans.factory.ObjectProvider;
 import com.muzhi.minierp.vo.SysUserVO;
 import lombok.RequiredArgsConstructor;

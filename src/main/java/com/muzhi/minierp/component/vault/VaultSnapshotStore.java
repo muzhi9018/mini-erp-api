@@ -1,13 +1,13 @@
-package com.muzhi.minierp.service.vault;
+package com.muzhi.minierp.component.vault;
 
 import com.alibaba.fastjson2.JSONWriter;
 import com.muzhi.minierp.entity.vault.VaultInfo;
 import com.muzhi.minierp.entity.vault.VaultItem;
 import com.muzhi.minierp.enums.VaultEnum;
-import com.muzhi.minierp.mapper.vault.VaultItemMapper;
 import com.muzhi.minierp.model.JsonResult;
 import com.muzhi.minierp.model.vault.VaultSnapshot;
 import com.muzhi.minierp.model.vault.VaultSession;
+import com.muzhi.minierp.service.vault.IVaultItemService;
 import com.muzhi.minierp.vo.vault.VaultMetaVO;
 import lombok.RequiredArgsConstructor;
 import org.apache.ibatis.cursor.Cursor;
@@ -29,20 +29,20 @@ import java.io.OutputStream;
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
 public class VaultSnapshotStore {
 
-    private final VaultItemMapper items;
+    private final IVaultItemService vaultItemService;
 
-    private final VaultCipherStore cipher;
+    private final VaultCipherStore vaultCipherStore;
 
     /**
      * 必须在持有账户与库行锁的事务内调用；只逐条转换密文，不构造全量集合。
      */
     public VaultSnapshot prepare(VaultInfo vault, VaultSession session) throws IOException {
-        VaultMetaVO meta = cipher.meta(vault);
+        VaultMetaVO meta = vaultCipherStore.meta(vault);
         Long keyEpoch = meta.getKeyEpoch();
         VaultSnapshot snapshot = VaultSnapshot.create();
         boolean completed = false;
         try {
-            try (Cursor<VaultItem> cursor = items.snapshotItems(vault.getId(), vault.getActiveGeneration());
+            try (Cursor<VaultItem> cursor = vaultItemService.snapshotItems(vault.getId(), vault.getActiveGeneration());
                     OutputStream output = snapshot.output();
                     JSONWriter json = JSONWriter.ofUTF8(JSONWriter.Feature.WriteNulls)) {
                 JsonResult<?> envelope = JsonResult.success();
@@ -74,7 +74,7 @@ public class VaultSnapshotStore {
                     if (count > 1) {
                         json.writeComma();
                     }
-                    var encrypted = cipher.view(item);
+                    var encrypted = vaultCipherStore.view(item);
                     json.writeAny(encrypted);
                     // 每条密文落盘后清空缓冲区，避免 Fastjson2 在内存中积累整个快照。
                     json.flushTo(output);

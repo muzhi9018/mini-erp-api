@@ -1,18 +1,19 @@
-package com.muzhi.minierp.service.vault;
+package com.muzhi.minierp.component.vault;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.*;
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.muzhi.minierp.entity.vault.*;
 import com.muzhi.minierp.enums.VaultEnum;
-import com.muzhi.minierp.mapper.vault.*;
 import com.muzhi.minierp.model.vault.*;
+import com.muzhi.minierp.service.vault.IVaultControlService;
+import com.muzhi.minierp.service.vault.IVaultGenerationService;
+import com.muzhi.minierp.service.vault.IVaultItemService;
+import com.muzhi.minierp.service.vault.IVaultKeySlotService;
 import com.muzhi.minierp.util.BeanConvertUtils;
 import com.muzhi.minierp.vo.vault.VaultMetaVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import java.nio.charset.StandardCharsets;
-import java.time.OffsetDateTime;
+
 import java.util.*;
 
 /**
@@ -27,50 +28,33 @@ import java.util.*;
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
 public class VaultCipherStore {
-    private final VaultKeySlotMapper slots;
 
-    private final VaultItemMapper items;
+    private final IVaultKeySlotService vaultKeySlotService;
 
-    private final VaultGenerationMapper generations;
+    private final IVaultItemService vaultItemService;
 
-    private final VaultRotationMapper rotations;
+    private final IVaultGenerationService vaultGenerationService;
 
-    private final VaultControlMapper control;
+    private final IVaultControlService vaultControlService;
 
-    private final VaultAccess access;
+    private final VaultAccess vaultAccess;
 
     public VaultGeneration generation(VaultInfo vault, long number) {
-        VaultGeneration generation = control.generation(vault.getId(), number);
+        VaultGeneration generation = vaultControlService.generation(vault.getId(), number);
         VaultEnum.Error.NOT_FOUND.rejectIf(generation == null);
         return generation;
     }
 
     public List<VaultKeySlot> slots(VaultInfo vault, long generation) {
-        LambdaQueryWrapper<VaultKeySlot> query = Wrappers.lambdaQuery();
-        query.eq(VaultKeySlot::getVaultId, vault.getId());
-        query.eq(VaultKeySlot::getGeneration, generation);
-        query.orderByAsc(VaultKeySlot::getSlotType);
-        return slots.selectList(query);
+        return vaultKeySlotService.listByGeneration(vault.getId(), generation);
     }
 
     public List<VaultItem> items(VaultInfo vault, long generation) {
-        LambdaQueryWrapper<VaultItem> query = Wrappers.lambdaQuery();
-        query.eq(VaultItem::getVaultId, vault.getId());
-        query.eq(VaultItem::getGeneration, generation);
-        query.orderByAsc(VaultItem::getItemId);
-        return items.selectList(query);
-    }
-
-    public void writable(VaultInfo vault) {
-        LambdaQueryWrapper<VaultRotation> query = Wrappers.lambdaQuery();
-        query.eq(VaultRotation::getVaultId, vault.getId());
-        query.eq(VaultRotation::getStatus, VaultEnum.RotationStatus.UPLOADING.getCode());
-        boolean locked = rotations.exists(query);
-        VaultEnum.Error.WRITE_LOCKED.rejectIf(locked || !VaultEnum.VaultStatus.ACTIVE.getCode().equals(vault.getStatus()));
+        return vaultItemService.listByGeneration(vault.getId(), generation);
     }
 
     public long nextGeneration(VaultInfo vault) {
-        Long maximum = control.maxGeneration(vault.getId());
+        Long maximum = vaultControlService.maxGeneration(vault.getId());
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(maximum >= VaultProtocol.MAX_VERSION);
         return maximum + 1;
     }
@@ -82,8 +66,8 @@ public class VaultCipherStore {
         record.setGeneration(generation);
         record.setKeyEpoch(epoch);
         record.setStatus(status.getCode());
-        access.create(record, actor);
-        generations.insert(record);
+        vaultAccess.create(record, actor);
+        vaultGenerationService.save(record);
     }
 
     public void addSlots(VaultInfo vault, long generation, List<VaultProtocol.Slot> values, Long actor) {
@@ -107,8 +91,8 @@ public class VaultCipherStore {
             if (value.recoverySalt() != null) {
                 slot.setRecoverySalt(VaultCodec.decode(value.recoverySalt(), 32, 32));
             }
-            access.create(slot, actor);
-            slots.insert(slot);
+            vaultAccess.create(slot, actor);
+            vaultKeySlotService.save(slot);
         }
     }
 
@@ -122,7 +106,7 @@ public class VaultCipherStore {
         item.setContentVersion(value.contentVersion());
         item.setRowVersion(1L);
         this.content(item, value.wrappedDek(), value.encryptedItem());
-        access.create(item, actor);
+        vaultAccess.create(item, actor);
         return item;
     }
 

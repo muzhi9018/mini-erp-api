@@ -1,4 +1,4 @@
-package com.muzhi.minierp.service.vault;
+package com.muzhi.minierp.service.vault.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -7,6 +7,8 @@ import com.muzhi.minierp.config.VaultProperties;
 import com.muzhi.minierp.entity.vault.*;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.mapper.vault.*;
+import com.muzhi.minierp.service.vault.IVaultMaintenanceService;
+import com.muzhi.minierp.component.vault.VaultCipherStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -19,7 +21,7 @@ import java.util.Map;
 
 /**
  * <p>
- * {@code VaultMaintenanceService}：工作队列短事务与受控密文清理
+ * {@code VaultMaintenanceServiceImpl}：工作队列短事务与受控密文清理
  * </p>
  *
  * @author Mr.Muzhi
@@ -28,7 +30,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
-public class VaultMaintenanceService {
+public class VaultMaintenanceServiceImpl implements IVaultMaintenanceService {
+
     private final VaultControlMapper control;
 
     private final VaultSessionRevocationOutboxMapper outbox;
@@ -39,6 +42,7 @@ public class VaultMaintenanceService {
 
     private final VaultProperties properties;
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public List<VaultSessionRevocationOutbox> claim() {
         List<VaultSessionRevocationOutbox> jobs = control.claimRevocations();
@@ -53,6 +57,7 @@ public class VaultMaintenanceService {
         return jobs;
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void finish(VaultSessionRevocationOutbox job, boolean success) {
         OffsetDateTime now = control.databaseNow();
@@ -74,6 +79,7 @@ public class VaultMaintenanceService {
         outbox.update(null, update);
     }
 
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void purge() {
         OffsetDateTime now = control.databaseNow();

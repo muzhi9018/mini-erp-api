@@ -1,4 +1,4 @@
-package com.muzhi.minierp.service.vault;
+package com.muzhi.minierp.component.vault;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;

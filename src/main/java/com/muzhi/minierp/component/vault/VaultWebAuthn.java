@@ -1,4 +1,4 @@
-package com.muzhi.minierp.service.vault;
+package com.muzhi.minierp.component.vault;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
@@ -9,15 +9,19 @@ import com.muzhi.minierp.model.vault.VaultProtocol;
 import com.webauthn4j.WebAuthnManager;
 import com.webauthn4j.converter.util.ObjectConverter;
 import com.webauthn4j.data.*;
+import com.webauthn4j.data.attestation.AttestationObject;
 import com.webauthn4j.data.attestation.authenticator.*;
 import com.webauthn4j.data.attestation.statement.COSEAlgorithmIdentifier;
 import com.webauthn4j.data.client.Origin;
 import com.webauthn4j.data.client.challenge.DefaultChallenge;
+import com.webauthn4j.data.extension.authenticator.RegistrationExtensionAuthenticatorOutput;
 import com.webauthn4j.server.ServerProperty;
 import com.webauthn4j.credential.CredentialRecordImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
+import tools.jackson.dataformat.cbor.CBORMapper;
+
 import java.security.MessageDigest;
 import java.util.*;
 
@@ -33,6 +37,7 @@ import java.util.*;
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
 public class VaultWebAuthn {
+
     private final VaultProperties properties;
 
     private final WebAuthnManager manager = WebAuthnManager.createNonStrictWebAuthnManager();
@@ -54,13 +59,15 @@ public class VaultWebAuthn {
             ServerProperty server = this.server(challenge);
             RegistrationParameters parameters = new RegistrationParameters(server, algorithms, true, true);
             RegistrationData verified = manager.verify(request, parameters);
-            var auth = verified.getAttestationObject().getAuthenticatorData();
+            AttestationObject attestationObject = verified.getAttestationObject();
+            AuthenticatorData<RegistrationExtensionAuthenticatorOutput> auth = attestationObject.getAuthenticatorData();
             AttestedCredentialData data = auth.getAttestedCredentialData();
             byte[] credentialId = VaultCodec.decode(credential.rawId(), 1, 1024);
             VaultEnum.Error.PASSKEY_INVALID.rejectIf(data == null || !MessageDigest.isEqual(data.getCredentialId(), credentialId));
             VaultPasskey key = new VaultPasskey();
             key.setCredentialId(credentialId);
-            byte[] publicKey = converter.getCborMapper().writeValueAsBytes(data.getCOSEKey());
+            CBORMapper cborMapper = converter.getCborMapper();
+            byte[] publicKey = cborMapper.writeValueAsBytes(data.getCOSEKey());
             VaultEnum.Error.PASSKEY_INVALID.rejectIf(publicKey.length > 4096);
             key.setPublicKeyCose(publicKey);
             key.setAaguid(data.getAaguid().getValue());

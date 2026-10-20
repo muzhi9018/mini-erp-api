@@ -1,5 +1,8 @@
 package com.muzhi.minierp.controller.vault;
 
+import com.muzhi.minierp.component.vault.VaultChallengeStore;
+import com.muzhi.minierp.component.vault.VaultCodec;
+import com.muzhi.minierp.component.vault.VaultProtocolValidator;
 import com.muzhi.minierp.entity.vault.VaultAccount;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.*;

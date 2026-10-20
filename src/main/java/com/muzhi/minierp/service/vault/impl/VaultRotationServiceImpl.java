@@ -2,6 +2,10 @@ package com.muzhi.minierp.service.vault.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.*;
+import com.muzhi.minierp.component.vault.VaultAccess;
+import com.muzhi.minierp.component.vault.VaultCipherStore;
+import com.muzhi.minierp.component.vault.VaultCodec;
+import com.muzhi.minierp.component.vault.VaultIdempotency;
 import com.muzhi.minierp.entity.vault.*;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.mapper.vault.*;
@@ -30,34 +34,35 @@ import java.util.*;
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
 public class VaultRotationServiceImpl implements IVaultRotationService {
-    private final VaultAccess access;
 
-    private final VaultIdempotency idempotency;
+    private final VaultAccess vaultAccess;
 
-    private final VaultCipherStore cipher;
+    private final VaultIdempotency vaultIdempotency;
 
-    private final VaultControlMapper control;
+    private final VaultCipherStore vaultCipherStore;
 
-    private final VaultInfoMapper vaults;
+    private final VaultControlMapper vaultControlMapper;
 
-    private final VaultGenerationMapper generations;
+    private final VaultInfoMapper vaultInfoMapper;
 
-    private final VaultRotationMapper rotations;
+    private final VaultGenerationMapper vaultGenerationMapper;
 
-    private final VaultRotationExpectedItemMapper expectedItems;
+    private final VaultRotationMapper vaultRotationMapper;
 
-    private final VaultRotationBatchMapper batches;
+    private final VaultRotationExpectedItemMapper vaultRotationExpectedItemMapper;
 
-    private final VaultItemMapper itemMapper;
+    private final VaultRotationBatchMapper vaultRotationBatchMapper;
+
+    private final VaultItemMapper vaultItemMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public VaultRotationVO start(VaultSession session, VaultProtocol.RotationStart request, VaultEnum.RotationMode mode) {
         VaultContexts.requireRecent(session);
-        VaultAccount account = access.lock(session);
-        access.dataAccess(account);
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
         VaultEnum.Operation operation = mode == VaultEnum.RotationMode.ROTATION ? VaultEnum.Operation.ROTATION_START : VaultEnum.Operation.RESTORE_START;
-        return idempotency.execute(
+        return vaultIdempotency.execute(
                 session,
                 operation,
                 request.idempotencyKey(),
@@ -68,7 +73,7 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
     }
 
     private VaultRotationVO startTask(VaultSession session, VaultProtocol.RotationStart request, VaultEnum.RotationMode mode) {
-        VaultInfo vault = control.lockVault(session.accountId());
+        VaultInfo vault = vaultControlMapper.lockVault(session.accountId());
         if (vault == null) {
             VaultEnum.Error.NOT_FOUND.rejectIf(mode != VaultEnum.RotationMode.RESTORE);
             vault = new VaultInfo();
@@ -78,35 +83,35 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
             vault.setStatus(VaultEnum.VaultStatus.EMPTY.getCode());
             vault.setMetaRevision(1L);
             vault.setCollectionRevision(1L);
-            access.create(vault, session.ownerId());
-            vaults.insert(vault);
+            vaultAccess.create(vault, session.ownerId());
+            vaultInfoMapper.insert(vault);
         }
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(!vault.getMetaRevision().equals(request.expectedMetaRevision())
                 || !vault.getCollectionRevision().equals(request.expectedCollectionRevision()));
         LambdaQueryWrapper<VaultRotation> open = Wrappers.lambdaQuery();
         open.eq(VaultRotation::getVaultId, vault.getId());
         open.eq(VaultRotation::getStatus, VaultEnum.RotationStatus.UPLOADING.getCode());
-        VaultRotation existing = rotations.selectOne(open);
-        if (existing != null && !existing.getExpiresAt().isAfter(control.databaseNow())) {
-            existing = control.lockRotation(vault.getId(), existing.getRotationId());
+        VaultRotation existing = vaultRotationMapper.selectOne(open);
+        if (existing != null && !existing.getExpiresAt().isAfter(vaultControlMapper.databaseNow())) {
+            existing = vaultControlMapper.lockRotation(vault.getId(), existing.getRotationId());
             this.finish(vault, existing, VaultEnum.RotationStatus.EXPIRED, null);
             existing = null;
         }
         VaultEnum.Error.WRITE_LOCKED.rejectIf(existing != null);
-        List<VaultItem> source = vault.getActiveGeneration() == null ? List.of() : cipher.items(vault, vault.getActiveGeneration());
+        List<VaultItem> source = vault.getActiveGeneration() == null ? List.of() : vaultCipherStore.items(vault, vault.getActiveGeneration());
         if (mode == VaultEnum.RotationMode.ROTATION) {
             VaultEnum.Error.NOT_FOUND.rejectIf(vault.getActiveGeneration() == null);
         } else {
             VaultEnum.Error.ALREADY_INITIALIZED.rejectIf(!source.isEmpty());
             VaultEnum.Error.VERSION_CONFLICT.rejectIf(!vault.getVaultId().equals(VaultCodec.uuid(request.vaultId())));
         }
-        VaultGeneration sourceGeneration = vault.getActiveGeneration() == null ? null : cipher.generation(vault, vault.getActiveGeneration());
+        VaultGeneration sourceGeneration = vault.getActiveGeneration() == null ? null : vaultCipherStore.generation(vault, vault.getActiveGeneration());
         long epoch = sourceGeneration == null ? 1 : sourceGeneration.getKeyEpoch() + 1;
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(epoch > VaultProtocol.MAX_VERSION);
-        long target = cipher.nextGeneration(vault);
-        cipher.addGeneration(vault, target, epoch, VaultEnum.GenerationStatus.STAGING, session.ownerId());
-        cipher.addSlots(vault, target, request.keySlots(), session.ownerId());
-        OffsetDateTime now = control.databaseNow();
+        long target = vaultCipherStore.nextGeneration(vault);
+        vaultCipherStore.addGeneration(vault, target, epoch, VaultEnum.GenerationStatus.STAGING, session.ownerId());
+        vaultCipherStore.addSlots(vault, target, request.keySlots(), session.ownerId());
+        OffsetDateTime now = vaultControlMapper.databaseNow();
         VaultRotation task = new VaultRotation();
         task.setId(IdWorker.getId());
         task.setRotationId(VaultCodec.uuid(request.rotationId()));
@@ -122,8 +127,8 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         task.setExpectedItemCount(mode == VaultEnum.RotationMode.ROTATION ? source.size() : request.itemIds().size());
         task.setGmtCreate(now);
         task.setExpiresAt(now.plusMinutes(30));
-        access.create(task, session.ownerId());
-        rotations.insert(task);
+        vaultAccess.create(task, session.ownerId());
+        vaultRotationMapper.insert(task);
         if (mode == VaultEnum.RotationMode.ROTATION) {
             for (VaultItem item : source) {
                 this.expected(task, item.getItemId(), item.getContentVersion(), item.getRowVersion(), item.getContentVersion(), session.ownerId());
@@ -133,10 +138,10 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
                 this.expected(task, VaultCodec.uuid(itemId), null, null, 1L, session.ownerId());
             }
             vault.setStatus(VaultEnum.VaultStatus.RESTORING.getCode());
-            access.touch(vault, session.ownerId());
-            vaults.updateById(vault);
+            vaultAccess.touch(vault, session.ownerId());
+            vaultInfoMapper.updateById(vault);
         }
-        access.audit(session, vault.getId(), mode == VaultEnum.RotationMode.ROTATION ? VaultEnum.AuditAction.ROTATION_START : VaultEnum.AuditAction.RESTORE_START);
+        vaultAccess.audit(session, vault.getId(), mode == VaultEnum.RotationMode.ROTATION ? VaultEnum.AuditAction.ROTATION_START : VaultEnum.AuditAction.RESTORE_START);
         return this.summary(vault, task);
     }
 
@@ -147,26 +152,26 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         item.setSourceContentVersion(sourceContent);
         item.setSourceRowVersion(sourceRow);
         item.setTargetContentVersion(targetContent);
-        access.create(item, actor);
-        expectedItems.insert(item);
+        vaultAccess.create(item, actor);
+        vaultRotationExpectedItemMapper.insert(item);
     }
 
     private List<VaultRotationExpectedItem> expected(VaultRotation task) {
         LambdaQueryWrapper<VaultRotationExpectedItem> query = Wrappers.lambdaQuery();
         query.eq(VaultRotationExpectedItem::getRotationId, task.getId());
         query.orderByAsc(VaultRotationExpectedItem::getItemId);
-        return expectedItems.selectList(query);
+        return vaultRotationExpectedItemMapper.selectList(query);
     }
 
     private VaultRotation task(VaultInfo vault, String id) {
-        VaultRotation task = control.lockRotation(vault.getId(), VaultCodec.uuid(id));
+        VaultRotation task = vaultControlMapper.lockRotation(vault.getId(), VaultCodec.uuid(id));
         VaultEnum.Error.NOT_FOUND.rejectIf(task == null);
         return task;
     }
 
     private void usable(VaultSession session, VaultRotation task, boolean binding) {
         VaultEnum.Error.ROTATION_EXPIRED.rejectIf(!VaultEnum.RotationStatus.UPLOADING.getCode().equals(task.getStatus())
-                || !task.getExpiresAt().isAfter(control.databaseNow()));
+                || !task.getExpiresAt().isAfter(vaultControlMapper.databaseNow()));
         VaultEnum.Error.SESSION_REVOKED.rejectIf(task.getStartedAuthEpoch() != session.authEpoch());
         VaultEnum.Error.MFA_REQUIRED.rejectIf(binding && !task.getSessionBindingId().equals(session.bindingId()));
     }
@@ -175,18 +180,18 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
     @Transactional(rollbackFor = Exception.class)
     public VaultRotationStatusVO status(VaultSession session, String rotationId) {
         VaultContexts.requireMfa(session);
-        VaultAccount account = access.lock(session);
-        access.dataAccess(account);
-        VaultInfo vault = access.lockVault(session);
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        VaultInfo vault = vaultAccess.lockVault(session);
         VaultRotation task = this.task(vault, rotationId);
-        if (VaultEnum.RotationStatus.UPLOADING.getCode().equals(task.getStatus()) && !task.getExpiresAt().isAfter(control.databaseNow())) {
+        if (VaultEnum.RotationStatus.UPLOADING.getCode().equals(task.getStatus()) && !task.getExpiresAt().isAfter(vaultControlMapper.databaseNow())) {
             this.finish(vault, task, VaultEnum.RotationStatus.EXPIRED, null);
         }
         return this.view(vault, task);
     }
 
     private VaultRotationVO summary(VaultInfo vault, VaultRotation task) {
-        VaultGeneration generation = cipher.generation(vault, task.getTargetGeneration());
+        VaultGeneration generation = vaultCipherStore.generation(vault, task.getTargetGeneration());
         VaultRotationVO result = BeanConvertUtils.convert(task, VaultRotationVO.class);
         result.setKeyEpoch(generation.getKeyEpoch());
         result.setExpiresAt(task.getExpiresAt().toString());
@@ -199,14 +204,14 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         List<VaultRotationExpectedItem> expected = this.expected(task);
         List<VaultRotationStatusVO.ExpectedItemVO> expectedViews = BeanConvertUtils.mapList(expected, VaultRotationStatusVO.ExpectedItemVO.class);
         result.setExpectedItems(expectedViews);
-        List<VaultKeySlot> newSlots = cipher.slots(vault, task.getTargetGeneration());
-        List<VaultProtocol.Slot> keySlots = newSlots.stream().map(cipher::view).toList();
+        List<VaultKeySlot> newSlots = vaultCipherStore.slots(vault, task.getTargetGeneration());
+        List<VaultProtocol.Slot> keySlots = newSlots.stream().map(vaultCipherStore::view).toList();
         result.setKeySlots(keySlots);
-        VaultGeneration generation = cipher.generation(vault, task.getTargetGeneration());
+        VaultGeneration generation = vaultCipherStore.generation(vault, task.getTargetGeneration());
         result.setKeyEpoch(generation.getKeyEpoch());
         LambdaQueryWrapper<VaultRotationBatch> query = Wrappers.lambdaQuery();
         query.eq(VaultRotationBatch::getRotationId, task.getId());
-        List<VaultRotationBatch> received = batches.selectList(query);
+        List<VaultRotationBatch> received = vaultRotationBatchMapper.selectList(query);
         List<String> receivedBatchIds = received.stream().map(batch -> batch.getBatchId().toString()).toList();
         result.setReceivedBatchIds(receivedBatchIds);
         if (task.getCommitReceipt() != null) {
@@ -220,9 +225,9 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
     @Transactional(rollbackFor = Exception.class)
     public VaultRotationBatchVO batch(VaultSession session, VaultProtocol.RotationBatch request) {
         VaultContexts.requireMfa(session);
-        VaultAccount account = access.lock(session);
-        access.dataAccess(account);
-        VaultInfo vault = access.lockVault(session);
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        VaultInfo vault = vaultAccess.lockVault(session);
         VaultRotation task = this.task(vault, request.rotationId());
         this.usable(session, task, true);
         UUID batchId = VaultCodec.uuid(request.batchId());
@@ -230,7 +235,7 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         LambdaQueryWrapper<VaultRotationBatch> receiptQuery = Wrappers.lambdaQuery();
         receiptQuery.eq(VaultRotationBatch::getRotationId, task.getId());
         receiptQuery.eq(VaultRotationBatch::getBatchId, batchId);
-        VaultRotationBatch previous = batches.selectOne(receiptQuery);
+        VaultRotationBatch previous = vaultRotationBatchMapper.selectOne(receiptQuery);
         if (previous != null) {
             VaultEnum.Error.IDEMPOTENCY_CONFLICT.rejectIf(!MessageDigest.isEqual(previous.getRequestDigest(), digest));
             VaultRotationBatchVO result = new VaultRotationBatchVO();
@@ -243,14 +248,14 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         for (VaultRotationExpectedItem item : expected) {
             versions.put(item.getItemId(), item.getTargetContentVersion());
         }
-        VaultGeneration target = cipher.generation(vault, task.getTargetGeneration());
+        VaultGeneration target = vaultCipherStore.generation(vault, task.getTargetGeneration());
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(!VaultEnum.GenerationStatus.STAGING.getCode().equals(target.getStatus()));
         for (VaultProtocol.Item value : request.items()) {
             UUID itemId = VaultCodec.uuid(value.itemId());
             VaultEnum.Error.VERSION_CONFLICT.rejectIf(!Objects.equals(versions.get(itemId), value.contentVersion())
                     || !target.getKeyEpoch().equals(value.keyEpoch()));
-            VaultItem item = cipher.newItem(vault, target.getGeneration(), value, session.ownerId());
-            itemMapper.insert(item);
+            VaultItem item = vaultCipherStore.newItem(vault, target.getGeneration(), value, session.ownerId());
+            vaultItemMapper.insert(item);
         }
         VaultRotationBatch receipt = new VaultRotationBatch();
         receipt.setId(IdWorker.getId());
@@ -258,8 +263,8 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         receipt.setBatchId(batchId);
         receipt.setRequestDigest(digest);
         receipt.setItemCount(request.items().size());
-        access.create(receipt, session.ownerId());
-        batches.insert(receipt);
+        vaultAccess.create(receipt, session.ownerId());
+        vaultRotationBatchMapper.insert(receipt);
         VaultRotationBatchVO result = new VaultRotationBatchVO();
         result.setBatchId(batchId.toString());
         result.setAccepted(request.items().size());
@@ -270,9 +275,9 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
     @Transactional(rollbackFor = Exception.class)
     public VaultItemPageVO items(VaultSession session, String rotationId, String cursor, int pageSize) {
         VaultContexts.requireMfa(session);
-        VaultAccount account = access.lock(session);
-        access.dataAccess(account);
-        VaultInfo vault = access.lockVault(session);
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        VaultInfo vault = vaultAccess.lockVault(session);
         VaultRotation task = this.task(vault, rotationId);
         this.usable(session, task, true);
         String scope = session.ownerId() + ":" + task.getRotationId() + ":" + task.getTargetGeneration() + ":";
@@ -291,13 +296,13 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         }
         query.orderByAsc(VaultItem::getItemId);
         query.last("LIMIT " + (pageSize + 1));
-        List<VaultItem> found = itemMapper.selectList(query);
+        List<VaultItem> found = vaultItemMapper.selectList(query);
         boolean more = found.size() > pageSize;
         List<VaultItem> page = more ? found.subList(0, pageSize) : found;
         VaultItemPageVO result = new VaultItemPageVO();
         result.setRotationId(rotationId);
         result.setGeneration(task.getTargetGeneration());
-        List<VaultProtocol.Item> pageItems = page.stream().map(cipher::view).toList();
+        List<VaultProtocol.Item> pageItems = page.stream().map(vaultCipherStore::view).toList();
         result.setItems(pageItems);
         String next = more ? VaultCodec.encode((scope + page.getLast().getItemId()).getBytes(java.nio.charset.StandardCharsets.UTF_8)) : null;
         result.setNextCursor(next);
@@ -308,9 +313,9 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
     @Transactional(rollbackFor = Exception.class)
     public VaultRotationReceiptVO commit(VaultSession session, VaultProtocol.RotationCommand request) {
         VaultContexts.requireRecent(session);
-        VaultAccount account = access.lock(session);
-        access.dataAccess(account);
-        return idempotency.execute(
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        return vaultIdempotency.execute(
                 session,
                 VaultEnum.Operation.ROTATION_COMMIT,
                 request.idempotencyKey(),
@@ -321,7 +326,7 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
     }
 
     private VaultRotationReceiptVO commitTask(VaultSession session, VaultAccount account, VaultProtocol.RotationCommand request) {
-        VaultInfo vault = access.lockVault(session);
+        VaultInfo vault = vaultAccess.lockVault(session);
         VaultRotation task = this.task(vault, request.rotationId());
         if (VaultEnum.RotationStatus.COMMITTED.getCode().equals(task.getStatus())) {
             return VaultCodec.receipt(task.getCommitReceipt(), VaultRotationReceiptVO.class);
@@ -332,7 +337,7 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
                 || !vault.getCollectionRevision().equals(task.getExpectedCollectionRevision())
                 || !vault.getCollectionRevision().equals(request.expectedCollectionRevision()));
         List<VaultRotationExpectedItem> expected = this.expected(task);
-        List<VaultItem> staged = cipher.items(vault, task.getTargetGeneration());
+        List<VaultItem> staged = vaultCipherStore.items(vault, task.getTargetGeneration());
         Map<UUID, VaultItem> actual = new HashMap<>();
         for (VaultItem item : staged) {
             actual.put(item.getItemId(), item);
@@ -340,14 +345,14 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(expected.size() != task.getExpectedItemCount() || actual.size() != expected.size());
         Map<UUID, VaultItem> source = new HashMap<>();
         if (task.getSourceGeneration() != null) {
-            List<VaultItem> old = cipher.items(vault, task.getSourceGeneration());
+            List<VaultItem> old = vaultCipherStore.items(vault, task.getSourceGeneration());
             for (VaultItem item : old) {
                 source.put(item.getItemId(), item);
             }
         }
         boolean restore = VaultEnum.RotationMode.RESTORE.getCode().equals(task.getMode());
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(restore ? !source.isEmpty() : source.size() != expected.size());
-        VaultGeneration target = cipher.generation(vault, task.getTargetGeneration());
+        VaultGeneration target = vaultCipherStore.generation(vault, task.getTargetGeneration());
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(!VaultEnum.GenerationStatus.STAGING.getCode().equals(target.getStatus()));
         for (VaultRotationExpectedItem item : expected) {
             VaultItem value = actual.get(item.getItemId());
@@ -359,29 +364,29 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
                         || !old.getRowVersion().equals(item.getSourceRowVersion()));
             }
         }
-        List<VaultKeySlot> newSlots = cipher.slots(vault, target.getGeneration());
+        List<VaultKeySlot> newSlots = vaultCipherStore.slots(vault, target.getGeneration());
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(newSlots.size() != 2);
         byte[] supplied = VaultCodec.decode(request.verifiedManifestDigest(), 32, 32);
-        byte[] computed = cipher.manifest(session, vault, task);
+        byte[] computed = vaultCipherStore.manifest(session, vault, task);
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(!MessageDigest.isEqual(supplied, computed));
-        OffsetDateTime now = control.databaseNow();
+        OffsetDateTime now = vaultControlMapper.databaseNow();
         if (task.getSourceGeneration() != null) {
-            VaultGeneration old = cipher.generation(vault, task.getSourceGeneration());
+            VaultGeneration old = vaultCipherStore.generation(vault, task.getSourceGeneration());
             old.setStatus(VaultEnum.GenerationStatus.RETIRED.getCode());
             old.setRetiredAt(now);
-            access.touch(old, session.ownerId());
-            generations.updateById(old);
+            vaultAccess.touch(old, session.ownerId());
+            vaultGenerationMapper.updateById(old);
         }
         target.setStatus(VaultEnum.GenerationStatus.ACTIVE.getCode());
-        access.touch(target, session.ownerId());
-        generations.updateById(target);
+        vaultAccess.touch(target, session.ownerId());
+        vaultGenerationMapper.updateById(target);
         vault.setActiveGeneration(target.getGeneration());
         vault.setStatus(VaultEnum.VaultStatus.ACTIVE.getCode());
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(vault.getMetaRevision() >= VaultProtocol.MAX_VERSION || vault.getCollectionRevision() >= VaultProtocol.MAX_VERSION);
         vault.setMetaRevision(vault.getMetaRevision() + 1);
         vault.setCollectionRevision(vault.getCollectionRevision() + 1);
-        access.touch(vault, session.ownerId());
-        vaults.updateById(vault);
+        vaultAccess.touch(vault, session.ownerId());
+        vaultInfoMapper.updateById(vault);
         VaultRotationReceiptVO receipt = new VaultRotationReceiptVO();
         receipt.setRotationId(task.getRotationId().toString());
         receipt.setGeneration(target.getGeneration());
@@ -392,10 +397,10 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         task.setFinishedAt(now);
         task.setVerifiedManifestDigest(computed);
         task.setCommitReceipt(VaultCodec.json(receipt));
-        access.touch(task, session.ownerId());
-        rotations.updateById(task);
-        access.revoke(account, session.ownerId());
-        access.audit(session, vault.getId(), VaultEnum.AuditAction.ROTATION_COMMIT);
+        vaultAccess.touch(task, session.ownerId());
+        vaultRotationMapper.updateById(task);
+        vaultAccess.revoke(account, session.ownerId());
+        vaultAccess.audit(session, vault.getId(), VaultEnum.AuditAction.ROTATION_COMMIT);
         return receipt;
     }
 
@@ -403,23 +408,23 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
     @Transactional(rollbackFor = Exception.class)
     public VaultRotationVO resume(VaultSession session, VaultProtocol.RotationCommand request) {
         VaultContexts.requireRecent(session);
-        VaultAccount account = access.lock(session);
-        access.dataAccess(account);
-        return idempotency.execute(
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        return vaultIdempotency.execute(
                 session,
                 VaultEnum.Operation.ROTATION_RESUME,
                 request.idempotencyKey(),
                 request,
                 VaultRotationVO.class,
                 () -> {
-                    VaultInfo vault = access.lockVault(session);
+                    VaultInfo vault = vaultAccess.lockVault(session);
                     VaultRotation task = this.task(vault, request.rotationId());
                     this.usable(session, task, false);
                     VaultEnum.Error.VERSION_CONFLICT.rejectIf(!task.getExpectedCollectionRevision().equals(request.expectedCollectionRevision()));
                     task.setSessionBindingId(session.bindingId());
-                    access.touch(task, session.ownerId());
-                    rotations.updateById(task);
-                    access.audit(session, vault.getId(), VaultEnum.AuditAction.ROTATION_RESUME);
+                    vaultAccess.touch(task, session.ownerId());
+                    vaultRotationMapper.updateById(task);
+                    vaultAccess.audit(session, vault.getId(), VaultEnum.AuditAction.ROTATION_RESUME);
                     return this.summary(vault, task);
                 }
         );
@@ -429,21 +434,21 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
     @Transactional(rollbackFor = Exception.class)
     public VaultRotationVO cancel(VaultSession session, VaultProtocol.RotationCommand request) {
         VaultContexts.requireRecent(session);
-        VaultAccount account = access.lock(session);
-        access.dataAccess(account);
-        return idempotency.execute(
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        return vaultIdempotency.execute(
                 session,
                 VaultEnum.Operation.ROTATION_CANCEL,
                 request.idempotencyKey(),
                 request,
                 VaultRotationVO.class,
                 () -> {
-                    VaultInfo vault = access.lockVault(session);
+                    VaultInfo vault = vaultAccess.lockVault(session);
                     VaultRotation task = this.task(vault, request.rotationId());
                     VaultEnum.Error.VERSION_CONFLICT.rejectIf(VaultEnum.RotationStatus.COMMITTED.getCode().equals(task.getStatus()));
                     if (VaultEnum.RotationStatus.UPLOADING.getCode().equals(task.getStatus())) {
                         this.finish(vault, task, VaultEnum.RotationStatus.CANCELLED, session.ownerId());
-                        access.audit(session, vault.getId(), VaultEnum.AuditAction.ROTATION_CANCEL);
+                        vaultAccess.audit(session, vault.getId(), VaultEnum.AuditAction.ROTATION_CANCEL);
                     }
                     VaultRotationVO result = new VaultRotationVO();
                     result.setRotationId(task.getRotationId().toString());
@@ -457,42 +462,42 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         if (!VaultEnum.RotationStatus.UPLOADING.getCode().equals(task.getStatus())) {
             return;
         }
-        OffsetDateTime now = control.databaseNow();
+        OffsetDateTime now = vaultControlMapper.databaseNow();
         task.setStatus(status.getCode());
         task.setFinishedAt(now);
-        access.touch(task, actor);
-        rotations.updateById(task);
-        VaultGeneration target = cipher.generation(vault, task.getTargetGeneration());
+        vaultAccess.touch(task, actor);
+        vaultRotationMapper.updateById(task);
+        VaultGeneration target = vaultCipherStore.generation(vault, task.getTargetGeneration());
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(!VaultEnum.GenerationStatus.STAGING.getCode().equals(target.getStatus()));
         target.setStatus(VaultEnum.GenerationStatus.ABORTED.getCode());
         target.setRetiredAt(now);
-        access.touch(target, actor);
-        generations.updateById(target);
+        vaultAccess.touch(target, actor);
+        vaultGenerationMapper.updateById(target);
         if (VaultEnum.RotationMode.RESTORE.getCode().equals(task.getMode())) {
             vault.setStatus(task.getSourceGeneration() == null ? VaultEnum.VaultStatus.EMPTY.getCode() : VaultEnum.VaultStatus.ACTIVE.getCode());
-            access.touch(vault, actor);
-            vaults.updateById(vault);
+            vaultAccess.touch(vault, actor);
+            vaultInfoMapper.updateById(vault);
         }
-        control.purgeGenerationItems(vault.getId(), task.getTargetGeneration());
-        control.purgeGenerationSlots(vault.getId(), task.getTargetGeneration());
+        vaultControlMapper.purgeGenerationItems(vault.getId(), task.getTargetGeneration());
+        vaultControlMapper.purgeGenerationSlots(vault.getId(), task.getTargetGeneration());
         if (status == VaultEnum.RotationStatus.EXPIRED) {
-            access.systemAudit(vault.getAccountId(), vault.getId(), VaultEnum.AuditAction.ROTATION_EXPIRE);
+            vaultAccess.systemAudit(vault.getAccountId(), vault.getId(), VaultEnum.AuditAction.ROTATION_EXPIRE);
         }
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void expire(Long ownerId, String rotationId) {
-        VaultAccount account = control.lockAccount(ownerId);
+        VaultAccount account = vaultControlMapper.lockAccount(ownerId);
         if (account == null) {
             return;
         }
-        VaultInfo vault = control.lockVault(account.getId());
+        VaultInfo vault = vaultControlMapper.lockVault(account.getId());
         if (vault == null) {
             return;
         }
         VaultRotation task = this.task(vault, rotationId);
-        if (!task.getExpiresAt().isAfter(control.databaseNow())) {
+        if (!task.getExpiresAt().isAfter(vaultControlMapper.databaseNow())) {
             this.finish(vault, task, VaultEnum.RotationStatus.EXPIRED, null);
         }
     }

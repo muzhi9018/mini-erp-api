@@ -1,8 +1,10 @@
-package com.muzhi.minierp.service.vault;
+package com.muzhi.minierp.component.task;
 
 import com.muzhi.minierp.entity.vault.*;
-import com.muzhi.minierp.mapper.vault.VaultControlMapper;
 import com.muzhi.minierp.model.vault.VaultSession;
+import com.muzhi.minierp.service.vault.IVaultControlService;
+import com.muzhi.minierp.service.vault.IVaultMaintenanceService;
+import com.muzhi.minierp.service.vault.IVaultRotationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -27,18 +29,19 @@ import java.util.*;
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
 public class VaultJobs {
-    private final VaultMaintenanceService maintenance;
 
-    private final VaultControlMapper control;
+    private final IVaultMaintenanceService vaultMaintenanceService;
 
-    private final IVaultRotationService rotations;
+    private final IVaultControlService vaultControlService;
+
+    private final IVaultRotationService vaultRotationService;
 
     private final FindByIndexNameSessionRepository<? extends Session> sessions;
 
     @Scheduled(fixedDelay = 15000)
     public void revokeSessions() {
         try {
-            List<VaultSessionRevocationOutbox> jobs = maintenance.claim();
+            List<VaultSessionRevocationOutbox> jobs = vaultMaintenanceService.claim();
             for (VaultSessionRevocationOutbox job : jobs) {
                 boolean success;
                 try {
@@ -47,7 +50,7 @@ public class VaultJobs {
                 } catch (RuntimeException failure) {
                     success = false;
                 }
-                maintenance.finish(job, success);
+                vaultMaintenanceService.finish(job, success);
             }
         } catch (RuntimeException failure) {
             log.warn("密码库会话撤销任务暂不可用，将重试");
@@ -55,7 +58,7 @@ public class VaultJobs {
     }
 
     public void revoke(VaultSessionRevocationOutbox job) {
-        Long owner = control.ownerOfAccount(job.getAccountId());
+        Long owner = vaultControlService.ownerOfAccount(job.getAccountId());
         if (owner == null) {
             return;
         }
@@ -73,11 +76,11 @@ public class VaultJobs {
     @Scheduled(fixedDelay = 30000)
     public void expireRotations() {
         try {
-            List<VaultRotation> expired = control.expiredRotations();
+            List<VaultRotation> expired = vaultControlService.expiredRotations();
             for (VaultRotation task : expired) {
-                Long owner = control.ownerOfVault(task.getVaultId());
+                Long owner = vaultControlService.ownerOfVault(task.getVaultId());
                 if (owner != null) {
-                    rotations.expire(owner, task.getRotationId().toString());
+                    vaultRotationService.expire(owner, task.getRotationId().toString());
                 }
             }
         } catch (RuntimeException failure) {
@@ -88,7 +91,7 @@ public class VaultJobs {
     @Scheduled(fixedDelay = 60000)
     public void purgeCiphertext() {
         try {
-            maintenance.purge();
+            vaultMaintenanceService.purge();
         } catch (RuntimeException failure) {
             log.warn("密码库旧密文清理暂不可用，将重试");
         }
