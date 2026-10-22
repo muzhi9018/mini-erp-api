@@ -26,10 +26,11 @@ import java.util.*;
  * @since 2026-10-15
  */
 @RestController
-@RequestMapping("/vault-auth")
+@RequestMapping("/vault/auth")
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
 public class VaultAuthController {
+
     private final IVaultIdentityService identities;
 
     private final VaultBrowserSession browser;
@@ -159,7 +160,7 @@ public class VaultAuthController {
     public JsonResult<VaultSessionVO> reauth(HttpServletRequest request, HttpServletResponse response) {
         VaultSession session = VaultContexts.current();
         VaultSessionVO result = browser.view(session, request, response);
-        result.setOptionsEndpoint("/vault-auth/passkeys/authenticate/options");
+        result.setOptionsEndpoint("/vault/auth/passkeys/authenticate/options");
         return JsonResult.success(result);
     }
 

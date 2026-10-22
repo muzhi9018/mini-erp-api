@@ -12,4 +12,128 @@
         and is_deleted = false
         order by item_id
     </select>
+    <select id="lockItem" resultType="com.muzhi.minierp.entity.vault.VaultItem">
+        select * from public.vault_item
+        where vault_id = #{vaultId} and generation = #{generation} and item_id = #{itemId}
+        for update
+    </select>
+
+    <select id="deletedItems" resultType="com.muzhi.minierp.entity.vault.VaultItem">
+        select * from public.vault_item
+        where vault_id = #{vaultId} and generation = #{generation} and is_deleted = true
+        and gmt_deleted &gt; #{before} and gmt_deleted &lt;= #{firstTime}
+        <if test="lastId != null">
+            and (gmt_deleted &lt; #{lastDeleted} or (gmt_deleted = #{lastDeleted} and item_id &gt; #{lastId}))
+        </if>
+        order by gmt_deleted desc, item_id asc
+        limit #{limit}
+    </select>
+
+    <select id="earliestDeletedAt" resultType="java.time.OffsetDateTime">
+        select min(gmt_deleted) from public.vault_item
+        where vault_id = #{vaultId} and generation = #{generation} and is_deleted = true
+        and gmt_deleted &gt; #{before}
+    </select>
+
+    <select id="retainedCount" resultType="long">
+        select count(*) from public.vault_item
+        where vault_id = #{vaultId} and generation = #{generation}
+        and (is_deleted = false or gmt_deleted &gt; #{before})
+    </select>
+
+    <insert id="freezeSource">
+        insert into public.vault_rotation_expected_item (
+            rotation_id, item_id, source_content_version, source_row_version, target_content_version,
+            gmt_create, gmt_modified, create_user, update_user
+        )
+        select #{rotationId}, item_id, content_version, row_version, content_version, #{now}, #{now}, #{actor}, #{actor}
+        from public.vault_item
+        where vault_id = #{vaultId} and generation = #{generation}
+        and (is_deleted = false or gmt_deleted &gt; #{before})
+    </insert>
+
+    <select id="frozenItems" resultType="com.muzhi.minierp.entity.vault.VaultItem">
+        select
+        <choose>
+            <when test="metadataOnly">
+                i.item_id, i.content_version, i.row_version, i.key_epoch, i.is_deleted, i.gmt_deleted, i.delete_user
+            </when>
+            <otherwise>i.*</otherwise>
+        </choose>
+        from public.vault_item i
+        join public.vault_rotation_expected_item e on e.item_id = i.item_id and e.rotation_id = #{rotationId}
+        where i.vault_id = #{vaultId} and i.generation = #{generation} and e.is_deleted = false
+        <if test="lastId != null">
+            and i.item_id &gt; #{lastId}
+        </if>
+        order by i.item_id
+        <if test="limit != null">
+            limit #{limit}
+        </if>
+    </select>
+
+    <select id="generationMetadata" resultType="com.muzhi.minierp.entity.vault.VaultItem">
+        select item_id, content_version, row_version, key_epoch, is_deleted, gmt_deleted, delete_user from public.vault_item
+        where vault_id = #{vaultId} and generation = #{generation}
+        order by item_id
+    </select>
+
+    <select id="generationItems" resultType="com.muzhi.minierp.entity.vault.VaultItem"
+            fetchSize="100" resultSetType="FORWARD_ONLY" useCache="false">
+        select * from public.vault_item
+        where vault_id = #{vaultId} and generation = #{generation}
+        order by item_id
+    </select>
+
+    <update id="markDeleted">
+        update public.vault_item
+        set is_deleted = true, delete_user = #{actor}, gmt_deleted = #{now},
+            update_user = #{actor}, gmt_modified = #{now}, row_version = row_version + 1
+        where vault_id = #{item.vaultId} and generation = #{item.generation} and item_id = #{item.itemId}
+        and row_version = #{item.rowVersion} and is_deleted = false
+    </update>
+
+    <update id="restoreItem">
+        update public.vault_item
+        set is_deleted = false, delete_user = null, gmt_deleted = null,
+            update_user = #{actor}, gmt_modified = #{now}, row_version = row_version + 1
+        where vault_id = #{item.vaultId} and generation = #{item.generation} and item_id = #{item.itemId}
+        and row_version = #{item.rowVersion} and is_deleted = true and gmt_deleted &gt; #{before}
+    </update>
+
+    <delete id="purgeItem">
+        delete from public.vault_item
+        where vault_id = #{item.vaultId} and generation = #{item.generation} and item_id = #{item.itemId}
+        and row_version = #{item.rowVersion} and is_deleted = true
+    </delete>
+
+    <delete id="deleteActiveItem">
+        delete from public.vault_item
+        where vault_id = #{item.vaultId} and generation = #{item.generation} and item_id = #{item.itemId}
+        and row_version = #{item.rowVersion} and is_deleted = false
+    </delete>
+
+    <delete id="purgeHistoricalCopies">
+        delete from public.vault_item i
+        using public.vault_generation g, public.vault_info v
+        where i.vault_id = #{vaultId} and i.item_id = #{itemId}
+        and g.vault_id = i.vault_id and g.generation = i.generation and g.status in ('RETIRED', 'ABORTED')
+        and v.id = i.vault_id and (v.active_generation is null or v.active_generation &lt;&gt; i.generation)
+    </delete>
+
+    <delete id="purgeExpired">
+        delete from public.vault_item where id in (
+            select i.id from public.vault_item i
+            where i.vault_id = #{vaultId} and i.is_deleted = true and i.gmt_deleted &lt;= #{before}
+            and not exists (
+                select 1 from public.vault_rotation r
+                where r.vault_id = i.vault_id and r.status = 'UPLOADING' and r.is_deleted = false
+            )
+            order by i.gmt_deleted, i.id
+            <if test="limit != null">
+                limit #{limit}
+            </if>
+            for update skip locked
+        )
+    </delete>
 </mapper>

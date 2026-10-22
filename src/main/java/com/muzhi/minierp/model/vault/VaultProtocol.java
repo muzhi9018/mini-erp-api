@@ -21,6 +21,9 @@ public final class VaultProtocol {
     public static final String KDF_PROFILE = "ARGON2ID_V19_M65536_T3_P4_L32";
     public static final String CLIENT_SCHEMA_HEADER = "X-Vault-Item-Schema-Version";
     public static final int ITEM_SCHEMA_VERSION = 3;
+    public static final String CLIENT_LIFECYCLE_HEADER = "X-Vault-Lifecycle-Version";
+    public static final int LIFECYCLE_PROTOCOL_VERSION = 2;
+    public static final int DELETED_ITEM_RETENTION_DAYS = 30;
     public static final long MAX_VERSION = 9007199254740991L;
 
     private VaultProtocol() {
@@ -47,6 +50,13 @@ public final class VaultProtocol {
     @JSONType(alphabetic = false)
     public record ItemWrite(String itemId, Long generation, Long keyEpoch, Long expectedRowVersion,
                             Long contentVersion, Box wrappedDek, Box encryptedItem, String idempotencyKey) {
+    }
+
+    /**
+     * 恢复、永久删除及直接删除账号组仅接收目标与预期版本，不接收客户端删除元数据或密文。
+     */
+    @JSONType(alphabetic = false)
+    public record ItemLifecycle(String itemId, Long generation, Long expectedRowVersion, String idempotencyKey) {
     }
 
     /**

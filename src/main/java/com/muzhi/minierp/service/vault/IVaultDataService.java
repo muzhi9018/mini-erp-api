@@ -20,13 +20,28 @@ public interface IVaultDataService {
     VaultMetaVO initialize(VaultSession session, VaultProtocol.Setup setup);
 
     /** 分页读取同一活动代，游标绑定用户、库与集合版本。 */
-    VaultItemPageVO items(VaultSession session, String cursor, int pageSize);
+    VaultItemPageVO<VaultProtocol.Item> items(VaultSession session, String cursor, int pageSize);
+
+    /** 分页读取未到期已删除条目，游标同时约束自然到期边界。 */
+    VaultItemPageVO<VaultItemVO> deletedItems(VaultSession session, String cursor, int pageSize);
+
+    /** 重新确认已删除详情及当前服务端期限。 */
+    VaultItemVO deletedDetail(VaultSession session, String itemId);
+
+    /** 恢复原条目及全部密文，保留创建信息。 */
+    VaultItemResultVO restoreItem(VaultSession session, VaultProtocol.ItemLifecycle request);
+
+    /** 永久删除目标已删除条目及同库历史代副本。 */
+    VaultItemResultVO purgeItem(VaultSession session, VaultProtocol.ItemLifecycle request);
 
     /** 创建或按预期版本更新密文条目。 */
     VaultItemResultVO save(VaultSession session, VaultProtocol.ItemWrite request, boolean create);
 
-    /** 原子逻辑删除条目并记录删除人和时间。 */
+    /** 将密码移入已删除集合并记录删除人和时间。 */
     VaultItemResultVO delete(VaultSession session, VaultProtocol.ItemWrite request);
+
+    /** 直接删除客户端声明的账号组及同库历史副本，不删除成员或进入已删除集合。 */
+    VaultItemResultVO deleteGroup(VaultSession session, VaultProtocol.ItemLifecycle request);
 
     /**
      * 在同一事务中提交密文变更，集合版本必须与客户端管理组成员时的快照一致。

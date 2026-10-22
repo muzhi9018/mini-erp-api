@@ -98,11 +98,15 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
             existing = null;
         }
         VaultEnum.Error.WRITE_LOCKED.rejectIf(existing != null);
-        List<VaultItem> source = vault.getActiveGeneration() == null ? List.of() : vaultCipherStore.items(vault, vault.getActiveGeneration());
+        OffsetDateTime now = vaultControlMapper.databaseNow();
+        OffsetDateTime before = now.minusHours(VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L);
+
         if (mode == VaultEnum.RotationMode.ROTATION) {
             VaultEnum.Error.NOT_FOUND.rejectIf(vault.getActiveGeneration() == null);
         } else {
-            VaultEnum.Error.ALREADY_INITIALIZED.rejectIf(!source.isEmpty());
+            long sourceCount = vault.getActiveGeneration() == null ? 0
+                    : vaultItemMapper.retainedCount(vault.getId(), vault.getActiveGeneration(), before);
+            VaultEnum.Error.ALREADY_INITIALIZED.rejectIf(sourceCount != 0);
             VaultEnum.Error.VERSION_CONFLICT.rejectIf(!vault.getVaultId().equals(VaultCodec.uuid(request.vaultId())));
         }
         VaultGeneration sourceGeneration = vault.getActiveGeneration() == null ? null : vaultCipherStore.generation(vault, vault.getActiveGeneration());
@@ -111,7 +115,6 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         long target = vaultCipherStore.nextGeneration(vault);
         vaultCipherStore.addGeneration(vault, target, epoch, VaultEnum.GenerationStatus.STAGING, session.ownerId());
         vaultCipherStore.addSlots(vault, target, request.keySlots(), session.ownerId());
-        OffsetDateTime now = vaultControlMapper.databaseNow();
         VaultRotation task = new VaultRotation();
         task.setId(IdWorker.getId());
         task.setRotationId(VaultCodec.uuid(request.rotationId()));
@@ -124,15 +127,22 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         task.setExpectedCollectionRevision(vault.getCollectionRevision());
         task.setStartedAuthEpoch(session.authEpoch());
         task.setSessionBindingId(session.bindingId());
-        task.setExpectedItemCount(mode == VaultEnum.RotationMode.ROTATION ? source.size() : request.itemIds().size());
+        task.setExpectedItemCount(mode == VaultEnum.RotationMode.ROTATION ? 0 : request.itemIds().size());
         task.setGmtCreate(now);
         task.setExpiresAt(now.plusMinutes(30));
         vaultAccess.create(task, session.ownerId());
         vaultRotationMapper.insert(task);
         if (mode == VaultEnum.RotationMode.ROTATION) {
-            for (VaultItem item : source) {
-                this.expected(task, item.getItemId(), item.getContentVersion(), item.getRowVersion(), item.getContentVersion(), session.ownerId());
-            }
+            int count = vaultItemMapper.freezeSource(
+                    vault.getId(),
+                    vault.getActiveGeneration(),
+                    task.getId(),
+                    before,
+                    now,
+                    session.ownerId()
+            );
+            task.setExpectedItemCount(count);
+            vaultRotationMapper.updateById(task);
         } else {
             for (String itemId : request.itemIds()) {
                 this.expected(task, VaultCodec.uuid(itemId), null, null, 1L, session.ownerId());
@@ -255,6 +265,14 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
             VaultEnum.Error.VERSION_CONFLICT.rejectIf(!Objects.equals(versions.get(itemId), value.contentVersion())
                     || !target.getKeyEpoch().equals(value.keyEpoch()));
             VaultItem item = vaultCipherStore.newItem(vault, target.getGeneration(), value, session.ownerId());
+            if (VaultEnum.RotationMode.ROTATION.getCode().equals(task.getMode())) {
+                VaultItem source = vaultItemMapper.lockItem(vault.getId(), task.getSourceGeneration(), itemId);
+                VaultEnum.Error.VERSION_CONFLICT.rejectIf(source == null);
+                // 删除状态来自冻结源行，客户端无法改写或延长期限。
+                item.setIsDeleted(source.getIsDeleted());
+                item.setGmtDeleted(source.getGmtDeleted());
+                item.setDeleteUser(source.getDeleteUser());
+            }
             vaultItemMapper.insert(item);
         }
         VaultRotationBatch receipt = new VaultRotationBatch();
@@ -273,38 +291,43 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public VaultItemPageVO items(VaultSession session, String rotationId, String cursor, int pageSize) {
+    public VaultItemPageVO<VaultItemVO> items(VaultSession session, String rotationId, VaultEnum.ItemScope scope, String cursor, int pageSize) {
         VaultContexts.requireMfa(session);
         VaultAccount account = vaultAccess.lock(session);
         vaultAccess.dataAccess(account);
         VaultInfo vault = vaultAccess.lockVault(session);
         VaultRotation task = this.task(vault, rotationId);
         this.usable(session, task, true);
-        String scope = session.ownerId() + ":" + task.getRotationId() + ":" + task.getTargetGeneration() + ":";
+        Long generation = scope == VaultEnum.ItemScope.SOURCE ? task.getSourceGeneration() : task.getTargetGeneration();
+        VaultEnum.Error.NOT_FOUND.rejectIf(generation == null);
+        String prefix = session.ownerId() + ":" + vault.getVaultId() + ":" + task.getRotationId() + ":"
+                + generation + ":" + scope.getCode() + ":";
         UUID last = null;
         if (cursor != null) {
-            byte[] decoded = VaultCodec.decode(cursor, 1, 256);
+            byte[] decoded = VaultCodec.decode(cursor, 1, 512);
             String value = new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
-            VaultEnum.Error.VERSION_CONFLICT.rejectIf(!value.startsWith(scope));
-            last = VaultCodec.uuid(value.substring(scope.length()));
+            VaultEnum.Error.VERSION_CONFLICT.rejectIf(!value.startsWith(prefix));
+            last = VaultCodec.uuid(value.substring(prefix.length()));
         }
-        LambdaQueryWrapper<VaultItem> query = Wrappers.lambdaQuery();
-        query.eq(VaultItem::getVaultId, vault.getId());
-        query.eq(VaultItem::getGeneration, task.getTargetGeneration());
-        if (last != null) {
-            query.gt(VaultItem::getItemId, last);
-        }
-        query.orderByAsc(VaultItem::getItemId);
-        query.last("LIMIT " + (pageSize + 1));
-        List<VaultItem> found = vaultItemMapper.selectList(query);
+        List<VaultItem> found = vaultItemMapper.frozenItems(
+                vault.getId(),
+                generation,
+                task.getId(),
+                last,
+                pageSize + 1,
+                false
+        );
         boolean more = found.size() > pageSize;
         List<VaultItem> page = more ? found.subList(0, pageSize) : found;
-        VaultItemPageVO result = new VaultItemPageVO();
+        VaultItemPageVO<VaultItemVO> result = new VaultItemPageVO<>();
         result.setRotationId(rotationId);
-        result.setGeneration(task.getTargetGeneration());
-        List<VaultProtocol.Item> pageItems = page.stream().map(vaultCipherStore::view).toList();
+        result.setGeneration(generation);
+        result.setScope(scope.getCode());
+        OffsetDateTime serverTime = vaultControlMapper.databaseNow();
+        result.setServerTime(serverTime);
+        List<VaultItemVO> pageItems = page.stream().map(vaultCipherStore::lifecycleView).toList();
         result.setItems(pageItems);
-        String next = more ? VaultCodec.encode((scope + page.getLast().getItemId()).getBytes(java.nio.charset.StandardCharsets.UTF_8)) : null;
+        String next = more ? VaultCodec.encode((prefix + page.getLast().getItemId()).getBytes(java.nio.charset.StandardCharsets.UTF_8)) : null;
         result.setNextCursor(next);
         return result;
     }
@@ -337,21 +360,35 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
                 || !vault.getCollectionRevision().equals(task.getExpectedCollectionRevision())
                 || !vault.getCollectionRevision().equals(request.expectedCollectionRevision()));
         List<VaultRotationExpectedItem> expected = this.expected(task);
-        List<VaultItem> staged = vaultCipherStore.items(vault, task.getTargetGeneration());
+        List<VaultItem> staged = vaultItemMapper.generationMetadata(vault.getId(), task.getTargetGeneration());
         Map<UUID, VaultItem> actual = new HashMap<>();
         for (VaultItem item : staged) {
             actual.put(item.getItemId(), item);
         }
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(expected.size() != task.getExpectedItemCount() || actual.size() != expected.size());
         Map<UUID, VaultItem> source = new HashMap<>();
+        boolean restore = VaultEnum.RotationMode.RESTORE.getCode().equals(task.getMode());
         if (task.getSourceGeneration() != null) {
-            List<VaultItem> old = vaultCipherStore.items(vault, task.getSourceGeneration());
-            for (VaultItem item : old) {
-                source.put(item.getItemId(), item);
+            if (restore) {
+                OffsetDateTime sourceNow = vaultControlMapper.databaseNow();
+                OffsetDateTime sourceBefore = sourceNow.minusHours(VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L);
+                long sourceCount = vaultItemMapper.retainedCount(vault.getId(), task.getSourceGeneration(), sourceBefore);
+                VaultEnum.Error.VERSION_CONFLICT.rejectIf(sourceCount != 0);
+            } else {
+                List<VaultItem> old = vaultItemMapper.frozenItems(
+                        vault.getId(),
+                        task.getSourceGeneration(),
+                        task.getId(),
+                        null,
+                        null,
+                        true
+                );
+                for (VaultItem item : old) {
+                    source.put(item.getItemId(), item);
+                }
             }
         }
-        boolean restore = VaultEnum.RotationMode.RESTORE.getCode().equals(task.getMode());
-        VaultEnum.Error.VERSION_CONFLICT.rejectIf(restore ? !source.isEmpty() : source.size() != expected.size());
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!restore && source.size() != expected.size());
         VaultGeneration target = vaultCipherStore.generation(vault, task.getTargetGeneration());
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(!VaultEnum.GenerationStatus.STAGING.getCode().equals(target.getStatus()));
         for (VaultRotationExpectedItem item : expected) {
@@ -361,7 +398,10 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
             if (!restore) {
                 VaultItem old = source.get(item.getItemId());
                 VaultEnum.Error.VERSION_CONFLICT.rejectIf(old == null || !old.getContentVersion().equals(item.getSourceContentVersion())
-                        || !old.getRowVersion().equals(item.getSourceRowVersion()));
+                        || !old.getRowVersion().equals(item.getSourceRowVersion())
+                        || !Objects.equals(old.getIsDeleted(), value.getIsDeleted())
+                        || !Objects.equals(old.getGmtDeleted(), value.getGmtDeleted())
+                        || !Objects.equals(old.getDeleteUser(), value.getDeleteUser()));
             }
         }
         List<VaultKeySlot> newSlots = vaultCipherStore.slots(vault, target.getGeneration());
@@ -399,6 +439,12 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         task.setCommitReceipt(VaultCodec.json(receipt));
         vaultAccess.touch(task, session.ownerId());
         vaultRotationMapper.updateById(task);
+        // 摘要与完整冻结清单验证完毕后，才移除轮换期间到期的源/目标行。
+        OffsetDateTime before = now.minusHours(VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L);
+        int purged = vaultItemMapper.purgeExpired(vault.getId(), before, null);
+        if (purged > 0) {
+            vaultAccess.systemAudit(vault.getAccountId(), vault.getId(), VaultEnum.AuditAction.ITEM_PURGE);
+        }
         vaultAccess.revoke(account, session.ownerId());
         vaultAccess.audit(session, vault.getId(), VaultEnum.AuditAction.ROTATION_COMMIT);
         return receipt;
@@ -480,6 +526,15 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         }
         vaultControlMapper.purgeGenerationItems(vault.getId(), task.getTargetGeneration());
         vaultControlMapper.purgeGenerationSlots(vault.getId(), task.getTargetGeneration());
+        OffsetDateTime before = now.minusHours(VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L);
+        int purged = vaultItemMapper.purgeExpired(vault.getId(), before, null);
+        if (purged > 0) {
+            VaultEnum.Error.VERSION_CONFLICT.rejectIf(vault.getCollectionRevision() >= VaultProtocol.MAX_VERSION);
+            vault.setCollectionRevision(vault.getCollectionRevision() + 1);
+            vaultAccess.touch(vault, actor);
+            vaultInfoMapper.updateById(vault);
+            vaultAccess.systemAudit(vault.getAccountId(), vault.getId(), VaultEnum.AuditAction.ITEM_PURGE);
+        }
         if (status == VaultEnum.RotationStatus.EXPIRED) {
             vaultAccess.systemAudit(vault.getAccountId(), vault.getId(), VaultEnum.AuditAction.ROTATION_EXPIRE);
         }

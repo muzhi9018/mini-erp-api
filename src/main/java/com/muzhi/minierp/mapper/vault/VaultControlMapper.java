@@ -50,9 +50,16 @@ public interface VaultControlMapper {
 
     List<VaultRotation> expiredRotations();
 
-    int purgeDeletedItems(@Param("before") OffsetDateTime before);
+    /** 逐库清理候选，领取时仍须按账户、库顺序跳过已锁行。 */
+    List<Long> cleanupOwners(@Param("itemBefore") OffsetDateTime itemBefore, @Param("before") OffsetDateTime before);
 
-    int purgeDeletedSlots(@Param("before") OffsetDateTime before);
+    VaultAccount lockCleanupAccount(@Param("ownerId") Long ownerId);
+
+    VaultInfo lockCleanupVault(@Param("accountId") Long accountId);
+
+    OffsetDateTime oldestExpiredDeletion(@Param("before") OffsetDateTime before);
+
+    int purgeDeletedSlots(@Param("vaultId") Long vaultId, @Param("before") OffsetDateTime before);
 
     int purgeGenerationItems(@Param("vaultId") Long vaultId, @Param("generation") Long generation);
 

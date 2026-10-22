@@ -1,6 +1,7 @@
 package com.muzhi.minierp.component.vault;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
+import com.alibaba.fastjson2.JSONWriter;
 import com.muzhi.minierp.entity.vault.*;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.vault.*;
@@ -10,10 +11,18 @@ import com.muzhi.minierp.service.vault.IVaultItemService;
 import com.muzhi.minierp.service.vault.IVaultKeySlotService;
 import com.muzhi.minierp.util.BeanConvertUtils;
 import com.muzhi.minierp.vo.vault.VaultMetaVO;
+import com.muzhi.minierp.vo.vault.VaultItemVO;
+import com.muzhi.minierp.mapper.vault.VaultItemMapper;
 import lombok.RequiredArgsConstructor;
+import org.apache.ibatis.cursor.Cursor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
@@ -38,6 +47,8 @@ public class VaultCipherStore {
     private final IVaultControlService vaultControlService;
 
     private final VaultAccess vaultAccess;
+
+    private final VaultItemMapper vaultItemMapper;
 
     public VaultGeneration generation(VaultInfo vault, long number) {
         VaultGeneration generation = vaultControlService.generation(vault.getId(), number);
@@ -136,6 +147,23 @@ public class VaultCipherStore {
         return new VaultProtocol.Item(item.getItemId().toString(), item.getContentVersion(), item.getRowVersion(), item.getKeyEpoch(), wrapped, encrypted);
     }
 
+    /**
+     * 仅在受控详情和轮换下载中暴露生命周期信息，正常备份仍使用原协议。
+     */
+    public VaultItemVO lifecycleView(VaultItem item) {
+        VaultProtocol.Item content = this.view(item);
+        VaultItemVO result = BeanConvertUtils.convert(item, VaultItemVO.class);
+        result.setWrappedDek(content.wrappedDek());
+        result.setEncryptedItem(content.encryptedItem());
+        result.setDeleted(Boolean.TRUE.equals(item.getIsDeleted()));
+        if (Boolean.TRUE.equals(item.getIsDeleted())) {
+            result.setDeletedAt(item.getGmtDeleted());
+            var purgeAt = item.getGmtDeleted().plusHours(VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L);
+            result.setPurgeAt(purgeAt);
+        }
+        return result;
+    }
+
     private String optional(byte[] value) {
         return value == null ? null : VaultCodec.encode(value);
     }
@@ -163,16 +191,47 @@ public class VaultCipherStore {
             slotArrays.add(Arrays.asList(slot.slotType(), slot.slotId(), slot.keyId(), box.formatVersion(), box.algorithm(),
                     box.iv(), box.ciphertext(), slot.kdfProfile(), slot.kdfSalt(), slot.wrapSalt(), slot.recoverySalt()));
         }
-        List<Object> itemArrays = new ArrayList<>();
-        for (VaultItem raw : this.items(vault, generation.getGeneration())) {
-            VaultProtocol.Item item = this.view(raw);
-            VaultProtocol.Box wrapped = item.wrappedDek();
-            VaultProtocol.Box encrypted = item.encryptedItem();
-            itemArrays.add(List.of(item.itemId(), item.contentVersion(), item.keyEpoch(), wrapped.formatVersion(), wrapped.algorithm(),
-                    wrapped.iv(), wrapped.ciphertext(), encrypted.formatVersion(), encrypted.algorithm(), encrypted.iv(), encrypted.ciphertext()));
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException failure) {
+            throw new IllegalStateException("SHA-256 unavailable");
         }
         List<Object> context = List.of("mini-erp-vault", 1, "staging-manifest", session.ownerId().toString(),
-                vault.getVaultId().toString(), rotation.getRotationId().toString(), generation.getGeneration(), generation.getKeyEpoch(), slotArrays, itemArrays);
-        return VaultCodec.digest(context);
+                vault.getVaultId().toString(), rotation.getRotationId().toString(), generation.getGeneration(), generation.getKeyEpoch(), slotArrays);
+        // 保持原数组摘要格式，按游标逐条摘要，避免保留集合超过正常容量后积累整库密文。
+        try (Cursor<VaultItem> cursor = vaultItemMapper.generationItems(vault.getId(), generation.getGeneration());
+                DigestOutputStream output = new DigestOutputStream(OutputStream.nullOutputStream(), digest);
+                JSONWriter json = JSONWriter.ofUTF8(JSONWriter.Feature.WriteNulls)) {
+            json.startArray();
+            for (int index = 0; index < context.size(); index++) {
+                if (index > 0) {
+                    json.writeComma();
+                }
+                json.writeAny(context.get(index));
+            }
+            json.writeComma();
+            json.startArray();
+            boolean first = true;
+            for (VaultItem raw : cursor) {
+                if (!first) {
+                    json.writeComma();
+                }
+                first = false;
+                VaultProtocol.Item item = this.view(raw);
+                VaultProtocol.Box wrapped = item.wrappedDek();
+                VaultProtocol.Box encrypted = item.encryptedItem();
+                List<Object> values = List.of(item.itemId(), item.contentVersion(), item.keyEpoch(), wrapped.formatVersion(), wrapped.algorithm(),
+                        wrapped.iv(), wrapped.ciphertext(), encrypted.formatVersion(), encrypted.algorithm(), encrypted.iv(), encrypted.ciphertext());
+                json.writeAny(values);
+                json.flushTo(output);
+            }
+            json.endArray();
+            json.endArray();
+            json.flushTo(output);
+        } catch (IOException failure) {
+            throw VaultEnum.Error.UNAVAILABLE.exception();
+        }
+        return digest.digest();
     }
 }

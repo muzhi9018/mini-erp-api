@@ -65,12 +65,16 @@ public class VaultHttpFilter extends OncePerRequestFilter {
             HttpServletRequest actual = request;
             if (unsafe) {
                 String path = request.getRequestURI().substring(request.getContextPath().length());
-                if (path.startsWith("/api/v1/vault/")) {
+                if (path.startsWith("/vault/api/")) {
                     // 客户端必须兼容既有账号内容与账号组，才能写入或提交轮换。
                     var versions = request.getHeaders(VaultProtocol.CLIENT_SCHEMA_HEADER);
                     String expected = Integer.toString(VaultProtocol.ITEM_SCHEMA_VERSION);
                     VaultEnum.Error.CLIENT_UPGRADE_REQUIRED.rejectIf(!versions.hasMoreElements()
                             || !expected.equals(versions.nextElement()) || versions.hasMoreElements());
+                    var lifecycleVersions = request.getHeaders(VaultProtocol.CLIENT_LIFECYCLE_HEADER);
+                    String lifecycleExpected = Integer.toString(VaultProtocol.LIFECYCLE_PROTOCOL_VERSION);
+                    VaultEnum.Error.CLIENT_UPGRADE_REQUIRED.rejectIf(!lifecycleVersions.hasMoreElements()
+                            || !lifecycleExpected.equals(lifecycleVersions.nextElement()) || lifecycleVersions.hasMoreElements());
                 }
                 String contentType = request.getContentType();
                 VaultEnum.Error.UNSUPPORTED_MEDIA_TYPE.rejectIf(contentType == null

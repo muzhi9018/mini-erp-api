@@ -17,6 +17,21 @@ import java.util.List;
 public class VaultMetaVO {
 
     /**
+     * 删除生命周期协议版本，独立于加密内容格式
+     */
+    private Integer lifecycleProtocolVersion = VaultProtocol.LIFECYCLE_PROTOCOL_VERSION;
+
+    /**
+     * 数据写请求必须声明的生命周期兼容能力头
+     */
+    private String clientLifecycleVersionHeader = VaultProtocol.CLIENT_LIFECYCLE_HEADER;
+
+    /**
+     * 已删除条目固定保留天数，每天按 24 小时计算
+     */
+    private Integer deletedItemRetentionDays = VaultProtocol.DELETED_ITEM_RETENTION_DAYS;
+
+    /**
      * 允许的密文盒格式版本，与明文内容版本及编辑次数独立
      */
     private List<Integer> allowedFormatVersions = List.of(1);

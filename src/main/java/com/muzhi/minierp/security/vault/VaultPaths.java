@@ -15,7 +15,7 @@ public final class VaultPaths {
 
     public static boolean matches(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        return path.equals("/vault-auth") || path.startsWith("/vault-auth/")
-                || path.equals("/api/v1/vault") || path.startsWith("/api/v1/vault/");
+        return path.equals("/vault/auth") || path.startsWith("/vault/auth/")
+                || path.equals("/vault/api") || path.startsWith("/vault/api/");
     }
 }

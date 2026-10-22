@@ -32,6 +32,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "true")
 public class VaultFailureAuditServiceImpl implements IVaultFailureAuditService {
+
     private final VaultAuditEventMapper audits;
 
     private final PlatformTransactionManager transactionManager;
@@ -47,10 +48,10 @@ public class VaultFailureAuditServiceImpl implements IVaultFailureAuditService {
         VaultSession identity = authentication != null && authentication.getPrincipal() instanceof VaultSession session ? session : null;
         String path = request.getRequestURI().substring(request.getContextPath().length());
         VaultEnum.AuditAction action = switch (path) {
-            case "/vault-auth/login" -> VaultEnum.AuditAction.LOGIN;
-            case "/vault-auth/passkeys/register/verify" -> VaultEnum.AuditAction.PASSKEY_REGISTER;
-            case "/vault-auth/passkeys/authenticate/verify" -> VaultEnum.AuditAction.PASSKEY_AUTHENTICATE;
-            case "/vault-auth/mfa-recovery/verify" -> VaultEnum.AuditAction.MFA_RECOVERY;
+            case "/vault/auth/login" -> VaultEnum.AuditAction.LOGIN;
+            case "/vault/auth/passkeys/register/verify" -> VaultEnum.AuditAction.PASSKEY_REGISTER;
+            case "/vault/auth/passkeys/authenticate/verify" -> VaultEnum.AuditAction.PASSKEY_AUTHENTICATE;
+            case "/vault/auth/mfa-recovery/verify" -> VaultEnum.AuditAction.MFA_RECOVERY;
             default -> VaultEnum.AuditAction.SESSION_REJECT;
         };
         VaultAuditEvent event = new VaultAuditEvent();

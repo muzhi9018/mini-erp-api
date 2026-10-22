@@ -21,6 +21,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 /**
@@ -117,7 +118,7 @@ public class VaultDataServiceImpl implements IVaultDataService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public VaultItemPageVO items(VaultSession session, String cursor, int pageSize) {
+    public VaultItemPageVO<VaultProtocol.Item> items(VaultSession session, String cursor, int pageSize) {
         VaultContexts.requireMfa(session);
         VaultAccount account = vaultAccess.lock(session);
         vaultAccess.dataAccess(account);
@@ -125,13 +126,13 @@ public class VaultDataServiceImpl implements IVaultDataService {
         VaultEnum.Error.NOT_FOUND.rejectIf(vault.getActiveGeneration() == null);
         UUID last = null;
         if (cursor != null) {
-            byte[] decoded = VaultCodec.decode(cursor, 1, 256);
+            byte[] decoded = VaultCodec.decode(cursor, 1, 512);
             String[] parts = new String(decoded, StandardCharsets.UTF_8).split(":", -1);
-            VaultEnum.Error.INVALID_REQUEST.rejectIf(parts.length != 5);
+            VaultEnum.Error.INVALID_REQUEST.rejectIf(parts.length != 6);
             boolean stale = !parts[0].equals(session.ownerId().toString()) || !parts[1].equals(vault.getVaultId().toString())
-                    || !parts[2].equals(vault.getActiveGeneration().toString()) || !parts[3].equals(vault.getCollectionRevision().toString());
+                    || !parts[2].equals(vault.getActiveGeneration().toString()) || !parts[3].equals(vault.getCollectionRevision().toString()) || !"ACTIVE".equals(parts[4]);
             VaultEnum.Error.VERSION_CONFLICT.rejectIf(stale);
-            last = VaultCodec.uuid(parts[4]);
+            last = VaultCodec.uuid(parts[5]);
         }
         LambdaQueryWrapper<VaultItem> query = Wrappers.lambdaQuery();
         query.eq(VaultItem::getVaultId, vault.getId());
@@ -144,15 +145,17 @@ public class VaultDataServiceImpl implements IVaultDataService {
         List<VaultItem> found = vaultItemMapper.selectList(query);
         boolean more = found.size() > pageSize;
         List<VaultItem> page = more ? found.subList(0, pageSize) : found;
-        VaultItemPageVO result = new VaultItemPageVO();
+        VaultItemPageVO<VaultProtocol.Item> result = new VaultItemPageVO<>();
         result.setGeneration(vault.getActiveGeneration());
+        OffsetDateTime serverTime = vaultControlMapper.databaseNow();
+        result.setServerTime(serverTime);
         result.setCollectionRevision(vault.getCollectionRevision());
         List<VaultProtocol.Item> pageItems = page.stream().map(vaultCipherStore::view).toList();
         result.setItems(pageItems);
         String next = null;
         if (more) {
             String value = session.ownerId() + ":" + vault.getVaultId() + ":" + vault.getActiveGeneration() + ":"
-                    + vault.getCollectionRevision() + ":" + page.getLast().getItemId();
+                    + vault.getCollectionRevision() + ":ACTIVE:" + page.getLast().getItemId();
             next = VaultCodec.encode(value.getBytes(StandardCharsets.UTF_8));
         }
         result.setNextCursor(next);
@@ -200,7 +203,7 @@ public class VaultDataServiceImpl implements IVaultDataService {
             countQuery.eq(VaultItem::getGeneration, request.generation());
             Long currentCount = vaultItemMapper.selectCount(countQuery);
             int maximumItems = 2000;
-            VaultEnum.Error.INVALID_REQUEST.rejectIf(currentCount >= maximumItems);
+            VaultEnum.Error.ITEM_LIMIT_REACHED.rejectIf(currentCount >= maximumItems);
             VaultProtocol.Item value = new VaultProtocol.Item(request.itemId(), 1L, 1L, request.keyEpoch(), request.wrappedDek(), request.encryptedItem());
             item = vaultCipherStore.newItem(vault, request.generation(), value, session.ownerId());
             vaultItemMapper.insert(item);
@@ -262,24 +265,244 @@ public class VaultDataServiceImpl implements IVaultDataService {
         VaultInfo vault = vaultAccess.lockVault(session);
         this.validateWritable(vault);
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(!Objects.equals(vault.getActiveGeneration(), request.generation()));
-        VaultItem item = this.item(vault, request.itemId());
-        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!item.getRowVersion().equals(request.expectedRowVersion()) || item.getRowVersion() >= VaultProtocol.MAX_VERSION);
-        OffsetDateTime now = OffsetDateTime.now();
-        LambdaUpdateWrapper<VaultItem> update = Wrappers.lambdaUpdate();
-        update.eq(VaultItem::getId, item.getId());
-        update.set(VaultItem::getIsDeleted, true);
-        update.set(VaultItem::getDeleteUser, session.ownerId());
-        update.set(VaultItem::getGmtDeleted, now);
-        update.set(VaultItem::getUpdateUser, session.ownerId());
-        update.set(VaultItem::getGmtModified, now);
-        update.set(VaultItem::getRowVersion, item.getRowVersion() + 1);
-        int changed = vaultItemMapper.update(null, update);
+        VaultItem item = this.lockItem(vault, request.itemId());
+        VaultEnum.Error.ITEM_ALREADY_DELETED.rejectIf(Boolean.TRUE.equals(item.getIsDeleted()));
+        this.validateRowVersion(item, request.expectedRowVersion());
+        OffsetDateTime now = vaultControlMapper.databaseNow();
+        int changed = vaultItemMapper.markDeleted(item, session.ownerId(), now);
         VaultEnum.Error.VERSION_CONFLICT.rejectIf(changed != 1);
         this.bump(vault, session.ownerId());
         vaultAccess.audit(session, vault.getId(), VaultEnum.AuditAction.ITEM_DELETE);
-        VaultItemResultVO result = new VaultItemResultVO();
+        VaultItemResultVO result = this.itemReceipt(item, vault, now);
+        result.setRowVersion(item.getRowVersion() + 1);
         result.setDeleted(true);
+        result.setDeletedAt(now);
+        OffsetDateTime purgeAt = now.plusHours(VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L);
+        result.setPurgeAt(purgeAt);
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VaultItemResultVO deleteGroup(VaultSession session, VaultProtocol.ItemLifecycle request) {
+        VaultContexts.requireMfa(session);
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        return vaultIdempotency.execute(
+                session,
+                VaultEnum.Operation.DELETE_GROUP,
+                request.idempotencyKey(),
+                request,
+                VaultItemResultVO.class,
+                () -> this.deleteGroupItem(session, request)
+        );
+    }
+
+    /**
+     * 账号组不进入保留集合；类型在密文内，客户端必须按解密后的类型选择此操作。
+     */
+    private VaultItemResultVO deleteGroupItem(VaultSession session, VaultProtocol.ItemLifecycle request) {
+        VaultInfo vault = vaultAccess.lockVault(session);
+        this.validateWritable(vault);
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!Objects.equals(vault.getActiveGeneration(), request.generation()));
+        VaultItem item = this.lockItem(vault, request.itemId());
+        VaultEnum.Error.ITEM_ALREADY_DELETED.rejectIf(Boolean.TRUE.equals(item.getIsDeleted()));
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!item.getRowVersion().equals(request.expectedRowVersion()));
+        OffsetDateTime now = vaultControlMapper.databaseNow();
+        int changed = vaultItemMapper.deleteActiveItem(item);
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(changed != 1);
+        vaultItemMapper.purgeHistoricalCopies(vault.getId(), item.getItemId());
+        this.bump(vault, session.ownerId());
+        vaultAccess.audit(session, vault.getId(), VaultEnum.AuditAction.ITEM_DELETE);
+        VaultItemResultVO result = new VaultItemResultVO();
+        result.setItemId(request.itemId());
+        result.setPermanentlyDeleted(true);
         result.setCollectionRevision(vault.getCollectionRevision());
+        result.setPurgedAt(now);
+        result.setServerTime(now);
+        return result;
+    }
+
+    private VaultItem lockItem(VaultInfo vault, String itemId) {
+        UUID id = VaultCodec.uuid(itemId);
+        VaultItem item = vaultItemMapper.lockItem(vault.getId(), vault.getActiveGeneration(), id);
+        VaultEnum.Error.NOT_FOUND.rejectIf(item == null);
+        return item;
+    }
+
+    private void validateRowVersion(VaultItem item, Long expectedRowVersion) {
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!item.getRowVersion().equals(expectedRowVersion)
+                || item.getRowVersion() >= VaultProtocol.MAX_VERSION);
+    }
+
+    private VaultItemResultVO itemReceipt(VaultItem item, VaultInfo vault, OffsetDateTime now) {
+        VaultItemResultVO result = new VaultItemResultVO();
+        result.setItemId(item.getItemId().toString());
+        result.setRowVersion(item.getRowVersion());
+        result.setContentVersion(item.getContentVersion());
+        result.setCollectionRevision(vault.getCollectionRevision());
+        result.setServerTime(now);
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VaultItemResultVO restoreItem(VaultSession session, VaultProtocol.ItemLifecycle request) {
+        VaultContexts.requireMfa(session);
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        return vaultIdempotency.execute(
+                session,
+                VaultEnum.Operation.RESTORE_ITEM,
+                request.idempotencyKey(),
+                request,
+                VaultItemResultVO.class,
+                () -> this.changeDeletedItem(session, request, false)
+        );
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VaultItemResultVO purgeItem(VaultSession session, VaultProtocol.ItemLifecycle request) {
+        VaultContexts.requireMfa(session);
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        return vaultIdempotency.execute(
+                session,
+                VaultEnum.Operation.PURGE_ITEM,
+                request.idempotencyKey(),
+                request,
+                VaultItemResultVO.class,
+                () -> this.changeDeletedItem(session, request, true)
+        );
+    }
+
+    /**
+     * 恢复和永久删除共用持锁顺序；幂等成功重放在读取当前状态之前返回。
+     */
+    private VaultItemResultVO changeDeletedItem(VaultSession session, VaultProtocol.ItemLifecycle request, boolean purge) {
+        VaultInfo vault = vaultAccess.lockVault(session);
+        this.validateWritable(vault);
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!Objects.equals(vault.getActiveGeneration(), request.generation()));
+        VaultItem item = this.lockItem(vault, request.itemId());
+        VaultEnum.Error.ITEM_NOT_DELETED.rejectIf(!Boolean.TRUE.equals(item.getIsDeleted()));
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!item.getRowVersion().equals(request.expectedRowVersion()));
+        OffsetDateTime now = vaultControlMapper.databaseNow();
+        OffsetDateTime before = now.minusHours(VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L);
+        int changed;
+        if (purge) {
+            changed = vaultItemMapper.purgeItem(item);
+            vaultItemMapper.purgeHistoricalCopies(vault.getId(), item.getItemId());
+        } else {
+            VaultEnum.Error.ITEM_EXPIRED.rejectIf(!item.getGmtDeleted().isAfter(before));
+            this.validateRowVersion(item, request.expectedRowVersion());
+            LambdaQueryWrapper<VaultItem> countQuery = Wrappers.lambdaQuery();
+            countQuery.eq(VaultItem::getVaultId, vault.getId());
+            countQuery.eq(VaultItem::getGeneration, vault.getActiveGeneration());
+            Long currentCount = vaultItemMapper.selectCount(countQuery);
+            int maximumItems = 2000;
+            VaultEnum.Error.ITEM_LIMIT_REACHED.rejectIf(currentCount >= maximumItems);
+            changed = vaultItemMapper.restoreItem(item, session.ownerId(), now, before);
+        }
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(changed != 1);
+        this.bump(vault, session.ownerId());
+        VaultEnum.AuditAction action = purge ? VaultEnum.AuditAction.ITEM_PURGE : VaultEnum.AuditAction.ITEM_RESTORE;
+        vaultAccess.audit(session, vault.getId(), action);
+        VaultItemResultVO result = this.itemReceipt(item, vault, now);
+        if (purge) {
+            result.setRowVersion(null);
+            result.setContentVersion(null);
+            result.setPermanentlyDeleted(true);
+            result.setPurgedAt(now);
+        } else {
+            result.setRowVersion(item.getRowVersion() + 1);
+            result.setDeleted(false);
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VaultItemVO deletedDetail(VaultSession session, String itemId) {
+        VaultContexts.requireMfa(session);
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        VaultInfo vault = vaultAccess.lockVault(session);
+        VaultItem item = this.lockItem(vault, itemId);
+        VaultEnum.Error.ITEM_NOT_DELETED.rejectIf(!Boolean.TRUE.equals(item.getIsDeleted()));
+        OffsetDateTime now = vaultControlMapper.databaseNow();
+        OffsetDateTime purgeAt = item.getGmtDeleted().plusHours(VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L);
+        VaultEnum.Error.ITEM_EXPIRED.rejectIf(!now.isBefore(purgeAt));
+        VaultItemVO result = vaultCipherStore.lifecycleView(item);
+        result.setGeneration(vault.getActiveGeneration());
+        result.setCollectionRevision(vault.getCollectionRevision());
+        result.setServerTime(now);
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VaultItemPageVO<VaultItemVO> deletedItems(VaultSession session, String cursor, int pageSize) {
+        VaultContexts.requireMfa(session);
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        VaultInfo vault = vaultAccess.lockVault(session);
+        VaultEnum.Error.NOT_FOUND.rejectIf(vault.getActiveGeneration() == null);
+        OffsetDateTime now = vaultControlMapper.databaseNow();
+        long retentionHours = VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L;
+        OffsetDateTime firstTime = now;
+        OffsetDateTime before = now.minusHours(retentionHours);
+        OffsetDateTime earliest = vaultItemMapper.earliestDeletedAt(vault.getId(), vault.getActiveGeneration(), before);
+        OffsetDateTime boundary = earliest == null ? null : earliest.plusHours(retentionHours);
+        OffsetDateTime lastDeleted = null;
+        UUID lastId = null;
+        String scope = "DELETED|" + session.ownerId() + "|" + vault.getVaultId() + "|" + vault.getActiveGeneration()
+                + "|" + vault.getCollectionRevision() + "|";
+        if (cursor != null) {
+            byte[] decoded = VaultCodec.decode(cursor, 1, 512);
+            String value = new String(decoded, StandardCharsets.UTF_8);
+            VaultEnum.Error.VERSION_CONFLICT.rejectIf(!value.startsWith(scope));
+            String[] parts = value.substring(scope.length()).split("\\|", -1);
+            VaultEnum.Error.INVALID_REQUEST.rejectIf(parts.length != 4);
+            try {
+                firstTime = OffsetDateTime.parse(parts[0]);
+                boundary = OffsetDateTime.parse(parts[1]);
+                lastDeleted = OffsetDateTime.parse(parts[2]);
+            } catch (DateTimeParseException failure) {
+                throw VaultEnum.Error.INVALID_REQUEST.exception();
+            }
+            // 游标并非授权凭据，必须从数据库重新核实原集合的到期边界。
+            OffsetDateTime originalBefore = firstTime.minusHours(retentionHours);
+            OffsetDateTime originalEarliest = vaultItemMapper.earliestDeletedAt(vault.getId(), vault.getActiveGeneration(), originalBefore);
+            OffsetDateTime expectedBoundary = originalEarliest == null ? null : originalEarliest.plusHours(retentionHours);
+            VaultEnum.Error.VERSION_CONFLICT.rejectIf(firstTime.isAfter(now) || expectedBoundary == null
+                    || !boundary.isEqual(expectedBoundary) || !now.isBefore(boundary));
+            lastId = VaultCodec.uuid(parts[3]);
+        }
+        List<VaultItem> found = vaultItemMapper.deletedItems(
+                vault.getId(),
+                vault.getActiveGeneration(),
+                before,
+                firstTime,
+                lastDeleted,
+                lastId,
+                pageSize + 1
+        );
+        boolean more = found.size() > pageSize;
+        List<VaultItem> page = more ? found.subList(0, pageSize) : found;
+        VaultItemPageVO<VaultItemVO> result = new VaultItemPageVO<>();
+        result.setGeneration(vault.getActiveGeneration());
+        result.setCollectionRevision(vault.getCollectionRevision());
+        result.setServerTime(now);
+        List<VaultItemVO> views = page.stream().map(vaultCipherStore::lifecycleView).toList();
+        result.setItems(views);
+        if (more) {
+            VaultItem last = page.getLast();
+            String next = scope + firstTime + "|" + boundary + "|" + last.getGmtDeleted() + "|" + last.getItemId();
+            byte[] nextBytes = next.getBytes(StandardCharsets.UTF_8);
+            String nextCursor = VaultCodec.encode(nextBytes);
+            result.setNextCursor(nextCursor);
+        }
         return result;
     }
 
@@ -317,20 +540,26 @@ public class VaultDataServiceImpl implements IVaultDataService {
         Map<String, VaultItemResultVO> receipts = new HashMap<>();
         // 先解除删除条目的容量占用，使满库时也能原子替换；回执仍按请求顺序返回。
         List<VaultProtocol.ItemChange> ordered = new ArrayList<>(request.changes());
-        ordered.sort(Comparator.comparing(change ->
-                VaultEnum.ItemChangeAction.DELETE.getCode().equals(change.action()) ? 0 : 1));
+        ordered.sort(Comparator.comparing(change -> {
+            VaultEnum.ItemChangeAction action = VaultEnum.ofCode(VaultEnum.ItemChangeAction.class, change.action());
+            return action == VaultEnum.ItemChangeAction.DELETE || action == VaultEnum.ItemChangeAction.DELETE_GROUP ? 0 : 1;
+        }));
         for (VaultProtocol.ItemChange change : ordered) {
             VaultEnum.ItemChangeAction action = VaultEnum.ofCode(VaultEnum.ItemChangeAction.class, change.action());
-            VaultProtocol.ItemWrite write = new VaultProtocol.ItemWrite(change.itemId(), request.generation(),
-                    request.keyEpoch(), change.expectedRowVersion(), change.contentVersion(),
-                    change.wrappedDek(), change.encryptedItem(), request.idempotencyKey());
             VaultItemResultVO receipt;
-            if (action == VaultEnum.ItemChangeAction.DELETE) {
-                receipt = this.deleteItem(session, write);
-                receipt.setItemId(change.itemId());
-                receipt.setRowVersion(change.expectedRowVersion() + 1);
+            if (action == VaultEnum.ItemChangeAction.DELETE_GROUP) {
+                VaultProtocol.ItemLifecycle group = new VaultProtocol.ItemLifecycle(change.itemId(), request.generation(),
+                        change.expectedRowVersion(), request.idempotencyKey());
+                receipt = this.deleteGroupItem(session, group);
             } else {
-                receipt = this.saveItem(session, write, action == VaultEnum.ItemChangeAction.CREATE);
+                VaultProtocol.ItemWrite write = new VaultProtocol.ItemWrite(change.itemId(), request.generation(),
+                        request.keyEpoch(), change.expectedRowVersion(), change.contentVersion(),
+                        change.wrappedDek(), change.encryptedItem(), request.idempotencyKey());
+                if (action == VaultEnum.ItemChangeAction.DELETE) {
+                    receipt = this.deleteItem(session, write);
+                } else {
+                    receipt = this.saveItem(session, write, action == VaultEnum.ItemChangeAction.CREATE);
+                }
             }
             receipts.put(change.itemId(), receipt);
         }

@@ -28,7 +28,7 @@ public class VaultSessionConfig {
         var filter = new com.muzhi.minierp.security.vault.VaultSessionBoundaryFilter(errors);
         var registration = new FilterRegistrationBean<>(filter);
         registration.setOrder(SessionRepositoryFilter.DEFAULT_ORDER - 1);
-        registration.addUrlPatterns("/vault-auth/*", "/api/v1/vault/*");
+        registration.addUrlPatterns("/vault/auth/*", "/vault/api/*");
         return registration;
     }
 
@@ -55,7 +55,7 @@ public class VaultSessionConfig {
     public FilterRegistrationBean<SessionRepositoryFilter<?>> vaultSessionFilterRegistration(SessionRepositoryFilter<?> filter) {
         FilterRegistrationBean<SessionRepositoryFilter<?>> registration = new FilterRegistrationBean<>(filter);
         registration.setOrder(SessionRepositoryFilter.DEFAULT_ORDER);
-        registration.addUrlPatterns("/vault-auth/*", "/api/v1/vault/*");
+        registration.addUrlPatterns("/vault/auth/*", "/vault/api/*");
         return registration;
     }
 }

@@ -19,6 +19,7 @@ import java.time.Duration;
 @Setter
 @ConfigurationProperties(prefix = "vault")
 public class VaultProperties {
+
     /**
      * 完成迁移并配置域名后才启用
      */
@@ -40,7 +41,7 @@ public class VaultProperties {
     private String rpName = "Mini ERP Vault";
 
     /**
-     * 在线逻辑删除密文的物理清理延迟
+     * 旧密钥槽及退役、废弃代的清理延迟；已删除条目固定保留 720 小时
      */
     private Duration purgeDelay = Duration.ofHours(24);
 

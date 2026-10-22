@@ -68,8 +68,8 @@ public class VaultSecurityConfig {
                 .securityContext(context -> context.securityContextRepository(contextRepository).requireExplicitSave(true))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfRepository).csrfTokenRequestHandler(csrfHandler))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/vault-auth/options", "/vault-auth/login").permitAll()
-                        .requestMatchers("/vault-auth/**").authenticated()
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/vault/auth/options", "/vault/auth/login").permitAll()
+                        .requestMatchers("/vault/auth/**").authenticated()
                         .anyRequest().hasAuthority(VaultContexts.MFA_AUTHORITY))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, failure) -> errors.write(request, response, VaultEnum.Error.SESSION_EXPIRED))

@@ -130,6 +130,25 @@ public interface VaultEnum {
         }
     }
 
+    /**
+     * 轮换内部下载范围，源集合以任务冻结清单为准。
+     */
+    @Getter
+    enum ItemScope implements Coded {
+
+        SOURCE("SOURCE", "冻结源集合"),
+        STAGING("STAGING", "暂存集合");
+
+        private final String code;
+
+        private final String name;
+
+        ItemScope(String code, String name) {
+            this.code = code;
+            this.name = name;
+        }
+    }
+
     @Getter
     enum SlotType implements Coded {
 
@@ -164,14 +183,15 @@ public interface VaultEnum {
     }
 
     /**
-     * 原子密文变更动作，与加密内容中的业务类型无关。
+     * 原子密文变更动作；组的直接删除意图由已解密内容的客户端声明。
      */
     @Getter
     enum ItemChangeAction implements Coded {
 
         CREATE("CREATE", "新增"),
         UPDATE("UPDATE", "更新"),
-        DELETE("DELETE", "删除");
+        DELETE("DELETE", "密码移入已删除"),
+        DELETE_GROUP("DELETE_GROUP", "直接删除账号组");
 
         private final String code;
 
@@ -190,6 +210,9 @@ public interface VaultEnum {
         CREATE_ITEM("CREATE_ITEM", "CREATE_ITEM"),
         UPDATE_ITEM("UPDATE_ITEM", "UPDATE_ITEM"),
         DELETE_ITEM("DELETE_ITEM", "DELETE_ITEM"),
+        DELETE_GROUP("DELETE_GROUP", "直接删除账号组"),
+        RESTORE_ITEM("RESTORE_ITEM", "恢复条目"),
+        PURGE_ITEM("PURGE_ITEM", "永久删除条目"),
         BATCH_ITEMS("BATCH_ITEMS", "BATCH_ITEMS"),
         CHANGE_MASTER("CHANGE_MASTER", "CHANGE_MASTER"),
         ROTATION_START("ROTATION_START", "ROTATION_START"),
@@ -223,6 +246,8 @@ public interface VaultEnum {
         ITEM_CREATE("ITEM_CREATE", "ITEM_CREATE"),
         ITEM_UPDATE("ITEM_UPDATE", "ITEM_UPDATE"),
         ITEM_DELETE("ITEM_DELETE", "ITEM_DELETE"),
+        ITEM_RESTORE("ITEM_RESTORE", "恢复条目"),
+        ITEM_PURGE("ITEM_PURGE", "永久清理条目"),
         CHANGE_MASTER("CHANGE_MASTER", "CHANGE_MASTER"),
         ROTATION_START("ROTATION_START", "ROTATION_START"),
         ROTATION_COMMIT("ROTATION_COMMIT", "ROTATION_COMMIT"),
@@ -294,6 +319,10 @@ public interface VaultEnum {
         NOT_FOUND(404, "vault.not-found", "记录不存在"),
         METHOD_NOT_ALLOWED(405, "vault.method-not-allowed", "不支持的请求方法"),
         VERSION_CONFLICT(409, "vault.version-conflict", "数据已更新，请重新同步"),
+        ITEM_ALREADY_DELETED(409, "vault.item-already-deleted", "条目已删除，保留期限不变"),
+        ITEM_NOT_DELETED(409, "vault.item-not-deleted", "条目未处于已删除状态，请重新同步"),
+        ITEM_EXPIRED(409, "vault.item-expired", "条目已过保留期，无法恢复"),
+        ITEM_LIMIT_REACHED(409, "vault.item-limit-reached", "正常条目数量已达上限，请先释放容量"),
         CLIENT_UPGRADE_REQUIRED(409, "vault.client-upgrade-required", "请升级密码库客户端后重试，当前客户端不能安全保留条目内容"),
         IDEMPOTENCY_CONFLICT(409, "vault.idempotency-conflict", "重复请求的内容不一致"),
         ROTATION_EXPIRED(409, "vault.rotation-expired", "轮换任务已过期，请重新开始"),

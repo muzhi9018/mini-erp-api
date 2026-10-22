@@ -22,8 +22,13 @@ public interface IVaultRotationService {
     /** 幂等接收不可覆盖的暂存批次。 */
     VaultRotationBatchVO batch(VaultSession session, VaultProtocol.RotationBatch request);
 
-    /** 返回暂存代密文供客户端逐条解密验证。 */
-    VaultItemPageVO items(VaultSession session, String rotationId, String cursor, int pageSize);
+    /** 返回冻结源集合或暂存代密文，包含服务端复制的删除元数据。 */
+    VaultItemPageVO<VaultItemVO> items(VaultSession session, String rotationId, VaultEnum.ItemScope scope, String cursor, int pageSize);
+
+    /** 默认下载暂存代进行验证。 */
+    default VaultItemPageVO<VaultItemVO> items(VaultSession session, String rotationId, String cursor, int pageSize) {
+        return this.items(session, rotationId, VaultEnum.ItemScope.STAGING, cursor, pageSize);
+    }
 
     /** 近期 MFA、集合校验和清单匹配后原子切代并撤销旧会话。 */
     VaultRotationReceiptVO commit(VaultSession session, VaultProtocol.RotationCommand request);

@@ -81,7 +81,7 @@ public final class VaultProtocolValidator {
             } else {
                 VaultCodec.version(change.expectedRowVersion());
             }
-            if (action == VaultEnum.ItemChangeAction.DELETE) {
+            if (action == VaultEnum.ItemChangeAction.DELETE || action == VaultEnum.ItemChangeAction.DELETE_GROUP) {
                 VaultEnum.Error.INVALID_REQUEST.rejectIf(change.contentVersion() != null
                         || change.wrappedDek() != null || change.encryptedItem() != null);
             } else {

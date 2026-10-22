@@ -145,20 +145,42 @@
         order by expires_at limit 20
     </select>
     
-    <delete id="purgeDeletedItems">
-        delete from vault_item
-        where id in (
-            select
-                i.id
-            from vault_item i
-            join vault_info v ON v.id = i.vault_id
-            where i.is_deleted = true
-            and i.gmt_deleted &lt;= #{before}
-            and not exists (select 1 from vault_rotation r where r.vault_id = v.id and r.status = 'UPLOADING')
-            limit 100 for update of i skip locked
+    <select id="cleanupOwners" resultType="java.lang.Long">
+        select a.owner_id from public.vault_account a
+        join public.vault_info v on v.account_id = a.id
+        where a.is_deleted = false and v.is_deleted = false
+        and (
+            exists (select 1 from public.vault_item i where i.vault_id = v.id
+                    and i.is_deleted = true and i.gmt_deleted &lt;= #{itemBefore})
+            or exists (select 1 from public.vault_key_slot s where s.vault_id = v.id
+                    and s.is_deleted = true and s.gmt_deleted &lt;= #{before})
+            or exists (select 1 from public.vault_generation g where g.vault_id = v.id and g.is_deleted = false
+                    and g.status in ('RETIRED', 'ABORTED') and g.retired_at &lt;= #{before})
         )
-    </delete>
-    
+        and not exists (select 1 from public.vault_rotation r
+                        where r.vault_id = v.id and r.status = 'UPLOADING' and r.is_deleted = false)
+        order by least(
+            (select min(i.gmt_deleted) from public.vault_item i where i.vault_id = v.id and i.is_deleted = true),
+            (select min(s.gmt_deleted) from public.vault_key_slot s where s.vault_id = v.id and s.is_deleted = true),
+            (select min(g.retired_at) from public.vault_generation g where g.vault_id = v.id and g.is_deleted = false)
+        ), a.owner_id
+        limit 20
+    </select>
+
+    <select id="lockCleanupAccount" resultType="com.muzhi.minierp.entity.vault.VaultAccount">
+        select * from public.vault_account where owner_id = #{ownerId} and is_deleted = false
+        for update skip locked
+    </select>
+
+    <select id="lockCleanupVault" resultType="com.muzhi.minierp.entity.vault.VaultInfo">
+        select * from public.vault_info where account_id = #{accountId} and is_deleted = false
+        for update skip locked
+    </select>
+
+    <select id="oldestExpiredDeletion" resultType="java.time.OffsetDateTime">
+        select min(gmt_deleted) from public.vault_item where is_deleted = true and gmt_deleted &lt;= #{before}
+    </select>
+
     <delete id="purgeDeletedSlots">
         delete from vault_key_slot
         where id in (
@@ -166,7 +188,7 @@
                 s.id
             from vault_key_slot s
             join vault_info v on v.id = s.vault_id
-            where s.is_deleted = true
+            where s.vault_id = #{vaultId} and s.is_deleted = true
             and s.gmt_deleted &lt;= #{before}
             and not exists (select 1 from vault_rotation r where r.vault_id = v.id and r.status = 'UPLOADING')
             limit 100 for update of s skip locked
