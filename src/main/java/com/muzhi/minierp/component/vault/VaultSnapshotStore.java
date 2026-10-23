@@ -5,6 +5,7 @@ import com.muzhi.minierp.entity.vault.VaultInfo;
 import com.muzhi.minierp.entity.vault.VaultItem;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.JsonResult;
+import com.muzhi.minierp.model.vault.VaultProtocol;
 import com.muzhi.minierp.model.vault.VaultSnapshot;
 import com.muzhi.minierp.model.vault.VaultSession;
 import com.muzhi.minierp.service.vault.IVaultItemService;
@@ -74,7 +75,7 @@ public class VaultSnapshotStore {
                     if (count > 1) {
                         json.writeComma();
                     }
-                    var encrypted = vaultCipherStore.view(item);
+                    VaultProtocol.Item encrypted = vaultCipherStore.view(item);
                     json.writeAny(encrypted);
                     // 每条密文落盘后清空缓冲区，避免 Fastjson2 在内存中积累整个快照。
                     json.flushTo(output);

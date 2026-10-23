@@ -4,6 +4,7 @@ import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.vault.VaultSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.context.request.RequestAttributes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -32,7 +33,7 @@ public final class VaultContexts {
     }
 
     public static UUID auditRequestId() {
-        var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        RequestAttributes attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
         if (attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servlet) {
             return UUID.fromString(VaultContexts.requestId(servlet.getRequest()));
         }

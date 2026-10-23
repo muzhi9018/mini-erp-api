@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Set;
 
 /**
  * <p>
@@ -29,8 +32,8 @@ public final class VaultSnapshot implements AutoCloseable {
         Path directory = Path.of(System.getProperty("java.io.tmpdir"));
         Path file;
         if (Files.getFileStore(directory).supportsFileAttributeView("posix")) {
-            var permissions = PosixFilePermissions.fromString("rw-------");
-            var attributes = PosixFilePermissions.asFileAttribute(permissions);
+            Set<PosixFilePermission> permissions = PosixFilePermissions.fromString("rw-------");
+            FileAttribute<Set<PosixFilePermission>> attributes = PosixFilePermissions.asFileAttribute(permissions);
             file = Files.createTempFile(directory, "mini-erp-vault-snapshot-", ".json", attributes);
         } else {
             file = Files.createTempFile(directory, "mini-erp-vault-snapshot-", ".json");

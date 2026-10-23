@@ -7,6 +7,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -26,7 +27,7 @@ public class CacheConfig {
      */
     @Bean(destroyMethod = "shutdownNow")
     public ScheduledExecutorService ossProgressHeartbeatExecutor() {
-        var executor = new java.util.concurrent.ScheduledThreadPoolExecutor(1, runnable -> {
+        ScheduledThreadPoolExecutor executor = new java.util.concurrent.ScheduledThreadPoolExecutor(1, runnable -> {
             Thread thread = new Thread(runnable, "minierp-oss-sse-heartbeat");
             thread.setDaemon(true);
             return thread;

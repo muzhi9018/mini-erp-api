@@ -5,6 +5,7 @@ import com.muzhi.minierp.model.LoginUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
@@ -101,7 +102,7 @@ public class JwtTokenProvider {
     }
 
     private Claims parseClaims(String token) {
-        var parserBuilder = Jwts.parser()
+        JwtParserBuilder parserBuilder = Jwts.parser()
                 .verifyWith(this.getSigningKey());
 
         if (StringUtils.hasText(properties.getIssuer())) {

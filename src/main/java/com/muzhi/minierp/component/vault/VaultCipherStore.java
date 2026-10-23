@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 /**
@@ -158,7 +159,7 @@ public class VaultCipherStore {
         result.setDeleted(Boolean.TRUE.equals(item.getIsDeleted()));
         if (Boolean.TRUE.equals(item.getIsDeleted())) {
             result.setDeletedAt(item.getGmtDeleted());
-            var purgeAt = item.getGmtDeleted().plusHours(VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L);
+            OffsetDateTime purgeAt = item.getGmtDeleted().plusHours(VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L);
             result.setPurgeAt(purgeAt);
         }
         return result;

@@ -1,5 +1,7 @@
 package com.muzhi.minierp.config;
 
+import com.muzhi.minierp.security.vault.VaultSessionBoundaryFilter;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.*;
@@ -25,8 +27,8 @@ public class VaultSessionConfig {
     @Bean
     public FilterRegistrationBean<com.muzhi.minierp.security.vault.VaultSessionBoundaryFilter> vaultSessionBoundary(
             com.muzhi.minierp.security.vault.VaultErrorWriter errors) {
-        var filter = new com.muzhi.minierp.security.vault.VaultSessionBoundaryFilter(errors);
-        var registration = new FilterRegistrationBean<>(filter);
+        VaultSessionBoundaryFilter filter = new com.muzhi.minierp.security.vault.VaultSessionBoundaryFilter(errors);
+        FilterRegistrationBean<VaultSessionBoundaryFilter> registration = new FilterRegistrationBean<>(filter);
         registration.setOrder(SessionRepositoryFilter.DEFAULT_ORDER - 1);
         registration.addUrlPatterns("/vault/auth/*", "/vault/api/*");
         return registration;

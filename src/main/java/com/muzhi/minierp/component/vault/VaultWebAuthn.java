@@ -14,6 +14,7 @@ import com.webauthn4j.data.attestation.authenticator.*;
 import com.webauthn4j.data.attestation.statement.COSEAlgorithmIdentifier;
 import com.webauthn4j.data.client.Origin;
 import com.webauthn4j.data.client.challenge.DefaultChallenge;
+import com.webauthn4j.data.extension.authenticator.AuthenticationExtensionAuthenticatorOutput;
 import com.webauthn4j.data.extension.authenticator.RegistrationExtensionAuthenticatorOutput;
 import com.webauthn4j.server.ServerProperty;
 import com.webauthn4j.credential.CredentialRecordImpl;
@@ -101,7 +102,7 @@ public class VaultWebAuthn {
             ServerProperty server = this.server(challenge);
             AuthenticationParameters parameters = new AuthenticationParameters(server, record, List.of(key.getCredentialId()), true, true);
             AuthenticationData verified = manager.verify(request, parameters);
-            var result = verified.getAuthenticatorData();
+            AuthenticatorData<AuthenticationExtensionAuthenticatorOutput> result = verified.getAuthenticatorData();
             key.setSignatureCount(result.getSignCount());
             key.setBackupState(result.isFlagBS());
         } catch (RuntimeException failure) {

@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -44,7 +45,7 @@ public class VaultFailureAuditServiceImpl implements IVaultFailureAuditService {
             return;
         }
         request.setAttribute(marker, true);
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         VaultSession identity = authentication != null && authentication.getPrincipal() instanceof VaultSession session ? session : null;
         String path = request.getRequestURI().substring(request.getContextPath().length());
         VaultEnum.AuditAction action = switch (path) {
