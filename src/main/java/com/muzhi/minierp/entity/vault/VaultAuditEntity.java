@@ -21,7 +21,7 @@ import java.time.OffsetDateTime;
 public abstract class VaultAuditEntity implements Serializable {
 
     @Serial
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 5865509039803674972L;
 
     /**
      * 创建时间

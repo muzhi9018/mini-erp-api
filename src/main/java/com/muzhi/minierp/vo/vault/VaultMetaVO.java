@@ -49,7 +49,7 @@ public class VaultMetaVO {
     /**
      * 客户端需要兼容读取的条目明文版本；服务端不解析条目明文
      */
-    private List<Integer> readableItemSchemaVersions = List.of(1, 2, VaultProtocol.ITEM_SCHEMA_VERSION);
+    private List<Integer> readableItemSchemaVersions = List.of(VaultProtocol.ITEM_SCHEMA_VERSION);
 
     /**
      * 新保存条目的明文版本
