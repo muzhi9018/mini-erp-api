@@ -1,6 +1,7 @@
 package com.muzhi.minierp.controller.vault;
 
 import com.muzhi.minierp.component.vault.VaultCodec;
+import com.muzhi.minierp.component.vault.VaultChallengeStore;
 import com.muzhi.minierp.component.vault.VaultProtocolValidator;
 import com.muzhi.minierp.entity.vault.VaultAccount;
 import com.muzhi.minierp.enums.VaultEnum;
@@ -38,6 +39,8 @@ public class VaultController {
     private final IVaultIdentityService iVaultIdentityService;
 
     private final VaultBrowserSession vaultBrowserSession;
+
+    private final VaultChallengeStore challenges;
 
     @GetMapping("/session")
     public JsonResult<VaultSessionVO> session(HttpServletRequest request, HttpServletResponse response) {
@@ -103,32 +106,25 @@ public class VaultController {
      */
     @PostMapping("/items/restore")
     public JsonResult<VaultItemResultVO> restoreItem(@RequestBody VaultProtocol.ItemLifecycle value) {
-        this.validateLifecycle(value);
+        VaultProtocolValidator.itemLifecycle(value);
         VaultItemResultVO result = vaultDataService.restoreItem(VaultContexts.current(), value);
         return JsonResult.success(result);
     }
 
     /**
-     * 永久删除已删除条目，客户端须先由用户明确确认。
+     * 永久删除已删除条目，必须提供绑定本次请求的 Passkey 证明。
      */
     @PostMapping("/items/purge")
-    public JsonResult<VaultItemResultVO> purgeItem(@RequestBody VaultProtocol.ItemLifecycle value) {
-        this.validateLifecycle(value);
+    public JsonResult<VaultItemResultVO> purgeItem(@RequestBody VaultProtocol.ItemLifecycle value, HttpServletRequest request) {
+        VaultProtocolValidator.itemLifecycle(value);
+        this.limitDeletion(request);
         VaultItemResultVO result = vaultDataService.purgeItem(VaultContexts.current(), value);
         return JsonResult.success(result);
     }
 
-    private void validateLifecycle(VaultProtocol.ItemLifecycle value) {
-        VaultEnum.Error.INVALID_REQUEST.rejectIf(value == null);
-        VaultCodec.uuid(value.itemId());
-        VaultCodec.uuid(value.idempotencyKey());
-        VaultCodec.version(value.generation());
-        VaultCodec.version(value.expectedRowVersion());
-    }
-
     @PostMapping("/items/create")
     public JsonResult<VaultItemResultVO> create(@RequestBody VaultProtocol.ItemWrite value) {
-        this.validateItem(value, true);
+        VaultProtocolValidator.itemWrite(value, true);
         VaultEnum.Error.INVALID_REQUEST.rejectIf(!Long.valueOf(1).equals(value.contentVersion()));
         VaultItemResultVO result = vaultDataService.save(VaultContexts.current(), value, true);
         return JsonResult.success(result);
@@ -136,16 +132,17 @@ public class VaultController {
 
     @PostMapping("/items/update")
     public JsonResult<VaultItemResultVO> update(@RequestBody VaultProtocol.ItemWrite value) {
-        this.validateItem(value, true);
+        VaultProtocolValidator.itemWrite(value, true);
         VaultCodec.version(value.expectedRowVersion());
         VaultItemResultVO result = vaultDataService.save(VaultContexts.current(), value, false);
         return JsonResult.success(result);
     }
 
     @PostMapping("/items/delete")
-    public JsonResult<VaultItemResultVO> delete(@RequestBody VaultProtocol.ItemWrite value) {
-        this.validateItem(value, false);
+    public JsonResult<VaultItemResultVO> delete(@RequestBody VaultProtocol.ItemWrite value, HttpServletRequest request) {
+        VaultProtocolValidator.itemWrite(value, false);
         VaultCodec.version(value.expectedRowVersion());
+        this.limitDeletion(request);
         VaultItemResultVO result = vaultDataService.delete(VaultContexts.current(), value);
         return JsonResult.success(result);
     }
@@ -154,8 +151,9 @@ public class VaultController {
      * 直接删除客户端解密后确认的账号组，成员密码及 TOTP 不受影响。
      */
     @PostMapping("/items/delete-group")
-    public JsonResult<VaultItemResultVO> deleteGroup(@RequestBody VaultProtocol.ItemLifecycle value) {
-        this.validateLifecycle(value);
+    public JsonResult<VaultItemResultVO> deleteGroup(@RequestBody VaultProtocol.ItemLifecycle value, HttpServletRequest request) {
+        VaultProtocolValidator.itemLifecycle(value);
+        this.limitDeletion(request);
         VaultItemResultVO result = vaultDataService.deleteGroup(VaultContexts.current(), value);
         return JsonResult.success(result);
     }
@@ -164,23 +162,19 @@ public class VaultController {
      * 原子保存账号组及必要的独立条目变更，任意变更失败时整批回滚。
      */
     @PostMapping("/items/batch")
-    public JsonResult<VaultItemBatchResultVO> batch(@RequestBody VaultProtocol.ItemBatch value) {
+    public JsonResult<VaultItemBatchResultVO> batch(@RequestBody VaultProtocol.ItemBatch value, HttpServletRequest request) {
         VaultProtocolValidator.itemBatch(value);
+        if (VaultProtocolValidator.hasDeletion(value)) {
+            this.limitDeletion(request);
+        }
         VaultItemBatchResultVO result = vaultDataService.batch(VaultContexts.current(), value);
         return JsonResult.success(result);
     }
 
-    private void validateItem(VaultProtocol.ItemWrite value, boolean content) {
-        VaultEnum.Error.INVALID_REQUEST.rejectIf(value == null);
-        VaultCodec.uuid(value.itemId());
-        VaultCodec.uuid(value.idempotencyKey());
-        VaultCodec.version(value.generation());
-        if (content) {
-            VaultCodec.version(value.keyEpoch());
-            VaultCodec.version(value.contentVersion());
-            VaultProtocolValidator.box(value.wrappedDek(), false);
-            VaultProtocolValidator.box(value.encryptedItem(), true);
-        }
+    private void limitDeletion(HttpServletRequest request) {
+        VaultSession session = VaultContexts.current();
+        challenges.rate("credential-account", session.ownerId().toString(), 20);
+        challenges.rate("credential-source", request.getRemoteAddr(), 60);
     }
 
     @PostMapping("/key-slots/change-master")

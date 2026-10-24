@@ -9,7 +9,9 @@ import com.muzhi.minierp.service.vault.IVaultFailureAuditService;
 import com.muzhi.minierp.vo.vault.VaultErrorVO;
 import jakarta.servlet.http.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.core.NestedExceptionUtils;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
@@ -32,6 +34,7 @@ import java.util.UUID;
  * @author Mr.Muzhi
  * @since 2026-10-15
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class VaultErrorWriter {
@@ -64,16 +67,22 @@ public class VaultErrorWriter {
         } else {
             error = VaultEnum.Error.INTERNAL_ERROR;
         }
-        return this.result(request, response, error);
+        return this.result(request, response, error, failure);
     }
 
     public JsonResult<?> result(HttpServletRequest request, HttpServletResponse response, VaultEnum.Error error) {
+        return this.result(request, response, error, null);
+    }
+
+    private JsonResult<?> result(HttpServletRequest request, HttpServletResponse response, VaultEnum.Error error,
+            Exception failure) {
         if (response.isCommitted()) {
             throw new IllegalStateException("Vault response already committed");
         }
         response.resetBuffer();
         response.setContentLengthLong(-1);
         String requestId = this.requestId(request);
+        this.logFailure(request, error, requestId, failure);
         audit.ifAvailable(recorder -> recorder.record(request, error));
         String message = i18nHelper.getMessage(error.getI18nCode(), error.getMessage(), request);
         VaultErrorVO detail = new VaultErrorVO();
@@ -88,6 +97,37 @@ public class VaultErrorWriter {
             response.setHeader("Retry-After", "60");
         }
         return result;
+    }
+
+    /**
+     * 仅保留根异常类型和代码位置，避免异常正文夹带凭据、密文或数据库参数。
+     */
+    private void logFailure(HttpServletRequest request, VaultEnum.Error error, String requestId, Exception failure) {
+        Throwable diagnostic = null;
+        if (failure != null) {
+            Throwable cause = NestedExceptionUtils.getMostSpecificCause(failure);
+            diagnostic = new Throwable(cause.getClass().getName());
+            diagnostic.setStackTrace(cause.getStackTrace());
+        }
+        if (error.getStatus() >= 500) {
+            log.error("密码库请求失败；method={}, path={}, status={}, errorCode={}, requestId={}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    error.getStatus(),
+                    error.getMachineCode(),
+                    requestId,
+                    diagnostic
+            );
+        } else {
+            log.warn("密码库请求被拒绝；method={}, path={}, status={}, errorCode={}, requestId={}",
+                    request.getMethod(),
+                    request.getRequestURI(),
+                    error.getStatus(),
+                    error.getMachineCode(),
+                    requestId,
+                    diagnostic
+            );
+        }
     }
 
     public void write(HttpServletRequest request, HttpServletResponse response, VaultEnum.Error error) throws IOException {

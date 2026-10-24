@@ -2,6 +2,8 @@ package com.muzhi.minierp.component.vault;
 
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.vault.VaultSession;
+import com.muzhi.minierp.vo.vault.VaultOperationOptionsVO;
+import com.muzhi.minierp.vo.vault.VaultWebAuthnOptionsVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -9,6 +11,7 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -44,6 +47,42 @@ public class VaultChallengeStore {
 
     private String key(VaultSession session, VaultEnum.ChallengePurpose purpose) {
         return "mini-erp:vault:challenge:" + purpose.getCode() + ":" + session.bindingId();
+    }
+
+    /**
+     * 每个操作使用独立随机标识，多个标签页不会覆盖彼此的待验证挑战。
+     */
+    public VaultOperationOptionsVO issueOperation(byte[] binding) {
+        byte[] challenge = VaultCodec.random(32);
+        byte[] identifier = VaultCodec.random(32);
+        String challengeId = VaultCodec.encode(identifier);
+        Instant expiresAt = Instant.now().plusSeconds(120);
+        String key = "mini-erp:vault:operation-challenge:" + challengeId;
+        String value = VaultCodec.encode(binding) + ":" + expiresAt.toEpochMilli() + ":" + VaultCodec.encode(challenge);
+        redis.opsForValue().set(key, value, Duration.ofMinutes(2));
+        VaultWebAuthnOptionsVO publicKey = new VaultWebAuthnOptionsVO();
+        publicKey.setChallenge(VaultCodec.encode(challenge));
+        publicKey.setTimeout(120000);
+        VaultOperationOptionsVO result = new VaultOperationOptionsVO();
+        result.setChallengeId(challengeId);
+        result.setPublicKey(publicKey);
+        result.setExpiresAt(expiresAt);
+        return result;
+    }
+
+    /**
+     * 先原子消费再校验绑定；业务回滚也不能恢复已经尝试过的挑战。
+     */
+    public byte[] consumeOperation(String challengeId, byte[] binding) {
+        VaultCodec.decode(challengeId, 32, 32);
+        String key = "mini-erp:vault:operation-challenge:" + challengeId;
+        String value = redis.opsForValue().getAndDelete(key);
+        String prefix = VaultCodec.encode(binding) + ":";
+        VaultEnum.Error.OPERATION_AUTHORIZATION_INVALID.rejectIf(value == null || !value.startsWith(prefix));
+        String[] parts = value.substring(prefix.length()).split(":", -1);
+        VaultEnum.Error.OPERATION_AUTHORIZATION_INVALID.rejectIf(parts.length != 2
+                || Instant.now().toEpochMilli() >= Long.parseLong(parts[0]));
+        return VaultCodec.decode(parts[1], 32, 32);
     }
 
     /**

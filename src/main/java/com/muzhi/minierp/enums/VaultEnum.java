@@ -314,6 +314,7 @@ public interface VaultEnum {
         MFA_RECOVERY_INVALID(403, "vault.mfa-recovery-invalid", "MFA 恢复码无效或已使用"),
         PASSKEY_INVALID(403, "vault.passkey-invalid", "Passkey 验证失败，请重新开始认证"),
         CHALLENGE_INVALID(403, "vault.challenge-invalid", "认证挑战无效或已过期"),
+        OPERATION_AUTHORIZATION_INVALID(403, "vault.operation-authorization-invalid", "本次删除的 Passkey 验证无效或已过期，请重新确认并验证"),
         CSRF_REJECTED(403, "vault.csrf-rejected", "请求校验失败，请刷新后重试"),
         ORIGIN_REJECTED(403, "vault.origin-rejected", "不允许的请求来源"),
         NOT_FOUND(404, "vault.not-found", "记录不存在"),

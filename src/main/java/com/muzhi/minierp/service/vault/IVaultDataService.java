@@ -13,6 +13,19 @@ import java.io.IOException;
  * @since 2026-10-15
  */
 public interface IVaultDataService {
+
+    /** 校验目标归属及可写状态后，签发单条删除挑战。 */
+    VaultOperationOptionsVO deleteItemOptions(VaultSession session, VaultProtocol.ItemWrite request);
+
+    /** 校验目标处于已删除状态后，签发永久删除挑战。 */
+    VaultOperationOptionsVO purgeItemOptions(VaultSession session, VaultProtocol.ItemLifecycle request);
+
+    /** 校验目标归属及可写状态后，签发直接删除账号组的挑战。 */
+    VaultOperationOptionsVO deleteGroupOptions(VaultSession session, VaultProtocol.ItemLifecycle request);
+
+    /** 校验完整批次及目标状态后，签发绑定整个批次的删除挑战。 */
+    VaultOperationOptionsVO batchItemsOptions(VaultSession session, VaultProtocol.ItemBatch request);
+
     /** 查询库元数据，未初始化时返回明确状态。 */
     VaultMetaVO meta(VaultSession session);
 

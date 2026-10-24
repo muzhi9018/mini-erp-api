@@ -15,6 +15,33 @@ import java.util.*;
 public final class VaultProtocolValidator {
     private VaultProtocolValidator() { }
 
+    public static void itemLifecycle(VaultProtocol.ItemLifecycle value) {
+        VaultEnum.Error.INVALID_REQUEST.rejectIf(value == null);
+        VaultCodec.uuid(value.itemId());
+        VaultCodec.uuid(value.idempotencyKey());
+        VaultCodec.version(value.generation());
+        VaultCodec.version(value.expectedRowVersion());
+    }
+
+    public static void itemWrite(VaultProtocol.ItemWrite value, boolean content) {
+        VaultEnum.Error.INVALID_REQUEST.rejectIf(value == null);
+        VaultCodec.uuid(value.itemId());
+        VaultCodec.uuid(value.idempotencyKey());
+        VaultCodec.version(value.generation());
+        if (content) {
+            VaultCodec.version(value.keyEpoch());
+            VaultCodec.version(value.contentVersion());
+            VaultProtocolValidator.box(value.wrappedDek(), false);
+            VaultProtocolValidator.box(value.encryptedItem(), true);
+        }
+    }
+
+    public static boolean hasDeletion(VaultProtocol.ItemBatch batch) {
+        return batch.changes().stream().anyMatch(change ->
+                VaultEnum.ItemChangeAction.DELETE.getCode().equals(change.action())
+                        || VaultEnum.ItemChangeAction.DELETE_GROUP.getCode().equals(change.action()));
+    }
+
     public static void box(VaultProtocol.Box box, boolean item) {
         VaultEnum.Error.INVALID_REQUEST.rejectIf(box == null || !Integer.valueOf(1).equals(box.formatVersion())
                 || !VaultProtocol.ALGORITHM.equals(box.algorithm()));

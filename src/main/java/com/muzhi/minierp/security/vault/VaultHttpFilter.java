@@ -82,7 +82,8 @@ public class VaultHttpFilter extends OncePerRequestFilter {
                         || !contentType.split(";", 2)[0].trim().equalsIgnoreCase("application/json"));
                 int maximum = (request.getRequestURI().endsWith("/rotations/batch")
                         || request.getRequestURI().endsWith("/restores/start")
-                        || request.getRequestURI().endsWith("/items/batch")) ? 1048576 : 65536;
+                        || request.getRequestURI().endsWith("/items/batch")
+                        || request.getRequestURI().endsWith("/passkeys/operations/batch-items/options")) ? 1048576 : 65536;
                 VaultEnum.Error.PAYLOAD_TOO_LARGE.rejectIf(request.getContentLengthLong() > maximum);
                 body = request.getInputStream().readNBytes(maximum + 1);
                 VaultEnum.Error.PAYLOAD_TOO_LARGE.rejectIf(body.length > maximum);

@@ -1,5 +1,6 @@
 package com.muzhi.minierp.model.vault;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.alibaba.fastjson2.annotation.JSONType;
 
 import java.util.List;
@@ -49,14 +50,25 @@ public final class VaultProtocol {
 
     @JSONType(alphabetic = false)
     public record ItemWrite(String itemId, Long generation, Long keyEpoch, Long expectedRowVersion,
-                            Long contentVersion, Box wrappedDek, Box encryptedItem, String idempotencyKey) {
+                            Long contentVersion, Box wrappedDek, Box encryptedItem, String idempotencyKey,
+                            @JSONField(serialize = false) PasskeyAuthorization passkeyAuthorization) {
+
+        public ItemWrite(String itemId, Long generation, Long keyEpoch, Long expectedRowVersion,
+                         Long contentVersion, Box wrappedDek, Box encryptedItem, String idempotencyKey) {
+            this(itemId, generation, keyEpoch, expectedRowVersion, contentVersion, wrappedDek, encryptedItem, idempotencyKey, null);
+        }
     }
 
     /**
      * 恢复、永久删除及直接删除账号组仅接收目标与预期版本，不接收客户端删除元数据或密文。
      */
     @JSONType(alphabetic = false)
-    public record ItemLifecycle(String itemId, Long generation, Long expectedRowVersion, String idempotencyKey) {
+    public record ItemLifecycle(String itemId, Long generation, Long expectedRowVersion, String idempotencyKey,
+                                @JSONField(serialize = false) PasskeyAuthorization passkeyAuthorization) {
+
+        public ItemLifecycle(String itemId, Long generation, Long expectedRowVersion, String idempotencyKey) {
+            this(itemId, generation, expectedRowVersion, idempotencyKey, null);
+        }
     }
 
     /**
@@ -72,7 +84,19 @@ public final class VaultProtocol {
      */
     @JSONType(alphabetic = false)
     public record ItemBatch(Long generation, Long keyEpoch, Long expectedCollectionRevision,
-                            List<ItemChange> changes, String idempotencyKey) {
+                            List<ItemChange> changes, String idempotencyKey,
+                            @JSONField(serialize = false) PasskeyAuthorization passkeyAuthorization) {
+
+        public ItemBatch(Long generation, Long keyEpoch, Long expectedCollectionRevision,
+                         List<ItemChange> changes, String idempotencyKey) {
+            this(generation, keyEpoch, expectedCollectionRevision, changes, idempotencyKey, null);
+        }
+    }
+
+    /**
+     * 删除操作证明仅用于传入验证，不参与业务摘要或回执序列化。
+     */
+    public record PasskeyAuthorization(String challengeId, Credential credential) {
     }
 
     @JSONType(alphabetic = false)

@@ -56,6 +56,85 @@ public class VaultDataServiceImpl implements IVaultDataService {
 
     private final VaultSnapshotStore vaultSnapshotStore;
 
+    private final VaultOperationAuthorization vaultOperationAuthorization;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VaultOperationOptionsVO deleteItemOptions(VaultSession session, VaultProtocol.ItemWrite request) {
+        VaultAccount account = this.lockOperationAccount(session);
+        VaultInfo vault = this.lockOperationVault(session);
+        this.validateOperationTarget(vault, request.generation(), request.itemId(), request.expectedRowVersion(), false);
+        return vaultOperationAuthorization.options(session, account, vault, VaultEnum.Operation.DELETE_ITEM, request);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VaultOperationOptionsVO purgeItemOptions(VaultSession session, VaultProtocol.ItemLifecycle request) {
+        VaultAccount account = this.lockOperationAccount(session);
+        VaultInfo vault = this.lockOperationVault(session);
+        this.validateOperationTarget(vault, request.generation(), request.itemId(), request.expectedRowVersion(), true);
+        return vaultOperationAuthorization.options(session, account, vault, VaultEnum.Operation.PURGE_ITEM, request);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VaultOperationOptionsVO deleteGroupOptions(VaultSession session, VaultProtocol.ItemLifecycle request) {
+        VaultAccount account = this.lockOperationAccount(session);
+        VaultInfo vault = this.lockOperationVault(session);
+        this.validateOperationTarget(vault, request.generation(), request.itemId(), request.expectedRowVersion(), false);
+        return vaultOperationAuthorization.options(session, account, vault, VaultEnum.Operation.DELETE_GROUP, request);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VaultOperationOptionsVO batchItemsOptions(VaultSession session, VaultProtocol.ItemBatch request) {
+        VaultAccount account = this.lockOperationAccount(session);
+        VaultInfo vault = this.lockOperationVault(session);
+        VaultEnum.Error.INVALID_REQUEST.rejectIf(!VaultProtocolValidator.hasDeletion(request));
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!Objects.equals(vault.getActiveGeneration(), request.generation())
+                || !vault.getCollectionRevision().equals(request.expectedCollectionRevision()));
+        VaultGeneration generation = vaultCipherStore.generation(vault, request.generation());
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!generation.getKeyEpoch().equals(request.keyEpoch()));
+        for (VaultProtocol.ItemChange change : request.changes()) {
+            VaultEnum.ItemChangeAction action = VaultEnum.ofCode(VaultEnum.ItemChangeAction.class, change.action());
+            if (action == VaultEnum.ItemChangeAction.CREATE) {
+                UUID itemId = VaultCodec.uuid(change.itemId());
+                boolean occupied = vaultControlMapper.itemIdExists(vault.getId(), request.generation(), itemId);
+                VaultEnum.Error.VERSION_CONFLICT.rejectIf(occupied);
+            } else {
+                this.validateOperationTarget(vault, request.generation(), change.itemId(), change.expectedRowVersion(), false);
+            }
+        }
+        return vaultOperationAuthorization.options(session, account, vault, VaultEnum.Operation.BATCH_ITEMS, request);
+    }
+
+    /**
+     * 操作挑战与实际删除保持相同的账户、库持锁顺序。
+     */
+    private VaultAccount lockOperationAccount(VaultSession session) {
+        VaultContexts.requireMfa(session);
+        VaultAccount account = vaultAccess.lock(session);
+        vaultAccess.dataAccess(account);
+        return account;
+    }
+
+    private VaultInfo lockOperationVault(VaultSession session) {
+        VaultInfo vault = vaultAccess.lockVault(session);
+        this.validateWritable(vault);
+        return vault;
+    }
+
+    private void validateOperationTarget(VaultInfo vault, Long generation, String itemId, Long rowVersion, boolean deleted) {
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!Objects.equals(vault.getActiveGeneration(), generation));
+        VaultItem item = this.lockItem(vault, itemId);
+        if (deleted) {
+            VaultEnum.Error.ITEM_NOT_DELETED.rejectIf(!Boolean.TRUE.equals(item.getIsDeleted()));
+        } else {
+            VaultEnum.Error.ITEM_ALREADY_DELETED.rejectIf(Boolean.TRUE.equals(item.getIsDeleted()));
+        }
+        VaultEnum.Error.VERSION_CONFLICT.rejectIf(!item.getRowVersion().equals(rowVersion));
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public VaultMetaVO meta(VaultSession session) {
@@ -257,7 +336,12 @@ public class VaultDataServiceImpl implements IVaultDataService {
                 request.idempotencyKey(),
                 request,
                 VaultItemResultVO.class,
-                () -> this.deleteItem(session, request)
+                () -> {
+                    VaultInfo vault = vaultAccess.lockVault(session);
+                    vaultOperationAuthorization.verify(session, account, vault, VaultEnum.Operation.DELETE_ITEM,
+                            request, request.passkeyAuthorization());
+                    return this.deleteItem(session, request);
+                }
         );
     }
 
@@ -294,7 +378,12 @@ public class VaultDataServiceImpl implements IVaultDataService {
                 request.idempotencyKey(),
                 request,
                 VaultItemResultVO.class,
-                () -> this.deleteGroupItem(session, request)
+                () -> {
+                    VaultInfo vault = vaultAccess.lockVault(session);
+                    vaultOperationAuthorization.verify(session, account, vault, VaultEnum.Operation.DELETE_GROUP,
+                            request, request.passkeyAuthorization());
+                    return this.deleteGroupItem(session, request);
+                }
         );
     }
 
@@ -373,7 +462,12 @@ public class VaultDataServiceImpl implements IVaultDataService {
                 request.idempotencyKey(),
                 request,
                 VaultItemResultVO.class,
-                () -> this.changeDeletedItem(session, request, true)
+                () -> {
+                    VaultInfo vault = vaultAccess.lockVault(session);
+                    vaultOperationAuthorization.verify(session, account, vault, VaultEnum.Operation.PURGE_ITEM,
+                            request, request.passkeyAuthorization());
+                    return this.changeDeletedItem(session, request, true);
+                }
         );
     }
 
@@ -518,7 +612,14 @@ public class VaultDataServiceImpl implements IVaultDataService {
                 request.idempotencyKey(),
                 request,
                 VaultItemBatchResultVO.class,
-                () -> this.applyBatch(session, request)
+                () -> {
+                    if (VaultProtocolValidator.hasDeletion(request)) {
+                        VaultInfo vault = vaultAccess.lockVault(session);
+                        vaultOperationAuthorization.verify(session, account, vault, VaultEnum.Operation.BATCH_ITEMS,
+                                request, request.passkeyAuthorization());
+                    }
+                    return this.applyBatch(session, request);
+                }
         );
     }
 

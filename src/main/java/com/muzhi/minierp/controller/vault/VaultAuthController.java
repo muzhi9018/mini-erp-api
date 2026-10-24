@@ -37,6 +37,8 @@ public class VaultAuthController {
 
     private final VaultChallengeStore challenges;
 
+    private final IVaultDataService data;
+
     @GetMapping("/options")
     public JsonResult<VaultSessionVO> options(HttpServletRequest request, HttpServletResponse response) {
         Object principal = SecurityContextHolder.getContext().getAuthentication() == null ? null
@@ -86,6 +88,58 @@ public class VaultAuthController {
         VaultSession session = VaultContexts.current();
         this.limit(session, request);
         VaultWebAuthnOptionsVO result = identities.options(session, VaultEnum.ChallengePurpose.AUTHENTICATE);
+        return JsonResult.success(result);
+    }
+
+    /**
+     * 为移入已删除集合的单条请求签发挑战。
+     */
+    @PostMapping("/passkeys/operations/delete-item/options")
+    public JsonResult<VaultOperationOptionsVO> deleteItemOptions(@RequestBody VaultProtocol.ItemWrite command, HttpServletRequest request) {
+        VaultProtocolValidator.itemWrite(command, false);
+        VaultCodec.version(command.expectedRowVersion());
+        VaultEnum.Error.INVALID_REQUEST.rejectIf(command.passkeyAuthorization() != null);
+        VaultSession session = this.operationSession(request);
+        VaultOperationOptionsVO result = data.deleteItemOptions(session, command);
+        return JsonResult.success(result);
+    }
+
+    /**
+     * 为永久删除条目的请求签发挑战。
+     */
+    @PostMapping("/passkeys/operations/purge-item/options")
+    public JsonResult<VaultOperationOptionsVO> purgeItemOptions(@RequestBody VaultProtocol.ItemLifecycle command, HttpServletRequest request) {
+        VaultProtocolValidator.itemLifecycle(command);
+        VaultEnum.Error.INVALID_REQUEST.rejectIf(command.passkeyAuthorization() != null);
+        VaultSession session = this.operationSession(request);
+        VaultOperationOptionsVO result = data.purgeItemOptions(session, command);
+        return JsonResult.success(result);
+    }
+
+    /**
+     * 为直接删除账号组的请求签发挑战。
+     */
+    @PostMapping("/passkeys/operations/delete-group/options")
+    public JsonResult<VaultOperationOptionsVO> deleteGroupOptions(@RequestBody VaultProtocol.ItemLifecycle command,
+            HttpServletRequest request) {
+        VaultProtocolValidator.itemLifecycle(command);
+        VaultEnum.Error.INVALID_REQUEST.rejectIf(command.passkeyAuthorization() != null);
+        VaultSession session = this.operationSession(request);
+        VaultOperationOptionsVO result = data.deleteGroupOptions(session, command);
+        return JsonResult.success(result);
+    }
+
+    /**
+     * 为包含删除动作的完整批次签发挑战。
+     */
+    @PostMapping("/passkeys/operations/batch-items/options")
+    public JsonResult<VaultOperationOptionsVO> batchItemsOptions(@RequestBody VaultProtocol.ItemBatch command,
+            HttpServletRequest request) {
+        VaultProtocolValidator.itemBatch(command);
+        VaultEnum.Error.INVALID_REQUEST.rejectIf(!VaultProtocolValidator.hasDeletion(command)
+                || command.passkeyAuthorization() != null);
+        VaultSession session = this.operationSession(request);
+        VaultOperationOptionsVO result = data.batchItemsOptions(session, command);
         return JsonResult.success(result);
     }
 
@@ -170,6 +224,13 @@ public class VaultAuthController {
         browser.clear(request, response, false);
         identities.logout(session);
         return JsonResult.success(true);
+    }
+
+    private VaultSession operationSession(HttpServletRequest request) {
+        VaultSession session = VaultContexts.current();
+        VaultContexts.requireMfa(session);
+        this.limit(session, request);
+        return session;
     }
 
     private void limit(VaultSession session, HttpServletRequest request) {
