@@ -15,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -48,7 +47,7 @@ public class VaultMaintenanceServiceImpl implements IVaultMaintenanceService {
 
     private final VaultRotationMapper rotations;
 
-    private final PlatformTransactionManager transactionManager;
+    private final TransactionTemplate transactionTemplate;
 
     private final VaultProperties properties;
 
@@ -95,11 +94,10 @@ public class VaultMaintenanceServiceImpl implements IVaultMaintenanceService {
         OffsetDateTime itemBefore = now.minusHours(VaultProtocol.DELETED_ITEM_RETENTION_DAYS * 24L);
         OffsetDateTime before = now.minus(properties.getPurgeDelay());
         List<Long> owners = control.cleanupOwners(itemBefore, before);
-        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
         for (Long owner : owners) {
             try {
                 // 每库独立短事务，单库失败不回滚其他库，也不长期持有多库锁。
-                transaction.executeWithoutResult(status -> this.purgeVault(owner));
+                transactionTemplate.executeWithoutResult(status -> this.purgeVault(owner));
             } catch (RuntimeException failure) {
                 log.warn("密码库密文清理失败，将在下一轮重试");
             }

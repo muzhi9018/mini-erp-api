@@ -15,8 +15,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -36,7 +34,7 @@ public class VaultFailureAuditServiceImpl implements IVaultFailureAuditService {
 
     private final VaultAuditEventMapper audits;
 
-    private final PlatformTransactionManager transactionManager;
+    private final TransactionTemplate vaultFailureAuditTransactionTemplate;
 
     @Override
     public void record(HttpServletRequest request, VaultEnum.Error error) {
@@ -67,10 +65,8 @@ public class VaultFailureAuditServiceImpl implements IVaultFailureAuditService {
         event.setGmtModified(now);
         event.setCreateUser(identity == null ? null : identity.ownerId());
         event.setIsDeleted(false);
-        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
-        transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         try {
-            transaction.executeWithoutResult(status -> audits.insert(event));
+            vaultFailureAuditTransactionTemplate.executeWithoutResult(status -> audits.insert(event));
         } catch (RuntimeException failure) {
             // 数据库故障时仍返回原错误，不输出请求内容或数据库异常正文。
             log.warn("密码库失败审计暂不可用");
