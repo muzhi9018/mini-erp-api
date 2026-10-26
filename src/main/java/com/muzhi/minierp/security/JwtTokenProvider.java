@@ -2,6 +2,7 @@ package com.muzhi.minierp.security;
 
 import com.muzhi.minierp.enums.RedisKey;
 import com.muzhi.minierp.model.LoginUser;
+import com.muzhi.minierp.model.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.JwtException;
@@ -13,6 +14,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -28,7 +30,7 @@ public class JwtTokenProvider {
 
     private final JwtProperties properties;
 
-    private final RedisTemplate<String, Collection<? extends GrantedAuthority>> redisTemplate;
+    private final RedisTemplate<String, User> redisTemplate;
 
 
     public String createToken(LoginUser loginUser) {
@@ -79,8 +81,9 @@ public class JwtTokenProvider {
         Claims claims = this.parseClaims(token);
         String roleCode = this.getStringClaim(claims, "roleCode");
 
-        RedisKey.User key = RedisKey.User.USER_AUTHORITIES;
-        Collection<? extends GrantedAuthority> authorities = redisTemplate.opsForValue().get(key.getKey(claims.getSubject()));
+        RedisKey.User key = RedisKey.User.USERINFO;
+        User user = redisTemplate.opsForValue().get(key.getKey(claims.getSubject()));
+        List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(user.getPermissionCodes());
         LoginUser loginUser = new LoginUser(
                 claims.getSubject(),
                 "",
@@ -91,6 +94,8 @@ public class JwtTokenProvider {
         loginUser.setUserNo(this.getStringClaim(claims, "userNo"));
         loginUser.setTokenType(this.getStringClaim(claims, "tokenType"));
         loginUser.setRoleCode(roleCode);
+        loginUser.setRealName(user.getRealName());
+        loginUser.setRoles(user.getRoles());
         return loginUser;
     }
 

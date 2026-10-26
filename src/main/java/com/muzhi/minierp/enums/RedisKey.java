@@ -22,7 +22,10 @@ public interface RedisKey {
     @Getter
     enum User implements RedisKey {
 
-        USER_AUTHORITIES("USER_AUTHORITIES",  Duration.ofHours(24));
+        USERINFO("USERINFO",  Duration.ofHours(24)),
+
+
+        ;
 
         private final String baseKey;
 

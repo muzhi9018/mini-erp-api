@@ -108,4 +108,13 @@ public interface ISysRoleService extends IService<SysRole> {
      * @return 返回结果
      */
     List<SysRolePermission> loadPermissionsByRoleCode(String roleCode);
+
+    /**
+     * 根据用户绑定 id 查询角色
+     * @author Mr.Muzhi
+     * @since 2026/10/26 15:05
+     * @param userId 用户 id
+     * @return 返回结果
+     */
+    List<SysRole> findRoleByBindUserId(Long userId);
 }

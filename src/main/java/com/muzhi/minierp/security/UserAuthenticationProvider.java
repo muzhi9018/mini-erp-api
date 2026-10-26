@@ -1,10 +1,13 @@
 package com.muzhi.minierp.security;
 
+import com.muzhi.minierp.entity.system.SysRole;
 import com.muzhi.minierp.entity.system.SysRolePermission;
 import com.muzhi.minierp.entity.system.SysUser;
 import com.muzhi.minierp.enums.RedisKey;
 import com.muzhi.minierp.enums.SysUserStatus;
 import com.muzhi.minierp.model.LoginUser;
+import com.muzhi.minierp.model.Role;
+import com.muzhi.minierp.model.User;
 import com.muzhi.minierp.service.system.ISysRoleService;
 import com.muzhi.minierp.service.system.ISysUserService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -34,7 +38,7 @@ public class UserAuthenticationProvider implements AuthenticationProvider {
 
     private final PasswordEncoder passwordEncoder;
 
-    private final RedisTemplate<String, Collection<? extends GrantedAuthority>> redisTemplate;
+    private final RedisTemplate<String, User> redisTemplate;
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -51,8 +55,16 @@ public class UserAuthenticationProvider implements AuthenticationProvider {
         if (!user.isEnabled()) {
             throw new DisabledException("system.auth.account-locked");
         }
-        RedisKey.User key = RedisKey.User.USER_AUTHORITIES;
-        redisTemplate.opsForValue().set(key.getKey(user.getUsername()), user.getAuthorities(), key.getTimeout());
+        RedisKey.User kye = RedisKey.User.USERINFO;
+        User userinfo = new User();
+        userinfo.setId(user.getId());
+        userinfo.setUsername(username);
+        userinfo.setUserNo(user.getUserNo());
+        userinfo.setRealName(user.getRealName());
+        userinfo.setPermissionCodes(user.getPermissionCodes());
+        userinfo.setRoleCode(user.getRoleCode());
+        userinfo.setRoles(user.getRoles());
+        redisTemplate.opsForValue().set(kye.getKey(user.getUsername()), userinfo, kye.getTimeout());
         return new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
     }
 
@@ -68,6 +80,15 @@ public class UserAuthenticationProvider implements AuthenticationProvider {
         }
         String roleCode = user.getCurrentRoleCode();
         List<SysRolePermission> permissions = sysRoleService.loadPermissionsByRoleCode(roleCode);
+        List<SysRole> sysRoles = sysRoleService.findRoleByBindUserId(user.getId());
+        List<Role> roles = new ArrayList<>(16);
+        sysRoles.forEach(sysRole -> {
+            Role role = new Role();
+            role.setId(sysRole.getId());
+            role.setRoleName(sysRole.getRoleName());
+            role.setRoleCode(sysRole.getRoleCode());
+            roles.add(role);
+        });
         List<String> permissionCodes = permissions
                 .stream()
                 .map(SysRolePermission::getPermissionCode)
@@ -78,8 +99,11 @@ public class UserAuthenticationProvider implements AuthenticationProvider {
         LoginUser loginUser = new LoginUser(user.getUsername(), user.getPassword(), SysUserStatus.isEnabled(user.getStatus()), authorities);
         loginUser.setId(user.getId());
         loginUser.setUserNo(user.getUserNo());
+        loginUser.setRealName(user.getRealName());
         loginUser.setRoleCode(roleCode);
         loginUser.setTokenType("Bearer");
+        loginUser.setRoles(roles);
+        loginUser.setPermissionCodes(permissionCodes);
         return loginUser;
     }
 }

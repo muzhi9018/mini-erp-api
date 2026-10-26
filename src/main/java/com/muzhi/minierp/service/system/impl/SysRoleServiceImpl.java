@@ -249,4 +249,13 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         return sysRolePermissionMapper.selectList(query);
     }
 
+    @Override
+    public List<SysRole> findRoleByBindUserId(Long userId) {
+        List<String> roleCodes = sysUserRoleMapper.findRoleCodesByUserId(userId);
+        LambdaQueryWrapper<SysRole> query = Wrappers.lambdaQuery();
+        query.in(SysRole::getRoleCode, roleCodes);
+        query.eq(SysRole::getStatus, SysRoleEnum.Status.ENABLED.getValue());
+        return baseMapper.selectList(query);
+    }
+
 }

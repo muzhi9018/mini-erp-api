@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * <p>
@@ -37,6 +38,11 @@ public class User implements Serializable {
     private String password;
 
     /**
+     * 昵称
+      */
+    private String realName;
+
+    /**
      * 用户编号
      */
     private String userNo;
@@ -45,5 +51,16 @@ public class User implements Serializable {
      * 角色编码
      */
     private String roleCode;
+
+    /**
+     * 角色列表
+     */
+    private List<Role> roles;
+
+    /**
+     * 权限码
+     */
+    private List<String> permissionCodes;
+
 
 }
