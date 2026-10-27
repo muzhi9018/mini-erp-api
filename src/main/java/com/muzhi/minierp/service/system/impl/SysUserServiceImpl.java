@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.muzhi.minierp.entity.system.SysRole;
 import com.muzhi.minierp.entity.system.SysUser;
 import com.muzhi.minierp.entity.system.SysUserRole;
+import com.muzhi.minierp.enums.DefaultRoleEnum;
 import com.muzhi.minierp.enums.SysRoleEnum;
 import com.muzhi.minierp.enums.SysUserStatus;
 import com.muzhi.minierp.exception.BusinessException;
@@ -36,7 +37,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * <p>
@@ -87,28 +90,97 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void authorizeRole(Long userId, Long roleId) {
-        SysUser user = baseMapper.selectById(userId);
+    public void authorizeRole(Long userId, List<Long> roleIds) {
+        LoginUser loginUser = SecurityUtils.getCurrentUser();
+        Assert.isNull(loginUser, "http.status.unauthorized", "请先登录");
+        Long operatorId = loginUser.getId();
+        SysUser user = super.baseMapper.selectById(userId);
         Assert.isNull(user, "system.user.not-found", "用户不存在");
 
-        SysRole role = sysRoleMapper.selectById(roleId);
-        Assert.isNull(role, "system.role.not-found", "角色不存在");
+        // 授权权限以当前登录角色为准，不提升到账号拥有的最高权限角色。
+        LambdaQueryWrapper<SysRole> currentRoleQuery = Wrappers.lambdaQuery();
+        currentRoleQuery.eq(SysRole::getRoleCode, loginUser.getRoleCode());
+        SysRole currentRole = sysRoleMapper.selectOne(currentRoleQuery);
+        Assert.isNull(currentRole, "system.user-role.operation-forbidden", "无权操作，当前登录角色权限不足");
+
+        LambdaQueryWrapper<SysUserRole> currentBindingQuery = Wrappers.lambdaQuery();
+        currentBindingQuery.eq(SysUserRole::getUserId, operatorId);
+        currentBindingQuery.eq(SysUserRole::getRoleId, currentRole.getId());
+        boolean currentRoleBound = sysUserRoleMapper.exists(currentBindingQuery);
+        Assert.isFalse(currentRoleBound, "system.user-role.operation-forbidden", "无权操作，当前登录角色权限不足");
+        boolean operatingSelf = operatorId.equals(userId);
+
+        LambdaQueryWrapper<SysUserRole> previousRoleQuery = Wrappers.lambdaQuery();
+        previousRoleQuery.select(SysUserRole::getRoleId);
+        previousRoleQuery.eq(SysUserRole::getUserId, userId);
+        List<SysUserRole> previousUserRoles = sysUserRoleMapper.selectList(previousRoleQuery);
+        Set<Long> previousRoleIds = new HashSet<>();
+        for (SysUserRole userRole : previousUserRoles) {
+            previousRoleIds.add(userRole.getRoleId());
+        }
+        Long targetHighestRoleId = previousRoleIds.stream().min(Long::compareTo).orElse(null);
+        boolean targetNotLower = !operatingSelf && targetHighestRoleId != null && currentRole.getId() >= targetHighestRoleId;
+        Assert.isTrue(targetNotLower, "system.user-role.operation-forbidden", "无权操作，当前登录角色权限不足");
+
+        Set<Long> retainedRoleIds = new HashSet<>();
+        if (operatingSelf) {
+            // 自身已拥有且权限不低于当前登录角色的角色必须保留，前端漏传时自动补齐。
+            for (Long previousRoleId : previousRoleIds) {
+                if (previousRoleId <= currentRole.getId()) {
+                    retainedRoleIds.add(previousRoleId);
+                }
+            }
+        }
+
+        Set<Long> authorizedRoleIds = new TreeSet<>(roleIds);
+        for (Long roleId : authorizedRoleIds) {
+            boolean retainedRole = retainedRoleIds.contains(roleId);
+            Assert.isTrue(!retainedRole && roleId == DefaultRoleEnum.SUPER_ADMIN.getId(), "system.user-role.super-admin-forbidden", "不能授予超级管理员角色");
+            Assert.isTrue(!retainedRole && roleId <= currentRole.getId(), "system.user-role.role-level-forbidden", "不能授予高于或等于当前登录角色权限的角色");
+        }
+        authorizedRoleIds.addAll(retainedRoleIds);
+        List<SysRole> authorizedRoles = new ArrayList<>();
+        if (!authorizedRoleIds.isEmpty()) {
+            authorizedRoles = sysRoleMapper.selectByIds(authorizedRoleIds);
+            Assert.isTrue(authorizedRoles.size() != authorizedRoleIds.size(), "system.role.not-found", "角色不存在");
+            for (SysRole role : authorizedRoles) {
+                DefaultRoleEnum defaultRole = DefaultRoleEnum.ofCode(role.getRoleCode());
+                boolean retainedRole = retainedRoleIds.contains(role.getId());
+                Assert.isTrue(!retainedRole && defaultRole == DefaultRoleEnum.SUPER_ADMIN, "system.user-role.super-admin-forbidden", "不能授予超级管理员角色");
+            }
+        }
 
         LambdaQueryWrapper<SysUserRole> userRoleQuery = Wrappers.lambdaQuery();
         userRoleQuery.eq(SysUserRole::getUserId, userId);
-        userRoleQuery.eq(SysUserRole::getRoleId, roleId);
-        boolean alreadyAuthorized = sysUserRoleMapper.exists(userRoleQuery);
-        Assert.isTrue(alreadyAuthorized, "system.user-role.already-exists", "用户已拥有该角色");
+        if (!authorizedRoleIds.isEmpty()) {
+            userRoleQuery.notIn(SysUserRole::getRoleId, authorizedRoleIds);
+        }
+        sysUserRoleMapper.delete(userRoleQuery);
 
-        SysUserRole userRole = new SysUserRole();
-        userRole.setUserId(userId);
-        userRole.setRoleId(roleId);
-        sysUserRoleMapper.insert(userRole);
-        if (StringUtils.isBlank(user.getCurrentRoleCode())) {
+        for (Long roleId : authorizedRoleIds) {
+            if (!previousRoleIds.contains(roleId)) {
+                SysUserRole userRole = new SysUserRole();
+                userRole.setUserId(userId);
+                userRole.setRoleId(roleId);
+                int inserted = sysUserRoleMapper.insert(userRole);
+                Assert.isTrue(inserted != 1, "system.user-role.save-failed", "用户角色授权失败，请重试");
+            }
+        }
+
+        boolean currentRoleRetained = authorizedRoles.stream().anyMatch(role -> role.getRoleCode().equals(user.getCurrentRoleCode()));
+        if (!currentRoleRetained) {
+            SysRole nextRole = authorizedRoles.stream().min(Comparator.comparing(SysRole::getId)).orElse(null);
+            String nextRoleCode = nextRole == null ? null : nextRole.getRoleCode();
+            if (Objects.equals(nextRoleCode, user.getCurrentRoleCode())) {
+                return;
+            }
+            // 显式设置空值，确保清空授权时一并清除当前角色编码。
+            LambdaUpdateWrapper<SysUser> currentRoleUpdate = Wrappers.lambdaUpdate();
+            currentRoleUpdate.eq(SysUser::getId, userId);
+            currentRoleUpdate.set(SysUser::getCurrentRoleCode, nextRoleCode);
             SysUser updateUser = new SysUser();
-            updateUser.setId(user.getId());
-            updateUser.setCurrentRoleCode(role.getRoleCode());
-            baseMapper.updateById(updateUser);
+            int updated = super.baseMapper.update(updateUser, currentRoleUpdate);
+            Assert.isTrue(updated != 1, "system.user-role.save-failed", "用户角色授权失败，请重试");
         }
     }
 

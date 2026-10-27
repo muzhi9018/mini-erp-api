@@ -2,12 +2,15 @@ package com.muzhi.minierp.controller.system;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.muzhi.minierp.entity.system.SysUser;
-import com.muzhi.minierp.entity.system.SysUserRole;
+import com.muzhi.minierp.enums.DefaultRoleEnum;
 import com.muzhi.minierp.exception.BusinessException;
 import com.muzhi.minierp.i18n.I18nHelper;
 import com.muzhi.minierp.model.JsonResult;
+import com.muzhi.minierp.model.LoginUser;
+import com.muzhi.minierp.security.SecurityUtils;
 import com.muzhi.minierp.service.system.ISysUserService;
 import com.muzhi.minierp.util.Assert;
+import com.muzhi.minierp.vo.SysUserRoleVO;
 import com.muzhi.minierp.vo.SysUserVO;
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * <p>
@@ -50,18 +55,25 @@ public class SysUserController {
     }
 
     /**
-     * 为用户授权角色。
+     * 替换用户的授权角色，操作自身时自动保留原有且权限不低于当前登录角色的角色。
      *
      * @param userRole 用户与角色的关联信息
      * @return 授权结果
      */
     @PostMapping("/authorize/role")
     @PreAuthorize("hasAuthority('system-manage:user-manage:authorize-role')")
-    public JsonResult<Boolean> authorizeRole(@RequestBody SysUserRole userRole) {
+    public JsonResult<Boolean> authorizeRole(@RequestBody SysUserRoleVO userRole) {
         Assert.isNull(userRole, "system.user-role.request-required", "授权信息不能为空");
         Assert.isTrue(userRole.getUserId() == null || userRole.getUserId() <= 0, "system.user-role.user-id-required", "用户ID不能为空且必须大于0");
-        Assert.isTrue(userRole.getRoleId() == null || userRole.getRoleId() <= 0, "system.user-role.role-id-required", "角色ID不能为空且必须大于0");
-        sysUserService.authorizeRole(userRole.getUserId(), userRole.getRoleId());
+        List<Long> roleIds = userRole.getRoleIds();
+        Assert.isNull(roleIds, "system.user-role.role-ids-required", "角色ID列表不能为空，可传空列表清空角色");
+        LoginUser currentUser = SecurityUtils.getCurrentUser();
+        boolean operatingSelf = currentUser.getId().equals(userRole.getUserId());
+        for (Long roleId : roleIds) {
+            Assert.isTrue(roleId == null || roleId <= 0, "system.user-role.role-id-required", "角色ID不能为空且必须大于0");
+            Assert.isTrue(!operatingSelf && roleId == DefaultRoleEnum.SUPER_ADMIN.getId(), "system.user-role.super-admin-forbidden", "不能授予超级管理员角色");
+        }
+        sysUserService.authorizeRole(userRole.getUserId(), roleIds);
         return JsonResult.success(true);
     }
 

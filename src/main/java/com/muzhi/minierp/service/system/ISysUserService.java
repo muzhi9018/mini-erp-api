@@ -5,6 +5,8 @@ import com.muzhi.minierp.entity.system.SysUser;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.muzhi.minierp.vo.SysUserVO;
 
+import java.util.List;
+
 /**
  * <p>
  * 系统用户信息 服务类
@@ -33,12 +35,12 @@ public interface ISysUserService extends IService<SysUser> {
     void create(SysUser user);
 
     /**
-     * 为用户授权角色。
+     * 按当前登录角色校验并替换用户角色，自身原有且权限不低于当前登录角色的角色自动保留。
      *
      * @param userId 用户ID
-     * @param roleId 角色ID
+     * @param roleIds 本次选择的角色 ID 列表，空列表清空可修改的角色
      */
-    void authorizeRole(Long userId, Long roleId);
+    void authorizeRole(Long userId, List<Long> roleIds);
 
     /**
      * 重置指定用户的密码。
