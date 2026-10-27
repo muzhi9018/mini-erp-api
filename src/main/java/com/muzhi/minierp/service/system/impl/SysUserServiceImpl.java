@@ -283,6 +283,29 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void changePassword(String oldPassword, String password) {
+        LoginUser loginUser = SecurityUtils.getCurrentUser();
+        LambdaQueryWrapper<SysUser> userQuery = Wrappers.lambdaQuery();
+        userQuery.eq(SysUser::getId, loginUser.getId());
+        SysUser user = super.baseMapper.selectOne(userQuery);
+        Assert.isNull(user, "system.user.not-found", "用户不存在");
+
+        String saltedOldPassword = SecurityUtils.passwordSaltAddition(user.getUsername(), oldPassword);
+        boolean passwordMatched = passwordEncoder.matches(saltedOldPassword, user.getPassword());
+        Assert.isFalse(passwordMatched, "system.user.change-password.old-password-incorrect", "当前密码不正确");
+
+        String saltedPassword = SecurityUtils.passwordSaltAddition(user.getUsername(), password);
+        String encodedPassword = passwordEncoder.encode(saltedPassword);
+        SysUser passwordUpdate = new SysUser();
+        passwordUpdate.setId(user.getId());
+        passwordUpdate.setPassword(encodedPassword);
+        int updated = super.baseMapper.updateById(passwordUpdate);
+        Assert.isTrue(updated != 1, "system.user.change-password.save-failed", "修改密码失败，请重试");
+        vaultIdentities.ifAvailable(service -> service.revokeOwner(user.getId()));
+    }
+
+    @Override
     public IPage<SysUserVO> findByPage(Integer pageNum, Integer pageSize, SysUser query) {
         IPage<SysUserVO> result = new Page<>(pageNum, pageSize);
         result = baseMapper.findByPage(result, query);

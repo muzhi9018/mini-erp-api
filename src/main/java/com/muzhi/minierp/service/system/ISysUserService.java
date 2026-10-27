@@ -73,6 +73,14 @@ public interface ISysUserService extends IService<SysUser> {
     void changeCurrentRole(String currentRoleCode);
 
     /**
+     * 校验当前密码并修改当前登录用户的密码。
+     *
+     * @param oldPassword 当前密码
+     * @param password 新密码
+     */
+    void changePassword(String oldPassword, String password);
+
+    /**
      * 分页查询用户及其已授权角色。
      *
      * @param pageNum 当前页

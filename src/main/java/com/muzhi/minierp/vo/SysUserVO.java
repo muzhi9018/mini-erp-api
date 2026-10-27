@@ -1,6 +1,7 @@
 package com.muzhi.minierp.vo;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.muzhi.minierp.entity.system.SysRole;
 import com.muzhi.minierp.entity.system.SysUser;
 import lombok.Data;
@@ -28,4 +29,10 @@ public class SysUserVO extends SysUser {
      * 用户已授权的角色列表
      */
     private List<SysRole> roles;
+
+    /**
+     * 修改密码时用于校验的当前密码
+     */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String oldPassword;
 }

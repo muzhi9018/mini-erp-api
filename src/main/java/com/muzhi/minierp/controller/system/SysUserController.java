@@ -151,4 +151,22 @@ public class SysUserController {
         return JsonResult.success(true);
     }
 
+    /**
+     * 校验当前密码并修改当前登录用户的密码。
+     * @author Mr.Muzhi
+     * @since 2026/10/27 16:12
+     * @param user 包含当前密码和新密码的请求信息
+     * @return 修改结果
+     */
+    @PostMapping("/changePassword")
+    public JsonResult<Boolean> changePassword(@RequestBody SysUserVO user) {
+        Assert.isNull(user, "system.user.change-password.request-required", "修改密码信息不能为空");
+        String oldPassword = user.getOldPassword();
+        String password = user.getPassword();
+        Assert.isTrue(StringUtils.isBlank(oldPassword), "system.user.change-password.old-password-required", "当前密码不能为空");
+        Assert.isTrue(StringUtils.isBlank(password), "system.user.change-password.password-required", "新密码不能为空");
+        sysUserService.changePassword(oldPassword, password);
+        return JsonResult.success(true);
+    }
+
 }
