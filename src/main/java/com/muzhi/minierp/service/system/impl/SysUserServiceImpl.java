@@ -89,6 +89,21 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     }
 
     @Override
+    public void edit(SysUser user) {
+        SysUser dbUser = super.baseMapper.selectById(user.getId());
+        Assert.isNull(dbUser, "system.user.not-found", "用户不存在");
+
+        // 仅复制允许编辑的字段，防止请求覆盖账号、密码和权限等信息。
+        SysUser updateUser = new SysUser();
+        updateUser.setId(dbUser.getId());
+        updateUser.setRealName(user.getRealName());
+        updateUser.setMobile(user.getMobile());
+        updateUser.setRemark(user.getRemark());
+        int updated = super.baseMapper.updateById(updateUser);
+        Assert.isTrue(updated != 1, "system.user.edit.save-failed", "修改用户信息失败，请重试");
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void authorizeRole(Long userId, List<Long> roleIds) {
         LoginUser loginUser = SecurityUtils.getCurrentUser();

@@ -35,6 +35,13 @@ public interface ISysUserService extends IService<SysUser> {
     void create(SysUser user);
 
     /**
+     * 仅修改用户的昵称、手机号和备注，null 字段保留原值，空字符串清空字段。
+     *
+     * @param user 包含用户 ID 和待修改字段的用户信息
+     */
+    void edit(SysUser user);
+
+    /**
      * 按当前登录角色校验并替换用户角色，自身原有且权限不低于当前登录角色的角色自动保留。
      *
      * @param userId 用户ID

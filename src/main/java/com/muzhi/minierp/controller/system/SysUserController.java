@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.muzhi.minierp.entity.system.SysUser;
 import com.muzhi.minierp.enums.DefaultRoleEnum;
 import com.muzhi.minierp.exception.BusinessException;
-import com.muzhi.minierp.i18n.I18nHelper;
 import com.muzhi.minierp.model.JsonResult;
 import com.muzhi.minierp.model.LoginUser;
 import com.muzhi.minierp.security.SecurityUtils;
@@ -42,16 +41,35 @@ public class SysUserController {
 
     private final ISysUserService sysUserService;
 
-    private final I18nHelper i18nHelper;
-
     @PostMapping("/create")
     @PreAuthorize("hasAuthority('system-manage:user-manage:add')")
-    public JsonResult<Boolean> create(@RequestBody SysUser user, HttpServletRequest request) {
+    public JsonResult<Boolean> create(@RequestBody SysUser user) {
         if (user == null || StringUtils.isBlank(user.getUsername()) || StringUtils.isBlank(user.getPassword())) {
             throw new BusinessException("system.user.username-password-required", "用户名和密码不能为空");
         }
         sysUserService.create(user);
-        return JsonResult.success();
+        return JsonResult.success(true);
+    }
+
+    /**
+     * 修改用户的昵称、手机号和备注。
+     *
+     * @param user 包含用户 ID 和待修改字段的请求信息
+     * @return 修改结果
+     */
+    @PostMapping("/edit")
+    @PreAuthorize("hasAuthority('system-manage:user-manage:edit')")
+    public JsonResult<Boolean> edit(@RequestBody SysUser user) {
+        Assert.isNull(user, "system.user.edit.request-required", "用户编辑信息不能为空");
+        Assert.isTrue(user.getId() == null || user.getId() <= 0, "system.user.edit.user-id-required", "用户ID不能为空且必须大于0");
+        int maximumRealNameLength = 64;
+        int maximumMobileLength = 32;
+        int maximumRemarkLength = 128;
+        Assert.isTrue(StringUtils.length(user.getRealName()) > maximumRealNameLength, "system.user.edit.real-name-too-long", "昵称长度不能超过{0}个字符", maximumRealNameLength);
+        Assert.isTrue(StringUtils.length(user.getMobile()) > maximumMobileLength, "system.user.edit.mobile-too-long", "手机号长度不能超过{0}个字符", maximumMobileLength);
+        Assert.isTrue(StringUtils.length(user.getRemark()) > maximumRemarkLength, "system.user.edit.remark-too-long", "备注长度不能超过{0}个字符", maximumRemarkLength);
+        sysUserService.edit(user);
+        return JsonResult.success(true);
     }
 
     /**
