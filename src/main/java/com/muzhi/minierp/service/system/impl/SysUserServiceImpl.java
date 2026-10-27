@@ -9,11 +9,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.muzhi.minierp.entity.system.SysRole;
 import com.muzhi.minierp.entity.system.SysUser;
 import com.muzhi.minierp.entity.system.SysUserRole;
+import com.muzhi.minierp.enums.SysRoleEnum;
 import com.muzhi.minierp.enums.SysUserStatus;
 import com.muzhi.minierp.exception.BusinessException;
 import com.muzhi.minierp.mapper.system.SysRoleMapper;
 import com.muzhi.minierp.mapper.system.SysUserMapper;
 import com.muzhi.minierp.mapper.system.SysUserRoleMapper;
+import com.muzhi.minierp.model.LoginUser;
 import com.muzhi.minierp.security.SecurityUtils;
 import com.muzhi.minierp.service.system.ISysUserService;
 import com.muzhi.minierp.util.Assert;
@@ -176,6 +178,36 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         Assert.isTrue(updated != 1, "system.user.change-status.save-failed", "切换用户状态失败，请重试");
         vaultIdentities.ifAvailable(service -> service.revokeOwner(userId));
         return nextStatus.value();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void changeCurrentRole(String currentRoleCode) {
+        LoginUser loginUser = SecurityUtils.getCurrentUser();
+        // 锁定用户记录，串行校验并更新同一用户的当前角色。
+        LambdaQueryWrapper<SysUser> userQuery = Wrappers.lambdaQuery();
+        userQuery.eq(SysUser::getId, loginUser.getId());
+        SysUser user = super.baseMapper.selectOne(userQuery);
+        Assert.isNull(user, "system.user.not-found", "用户不存在");
+        Assert.isTrue(currentRoleCode.equals(user.getCurrentRoleCode()), "system.user.change-current-role.already-current", "当前角色已经是该角色，无需切换");
+
+        LambdaQueryWrapper<SysRole> roleQuery = Wrappers.lambdaQuery();
+        roleQuery.eq(SysRole::getRoleCode, currentRoleCode);
+        SysRole role = sysRoleMapper.selectOne(roleQuery);
+        Assert.isNull(role, "system.role.not-found", "角色不存在");
+        Assert.isFalse(SysRoleEnum.Status.ENABLED.eq(role.getStatus()), "system.user.change-current-role.role-unavailable", "角色状态异常，无法切换");
+
+        LambdaQueryWrapper<SysUserRole> userRoleQuery = Wrappers.lambdaQuery();
+        userRoleQuery.eq(SysUserRole::getUserId, user.getId());
+        userRoleQuery.eq(SysUserRole::getRoleId, role.getId());
+        boolean bound = sysUserRoleMapper.exists(userRoleQuery);
+        Assert.isFalse(bound, "system.user.change-current-role.not-bound", "当前用户未绑定该角色，无法切换");
+
+        SysUser updateUser = new SysUser();
+        updateUser.setId(user.getId());
+        updateUser.setCurrentRoleCode(role.getRoleCode());
+        int updated = super.baseMapper.updateById(updateUser);
+        Assert.isTrue(updated != 1, "system.user.change-current-role.save-failed", "切换角色失败，请重试");
     }
 
     @Override

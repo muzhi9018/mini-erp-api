@@ -11,6 +11,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -83,6 +84,9 @@ public class JwtTokenProvider {
 
         RedisKey.User key = RedisKey.User.USERINFO;
         User user = redisTemplate.opsForValue().get(key.getKey(claims.getSubject()));
+        if (user == null) {
+            throw new BadCredentialsException("http.status.unauthorized");
+        }
         List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(user.getPermissionCodes());
         LoginUser loginUser = new LoginUser(
                 claims.getSubject(),

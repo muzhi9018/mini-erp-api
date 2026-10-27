@@ -1,11 +1,14 @@
 package com.muzhi.minierp.service.system.impl;
 
+import com.muzhi.minierp.enums.RedisKey;
 import com.muzhi.minierp.model.LoginQuery;
 import com.muzhi.minierp.model.LoginUser;
+import com.muzhi.minierp.model.User;
 import com.muzhi.minierp.security.JwtTokenProvider;
 import com.muzhi.minierp.security.SecurityUtils;
 import com.muzhi.minierp.service.system.IAuthService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -32,6 +35,8 @@ public class AuthServiceImpl implements IAuthService {
 
     private final AuthenticationManager authenticationManager;
 
+    private final RedisTemplate<String, User> redisTemplate;
+
     @Override
     public LoginUser login(LoginQuery query) {
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(query.getUsername(), query.getPassword());
@@ -52,5 +57,12 @@ public class AuthServiceImpl implements IAuthService {
         }
         currentUser.setPermissionCodes(permissionCodes);
         return currentUser;
+    }
+
+    @Override
+    public void logout() {
+        LoginUser currentUser = SecurityUtils.getCurrentUser();
+        RedisKey.User key = RedisKey.User.USERINFO;
+        redisTemplate.delete(key.getKey(currentUser.getUsername()));
     }
 }

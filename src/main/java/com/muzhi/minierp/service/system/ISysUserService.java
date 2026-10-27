@@ -64,6 +64,13 @@ public interface ISysUserService extends IService<SysUser> {
     Integer changeStatus(Long userId);
 
     /**
+     * 校验并更新当前登录用户使用的角色。
+     *
+     * @param currentRoleCode 目标角色编码
+     */
+    void changeCurrentRole(String currentRoleCode);
+
+    /**
      * 分页查询用户及其已授权角色。
      *
      * @param pageNum 当前页

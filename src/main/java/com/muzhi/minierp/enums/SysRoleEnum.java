@@ -30,5 +30,9 @@ public interface SysRoleEnum {
             this.value = value;
             this.description = description;
         }
+
+        public boolean eq(Short value) {
+            return value != null && this.value == value;
+        }
     }
 }

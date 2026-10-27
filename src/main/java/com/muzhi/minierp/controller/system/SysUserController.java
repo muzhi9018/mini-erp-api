@@ -124,4 +124,19 @@ public class SysUserController {
         return JsonResult.success(page);
     }
 
+    /**
+     * 切换当前登录用户使用的角色。
+     *
+     * @param user 包含目标角色编码的请求信息
+     * @return 切换结果
+     */
+    @PostMapping("/changeCurrentRole")
+    public JsonResult<Boolean> changeCurrentRole(@RequestBody SysUser user) {
+        Assert.isNull(user, "system.user.change-current-role.request-required", "切换角色信息不能为空");
+        String currentRoleCode = user.getCurrentRoleCode();
+        Assert.isTrue(StringUtils.isBlank(currentRoleCode), "system.user.change-current-role.role-code-required", "角色编码不能为空");
+        sysUserService.changeCurrentRole(currentRoleCode);
+        return JsonResult.success(true);
+    }
+
 }

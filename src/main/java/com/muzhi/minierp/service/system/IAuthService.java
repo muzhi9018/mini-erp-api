@@ -30,4 +30,10 @@ public interface IAuthService {
      */
     LoginUser getCurrentUser();
 
+    /**
+     * 退出登录
+     * @author Mr.Muzhi
+     * @since 2026/10/26 18:29
+     */
+    void logout();
 }

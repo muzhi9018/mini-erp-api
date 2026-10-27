@@ -33,4 +33,10 @@ public class AuthController {
         LoginUser currentUser = authenticate.getCurrentUser();
         return JsonResult.success(currentUser, this.i18nHelper.getMessage(HttpStatus.OK, request));
     }
+
+    @PostMapping("/logout")
+    public JsonResult<Boolean> logout() {
+        authenticate.logout();
+        return  JsonResult.success(true);
+    }
 }
