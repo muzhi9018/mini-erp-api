@@ -26,6 +26,7 @@ import org.springframework.security.web.csrf.*;
 @Configuration
 @EnableConfigurationProperties(VaultProperties.class)
 public class VaultSecurityConfig {
+
     @Bean
     @Order(1)
     @ConditionalOnProperty(prefix = "vault", name = "enabled", havingValue = "false", matchIfMissing = true)

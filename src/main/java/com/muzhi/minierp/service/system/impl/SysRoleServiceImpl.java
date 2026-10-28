@@ -16,6 +16,8 @@ import com.muzhi.minierp.mapper.system.SysMenuMapper;
 import com.muzhi.minierp.mapper.system.SysRoleMapper;
 import com.muzhi.minierp.mapper.system.SysRolePermissionMapper;
 import com.muzhi.minierp.mapper.system.SysUserRoleMapper;
+import com.muzhi.minierp.model.LoginUser;
+import com.muzhi.minierp.security.SecurityUtils;
 import com.muzhi.minierp.service.system.ISysRoleService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.muzhi.minierp.util.Assert;
@@ -186,9 +188,15 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional
     public void roleAuthorize(SysRoleVO sysRole) {
+        LoginUser currentUser = SecurityUtils.getCurrentUser();
+        String currentRoleCode = currentUser.getRoleCode();
+        LambdaQueryWrapper<SysRole> query = Wrappers.lambdaQuery();
+        query.eq(SysRole::getRoleCode, currentRoleCode);
+        SysRole currentUserRole = baseMapper.selectOne(query);
         Long roleId = sysRole.getId();
         SysRole dbRole = baseMapper.selectById(roleId);
         Assert.isNull(dbRole, "system.role.not-found", "角色不存在");
+        Assert.isTrue(currentUserRole.getId() > roleId, "system.user-role.operation-forbidden", "无权操作，当前登录角色权限不足");
         List<Long> menuIds = sysRole.getMenuIds();
         sysRolePermissionMapper.deleteByRoleId(roleId);
         if (menuIds == null || menuIds.isEmpty()) {

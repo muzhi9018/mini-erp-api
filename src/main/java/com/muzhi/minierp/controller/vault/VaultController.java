@@ -4,6 +4,7 @@ import com.muzhi.minierp.component.vault.VaultCodec;
 import com.muzhi.minierp.component.vault.VaultChallengeStore;
 import com.muzhi.minierp.component.vault.VaultProtocolValidator;
 import com.muzhi.minierp.entity.vault.VaultAccount;
+import com.muzhi.minierp.entity.vault.VaultSite;
 import com.muzhi.minierp.enums.VaultEnum;
 import com.muzhi.minierp.model.JsonResult;
 import com.muzhi.minierp.model.vault.*;
@@ -38,9 +39,12 @@ public class VaultController {
 
     private final IVaultIdentityService iVaultIdentityService;
 
+    private final IVaultSiteService vaultSiteService;
+
     private final VaultBrowserSession vaultBrowserSession;
 
     private final VaultChallengeStore challenges;
+
 
     @GetMapping("/session")
     public JsonResult<VaultSessionVO> session(HttpServletRequest request, HttpServletResponse response) {
@@ -280,5 +284,11 @@ public class VaultController {
             response.setContentLengthLong(snapshot.contentLength());
             snapshot.transferTo(response.getOutputStream());
         }
+    }
+
+    @GetMapping("/site/list")
+    public JsonResult<List<VaultSite>> vaultSites() {
+        List<VaultSite> list = vaultSiteService.list();
+        return JsonResult.success(list);
     }
 }

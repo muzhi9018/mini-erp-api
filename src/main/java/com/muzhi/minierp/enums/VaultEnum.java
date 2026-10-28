@@ -14,6 +14,35 @@ import com.muzhi.minierp.util.Assert;
  */
 public interface VaultEnum {
 
+    /**
+     * 站点配置状态。
+     */
+    @Getter
+    enum SiteStatus {
+
+        ENABLED((short) 1, "正常"),
+
+        DISABLED((short) 0, "禁用");
+
+        private final Short code;
+
+        private final String name;
+
+        SiteStatus(Short code, String name) {
+            this.code = code;
+            this.name = name;
+        }
+
+        public static SiteStatus ofCode(Short code) {
+            for (SiteStatus status : SiteStatus.values()) {
+                if (status.getCode().equals(code)) {
+                    return status;
+                }
+            }
+            return null;
+        }
+    }
+
     interface Coded {
         String getCode();
     }
