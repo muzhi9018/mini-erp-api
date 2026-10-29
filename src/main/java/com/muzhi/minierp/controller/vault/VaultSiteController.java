@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @since 2026-10-28
  */
 @RestController
-@RequestMapping("/vault/site")
+@RequestMapping("/vaultSite")
 @RequiredArgsConstructor
 public class VaultSiteController {
 
