@@ -7,6 +7,19 @@ services:
     init: true
     # 应用优雅停机需要 15 秒，容器预留更长的退出时间。
     stop_grace_period: 30s
+    # 根路径需要认证，返回 401 表示 HTTP 服务与安全过滤链已经可以响应。
+    healthcheck:
+      test: >-
+        bash -ec '
+        exec 3<>/dev/tcp/127.0.0.1/8081;
+        printf "GET / HTTP/1.0\r\nHost: localhost\r\n\r\n" >&3;
+        read -r -t 3 protocol status message <&3;
+        [[ "$$protocol" == HTTP/* && "$$status" == 401 ]]
+        '
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
     # IDEA 按字节值静态校验此项，Compose 会先展开环境变量。
     # noinspection ComposeUnknownValues
     mem_limit: "${APP_MEMORY_LIMIT:-1g}"
@@ -19,7 +32,7 @@ services:
         required: false
     environment:
       TZ: ${TZ:-Asia/Shanghai}
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-pro}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SERVER_PORT: "8081"
       LOGGING_FILE_PATH: /service/logs
     ports:
