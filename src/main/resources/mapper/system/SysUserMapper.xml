@@ -17,7 +17,7 @@
             real_name,
             mobile,
             remark,
-            sort
+            sort_order
         from sys_user
         where is_deleted = false
         <if test="query != null">
@@ -34,6 +34,6 @@
                 and status = #{query.status}
             </if>
         </if>
-        order by sort asc, id asc
+        ORDER BY sort_order ASC, id ASC
     </select>
 </mapper>

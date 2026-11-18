@@ -76,8 +76,8 @@ public class SysUserRole implements Serializable {
     /**
      * 排序
      */
-    @TableField("sort")
-    private Integer sort;
+    @TableField("sort_order")
+    private Integer sortOrder;
 
     /**
      * 用户id

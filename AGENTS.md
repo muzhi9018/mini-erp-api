@@ -165,6 +165,74 @@ public interface OrderEnum {
 - 多表写入在 Service 入口使用 `@Transactional(rollbackFor = Exception.class)`；主键沿用 `IdWorker` / `ASSIGN_ID`，审计字段沿用自动填充，逻辑删除按实体及现有配置处理。
 - Java 改动按影响范围运行 `mvn -Dtest=测试类名 test` 或 `mvn test`；涉及 Bean 映射需通过编译验证生成映射。仅文档修改检查内容和差异即可；验证受环境限制时如实说明。
 
+## PostgreSQL SQL 规范
+
+### 建表与命名
+
+- SQL 关键字使用大写，如 `CREATE TABLE`、`WHERE`、`CHECK` 和 `COMMENT ON COLUMN`。表名、列名、索引名和约束名使用小写下划线，类型名和布尔字面量 `true`、`false` 使用小写。缩进使用 4 个空格。
+- 每张表依次写基本的 `CREATE TABLE`（列定义和主键）、索引和约束（唯一约束、唯一索引、普通索引、`CHECK`）、`COMMENT ON TABLE`、`COMMENT ON COLUMN`。索引注释放在索引和约束部分，字段注释按列定义顺序写，表注释和字段注释使用中文。
+- 排序列统一命名为 `sort_order`。
+
+### 默认字段
+
+- 新建业务表先按顺序声明 `id`、`gmt_create`、`gmt_modified`、`create_user`、`update_user`、`is_deleted`，随后声明业务字段。默认字段的注释按下方建表示例填写。
+- `gmt_create`、`gmt_modified` 使用 `timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL`。默认值用于插入，更新记录时由应用维护 `gmt_modified`。
+- `create_user`、`update_user` 使用 `bigint` 保存系统用户 ID，由应用填充。系统任务没有操作人时允许为空。
+- `is_deleted` 使用 `boolean DEFAULT false NOT NULL`，其中 `false` 表示未删除，`true` 表示已逻辑删除。
+
+### 主键与索引
+
+- 每张表必须显式声明 `PRIMARY KEY`。新表默认使用单列 `id bigint NOT NULL PRIMARY KEY`，由应用沿用 `IdWorker` / `ASSIGN_ID` 生成。多列业务键用组合唯一索引保证唯一，如 `vault_rotation_expected_item (rotation_id, item_id)`。
+- 新建唯一索引使用 `uk_<表名>_<用途>`，普通索引使用 `idx_<表名>_<用途>`。主键已提供唯一索引，同一列组合只需一份索引承担相同的唯一性规则。
+- 允许逻辑删除后复用的业务键使用部分唯一索引，写 `WHERE is_deleted = false`，并保留原有业务过滤条件。无逻辑删除列的表，以及删除后仍需保留唯一性的业务键，使用全表唯一索引或唯一约束。
+
+### 约束与表达式
+
+- 在保持 SQL 语义一致的前提下，优先使用可读性更高的写法。PostgreSQL 能正确推断所需类型时，省略显式类型转换。
+- 检查约束统一写成独立的 `ALTER TABLE ... ADD CONSTRAINT ... CHECK (...)`。固定值列表用 `IN (...)`，包含上下限的区间用 `BETWEEN ... AND ...`。组合条件保留表达业务分支的括号，省略单个比较或判空条件外围的冗余括号。
+- 默认值、比较和数组字面量优先使用 PostgreSQL 可直接推断的写法，例如 `DEFAULT 'PENDING'`、`WHERE status = 'PENDING'`、`transports <@ ARRAY['usb', 'nfc']`。仅在类型无法推断或转换具有业务含义时保留显式转换，例如用 `octet_length(response_body::text)` 计算 JSONB 文本的字节数。时间间隔使用 `INTERVAL '30 minutes'` 这样的带单位字面量。
+- 修改建表脚本后，在临时 PostgreSQL 中执行验证。等价改写核对相关默认值、约束和索引定义，涉及区间或唯一性变化时验证边界值和重复记录。
+
+### 建表示例
+
+```sql
+CREATE TABLE example_item (
+    id           bigint NOT NULL PRIMARY KEY,
+    gmt_create   timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    gmt_modified timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    create_user  bigint,
+    update_user  bigint,
+    is_deleted   boolean DEFAULT false NOT NULL,
+    code         varchar(64) NOT NULL,
+    status       varchar(16) DEFAULT 'PENDING' NOT NULL,
+    sort_order   integer DEFAULT 0 NOT NULL
+);
+
+CREATE UNIQUE INDEX uk_example_item_code
+    ON example_item (code)
+    WHERE is_deleted = false;
+
+CREATE INDEX idx_example_item_pending_sort
+    ON example_item (sort_order, id)
+    WHERE status = 'PENDING' AND is_deleted = false;
+
+ALTER TABLE example_item
+    ADD CONSTRAINT ck_example_item_status CHECK (
+        status IN ('PENDING', 'DONE')
+    );
+
+COMMENT ON TABLE example_item IS '示例条目';
+
+COMMENT ON COLUMN example_item.id IS '主键';
+COMMENT ON COLUMN example_item.gmt_create IS '创建时间';
+COMMENT ON COLUMN example_item.gmt_modified IS '更新时间';
+COMMENT ON COLUMN example_item.create_user IS '创建者';
+COMMENT ON COLUMN example_item.update_user IS '更新者';
+COMMENT ON COLUMN example_item.is_deleted IS '是否删除(false:否; true:是)';
+COMMENT ON COLUMN example_item.code IS '条目编码';
+COMMENT ON COLUMN example_item.status IS '处理状态';
+COMMENT ON COLUMN example_item.sort_order IS '展示顺序';
+```
 
 ## 编码与执行原则
 

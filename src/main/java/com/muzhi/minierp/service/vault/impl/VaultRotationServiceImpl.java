@@ -133,15 +133,21 @@ public class VaultRotationServiceImpl implements IVaultRotationService {
         vaultAccess.create(task, session.ownerId());
         vaultRotationMapper.insert(task);
         if (mode == VaultEnum.RotationMode.ROTATION) {
-            int count = vaultItemMapper.freezeSource(
+            List<VaultRotationExpectedItem> sourceItems = vaultItemMapper.rotationSourceItems(
                     vault.getId(),
                     vault.getActiveGeneration(),
-                    task.getId(),
-                    before,
-                    now,
-                    session.ownerId()
+                    before
             );
-            task.setExpectedItemCount(count);
+            for (VaultRotationExpectedItem item : sourceItems) {
+                item.setRotationId(task.getId());
+                vaultAccess.create(item, session.ownerId());
+                item.setGmtCreate(now);
+                item.setGmtModified(now);
+            }
+            if (!sourceItems.isEmpty()) {
+                vaultRotationExpectedItemMapper.insert(sourceItems);
+            }
+            task.setExpectedItemCount(sourceItems.size());
             vaultRotationMapper.updateById(task);
         } else {
             for (String itemId : request.itemIds()) {

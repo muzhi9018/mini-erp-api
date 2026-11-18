@@ -65,7 +65,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             role.setUpdateUser(1L);
             role.setRemark(defaultRole.getRemark());
             role.setStatus(SysRoleEnum.Status.ENABLED.getValue());
-            role.setSort((int) defaultRole.getId());
+            role.setSortOrder((int) defaultRole.getId());
 
             insertedCount += baseMapper.insertDefaultRoleIfAbsent(role);
 
@@ -123,7 +123,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         SysRole updateRole = new SysRole();
         updateRole.setId(dbRole.getId());
         updateRole.setRoleName(sysRole.getRoleName());
-        updateRole.setSort(sysRole.getSort());
+        updateRole.setSortOrder(sysRole.getSortOrder());
         updateRole.setRemark(sysRole.getRemark());
         // 不是系统默认角色可以修改名称和状态
         if (defaultRole == null) {
@@ -148,7 +148,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     public List<SysRole> listAll() {
         LambdaQueryWrapper<SysRole> query = Wrappers.lambdaQuery();
         query.select(SysRole::getId, SysRole::getRoleCode, SysRole::getRoleName);
-        query.orderByAsc(SysRole::getSort, SysRole::getId);
+        query.orderByAsc(SysRole::getSortOrder, SysRole::getId);
         return baseMapper.selectList(query);
     }
 

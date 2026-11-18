@@ -15,7 +15,7 @@
         <result column="component" property="component" />
         <result column="icon" property="icon" />
         <result column="permission_code" property="permissionCode" />
-        <result column="sort" property="sort" />
+        <result column="sort_order" property="sortOrder" />
         <result column="gmt_create" property="gmtCreate" />
         <result column="gmt_modified" property="gmtModified" />
         <result column="create_user" property="createUser" />
@@ -36,7 +36,7 @@
         component,
         icon,
         permission_code,
-        sort,
+        sort_order,
         gmt_create,
         gmt_modified,
         create_user,
@@ -54,7 +54,7 @@
         from sys_menu
         where parent_id = 0
         and is_deleted = false
-        order by sort, id
+        ORDER BY sort_order, id
     </select>
     <select id="findByParentId" resultType="com.muzhi.minierp.entity.system.SysMenu">
         select
@@ -62,7 +62,7 @@
         from sys_menu
         where parent_id = #{parentId}
         and is_deleted = false
-        order by sort, id
+        ORDER BY sort_order, id
     </select>
 
     <select id="findByClientIdAndParentId" resultType="com.muzhi.minierp.entity.system.SysMenu">

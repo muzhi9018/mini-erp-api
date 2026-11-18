@@ -2,6 +2,7 @@ package com.muzhi.minierp.mapper.vault;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.muzhi.minierp.entity.vault.VaultItem;
+import com.muzhi.minierp.entity.vault.VaultRotationExpectedItem;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.cursor.Cursor;
 
@@ -47,10 +48,14 @@ public interface VaultItemMapper extends BaseMapper<VaultItem> {
     long retainedCount(@Param("vaultId") Long vaultId, @Param("generation") Long generation,
             @Param("before") OffsetDateTime before);
 
-    /** 在数据库内冻结源 ID 和版本，不加载整库密文。 */
-    int freezeSource(@Param("vaultId") Long vaultId, @Param("generation") Long generation,
-            @Param("rotationId") Long rotationId, @Param("before") OffsetDateTime before,
-            @Param("now") OffsetDateTime now, @Param("actor") Long actor);
+    /**
+     * 查询轮换要冻结的条目标识与版本，包含尚未到期的已删除条目。
+     */
+    List<VaultRotationExpectedItem> rotationSourceItems(
+            @Param("vaultId") Long vaultId,
+            @Param("generation") Long generation,
+            @Param("before") OffsetDateTime before
+    );
 
     /**
      * 按任务冻结的 ID 集合读取，不因轮换期间自然到期而减少记录。

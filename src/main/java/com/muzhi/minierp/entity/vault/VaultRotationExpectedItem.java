@@ -30,6 +30,12 @@ public class VaultRotationExpectedItem extends VaultAuditEntity {
     private static final long serialVersionUID = -183624090733933301L;
 
     /**
+     * 内部记录 ID
+     */
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private Long id;
+
+    /**
      * 内部轮换任务逻辑 ID
      */
     @TableField("rotation_id")

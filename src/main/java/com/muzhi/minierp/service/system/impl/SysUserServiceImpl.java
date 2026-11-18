@@ -363,7 +363,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             }
         }
         for (SysUserVO user : users) {
-            user.getRoles().sort(Comparator.comparing(SysRole::getSort, Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(SysRole::getId));
+            user.getRoles().sort(Comparator.comparing(SysRole::getSortOrder, Comparator.nullsLast(Comparator.naturalOrder())).thenComparing(SysRole::getId));
         }
         return result;
     }

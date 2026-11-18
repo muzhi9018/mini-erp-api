@@ -11,7 +11,7 @@
         <result column="update_user" property="updateUser"/>
         <result column="is_deleted" property="deleted"/>
         <result column="status" property="status"/>
-        <result column="sort" property="sort"/>
+        <result column="sort_order" property="sortOrder"/>
         <result column="role_name" property="roleName"/>
         <result column="remark" property="remark"/>
         <result column="role_code" property="roleCode"/>
@@ -26,7 +26,7 @@
         update_user,
         is_deleted,
         status,
-        sort,
+        sort_order,
         role_name,
         remark,
         role_code
@@ -40,7 +40,7 @@
                 role_name,
                 remark,
                 status,
-                sort,
+                sort_order,
                 create_user,
                 update_user,
                 is_deleted,
@@ -54,7 +54,7 @@
                 #{role.roleName},
                 #{role.remark},
                 #{role.status},
-                #{role.sort},
+                #{role.sortOrder},
                 #{role.createUser},
                 #{role.updateUser},
                 false,
@@ -76,7 +76,7 @@
         from sys_role
         where is_deleted = false
         <include refid="base_condition"/>
-        order by sort asc, id
+        ORDER BY sort_order ASC, id
     </select>
 
     <select id="findByCodes" resultType="com.muzhi.minierp.entity.system.SysRole">

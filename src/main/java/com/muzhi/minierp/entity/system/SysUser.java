@@ -25,7 +25,7 @@ import java.time.OffsetDateTime;
  *   <tr><td>realName</td><td>{@link String}</td><td>real_name</td><td>VARCHAR(64)</td><td>用户昵称</td></tr>
  *   <tr><td>mobile</td><td>{@link String}</td><td>mobile</td><td>VARCHAR(32)</td><td>手机号</td></tr>
  *   <tr><td>remark</td><td>{@link String}</td><td>remark</td><td>VARCHAR(128)</td><td>备注</td></tr>
- *   <tr><td>sort</td><td>{@link Integer}</td><td>sort</td><td>INT</td><td>排序</td></tr>
+ *   <tr><td>sortOrder</td><td>{@link Integer}</td><td>sort_order</td><td>INT</td><td>排序</td></tr>
  * </p>
  *
  * @author Mr.Muzhi
@@ -127,7 +127,7 @@ public class SysUser implements Serializable {
     /**
      * 排序
      */
-    @TableField("sort")
-    private Integer sort;
+    @TableField("sort_order")
+    private Integer sortOrder;
 
 }

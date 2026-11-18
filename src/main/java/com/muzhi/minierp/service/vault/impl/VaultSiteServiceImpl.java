@@ -39,13 +39,13 @@ public class VaultSiteServiceImpl extends ServiceImpl<VaultSiteMapper, VaultSite
         Long siteId = IdWorker.getId();
         String siteName = query.getSiteName().trim();
         Short status = query.getStatus() == null ? VaultEnum.SiteStatus.ENABLED.getCode() : query.getStatus();
-        int defaultSort = 0;
-        Integer sort = query.getSort() == null ? defaultSort : query.getSort();
+        int defaultSortOrder = 0;
+        Integer sortOrder = query.getSortOrder() == null ? defaultSortOrder : query.getSortOrder();
         site.setId(siteId);
         site.setSiteName(siteName);
         site.setSiteDomain(siteDomain);
         site.setStatus(status);
-        site.setSort(sort);
+        site.setSortOrder(sortOrder);
         site.setIsDeleted(false);
         try {
             int inserted = super.baseMapper.insert(site);
@@ -70,7 +70,7 @@ public class VaultSiteServiceImpl extends ServiceImpl<VaultSiteMapper, VaultSite
         if (query.getStatus() != null) {
             siteQuery.eq(VaultSite::getStatus, query.getStatus());
         }
-        siteQuery.orderByAsc(VaultSite::getSort);
+        siteQuery.orderByAsc(VaultSite::getSortOrder);
         siteQuery.orderByDesc(VaultSite::getId);
         IPage<VaultSite> page = new Page<>(pageNum, pageSize);
         return super.baseMapper.selectPage(page, siteQuery);
@@ -98,7 +98,7 @@ public class VaultSiteServiceImpl extends ServiceImpl<VaultSiteMapper, VaultSite
         update.setSiteName(siteName);
         update.setSiteDomain(siteDomain);
         update.setStatus(query.getStatus());
-        update.setSort(query.getSort());
+        update.setSortOrder(query.getSortOrder());
         try {
             int updated = super.baseMapper.updateById(update);
             Assert.isTrue(updated != 1, "vault.site.edit-failed", "修改站点配置失败，请重试");
