@@ -3,12 +3,15 @@ package com.muzhi.minierp;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.generator.FastAutoGenerator;
 import com.baomidou.mybatisplus.generator.config.OutputFile;
+import com.baomidou.mybatisplus.generator.config.rules.IColumnType;
 import com.baomidou.mybatisplus.generator.engine.VelocityTemplateEngine;
 import com.baomidou.mybatisplus.generator.fill.Column;
+import org.apache.ibatis.type.JdbcType;
 
 import javax.lang.model.SourceVersion;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +89,28 @@ public class CodeGenerator {
                     builder.outputDir(javaOutputDirectory);
                     builder.commentDate("yyyy-MM-dd");
                     builder.disableOpenDir();
+                })
+                .dataSourceConfig(builder -> {
+                    builder.typeConvertHandler((globalConfig, typeRegistry, metaInfo) -> {
+                        // PostgreSQL 驱动将 timestamptz 报告为 TIMESTAMP，需要结合类型名区分时区。
+                        String typeName = metaInfo.getTypeName();
+                        if (metaInfo.getJdbcType() == JdbcType.TIMESTAMP_WITH_TIMEZONE
+                                || "timestamptz".equalsIgnoreCase(typeName)
+                                || "timestamp with time zone".equalsIgnoreCase(typeName)) {
+                            return new IColumnType() {
+                                @Override
+                                public String getType() {
+                                    return OffsetDateTime.class.getSimpleName();
+                                }
+
+                                @Override
+                                public String getPkg() {
+                                    return OffsetDateTime.class.getName();
+                                }
+                            };
+                        }
+                        return typeRegistry.getColumnType(metaInfo);
+                    });
                 })
                 .packageConfig(builder -> {
                     builder.parent("com.muzhi.minierp");
