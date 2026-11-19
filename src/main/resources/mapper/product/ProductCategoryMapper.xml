@@ -2,4 +2,19 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.muzhi.minierp.mapper.product.ProductCategoryMapper">
 
+    <select id="existsByCode" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM product_category WHERE code = #{code})
+    </select>
+
+    <select id="selectSubtreeIds" resultType="java.lang.Long">
+        WITH RECURSIVE category_subtree AS (
+            SELECT id FROM product_category WHERE id = #{id} AND is_deleted = false
+            UNION
+            SELECT category.id
+            FROM product_category category
+            JOIN category_subtree parent ON category.parent_id = parent.id
+            WHERE category.is_deleted = false
+        )
+        SELECT id FROM category_subtree ORDER BY id
+    </select>
 </mapper>
