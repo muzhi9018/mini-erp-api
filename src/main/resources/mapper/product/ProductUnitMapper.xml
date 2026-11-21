@@ -2,4 +2,17 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.muzhi.minierp.mapper.product.ProductUnitMapper">
 
+
+    <select id="existsByCode" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM product_unit WHERE code = #{code})
+    </select>
+
+    <select id="selectForShare" resultType="com.muzhi.minierp.entity.product.ProductUnit">
+        SELECT * FROM product_unit WHERE id = #{id} AND is_deleted = false FOR SHARE
+    </select>
+
+    <select id="selectForUpdate" resultType="com.muzhi.minierp.entity.product.ProductUnit">
+        SELECT * FROM product_unit WHERE id = #{id} AND is_deleted = false FOR UPDATE
+    </select>
+
 </mapper>

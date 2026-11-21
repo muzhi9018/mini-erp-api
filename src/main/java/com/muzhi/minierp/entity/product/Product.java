@@ -98,7 +98,7 @@ public class Product implements Serializable {
     private String description;
 
     /**
-     * 商品状态：ENABLED=启用，DISABLED=停用
+     * 商品状态，见 {@link com.muzhi.minierp.enums.ProductEnum.Status}
      */
     @TableField("status")
     private String status;

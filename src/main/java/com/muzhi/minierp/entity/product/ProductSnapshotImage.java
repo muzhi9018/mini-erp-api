@@ -11,7 +11,7 @@ import java.time.OffsetDateTime;
 
 /**
  * <p>
- * 商品快照图片明细，完整保留当时的全部图片、主图标记和顺序，仅新增和查询，不随来源图片删除
+ * 商品快照图片明细，分别保留商品和 SKU 当时的图片、主图标记和顺序
  * </p>
  *
  * @author Mr.Muzhi
@@ -71,25 +71,31 @@ public class ProductSnapshotImage implements Serializable {
     private Long snapshotId;
 
     /**
-     * 来源商品图片关联 ID，仅用于追溯，不依赖来源记录存在
+     * 快照图片来源，见 {@link com.muzhi.minierp.enums.ProductEnum.ImageType}
+     */
+    @TableField("image_source")
+    private String imageSource;
+
+    /**
+     * 来源图片关联 ID（关联 {@link ProductImage}），用于追溯
      */
     @TableField("source_image_id")
     private Long sourceImageId;
 
     /**
-     * 快照生成时的图片附件 ID，同一快照内唯一，附件记录及实际对象必须保留
+     * 快照生成时的图片附件 ID，同一快照及来源内唯一，附件记录及实际对象必须保留
      */
     @TableField("attachment_id")
     private Long attachmentId;
 
     /**
-     * 快照生成时是否主图，同一快照最多一张主图，非空列表恰好一张由应用保证
+     * 快照生成时是否主图，同一快照的每个来源最多一张主图
      */
     @TableField("is_cover")
     private Boolean isCover;
 
     /**
-     * 快照生成时按当前图片顺序连续赋值的展示顺序，同值时按主键排序
+     * 快照生成时按每个来源的图片顺序连续赋值，同值时按主键排序
      */
     @TableField("sort_order")
     private Integer sortOrder;

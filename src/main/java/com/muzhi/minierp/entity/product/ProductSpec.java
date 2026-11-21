@@ -77,7 +77,7 @@ public class ProductSpec implements Serializable {
     private String name;
 
     /**
-     * 规格值类型：TEXT=文本，NUMBER=数值
+     * 规格值类型，见 {@link com.muzhi.minierp.enums.ProductEnum.SpecValueType}
      */
     @TableField("value_type")
     private String valueType;

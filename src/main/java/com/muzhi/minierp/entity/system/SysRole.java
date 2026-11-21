@@ -61,7 +61,7 @@ public class SysRole implements Serializable {
     private Long updateUser;
 
     /**
-     * 是否删除(0:否; 1:是)
+     * 是否删除(false:否; true:是)
      */
     @TableLogic
     @TableField("is_deleted")

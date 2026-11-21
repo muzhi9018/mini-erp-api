@@ -91,19 +91,36 @@ public class ProductSku implements Serializable {
     private Long unitId;
 
     /**
-     * 参考进价，系统统一业务币种，空表示未维护，0 表示零价
+     * SKU 允许的数量小数位数，范围 0～6，0 表示只允许整数
+     */
+    private Integer quantityScale;
+
+    /**
+     * 参考采购价，与采购币种成对填写，空表示未维护，0 表示零价
      */
     @TableField("reference_purchase_price")
     private BigDecimal referencePurchasePrice;
 
     /**
-     * 参考售价，系统统一业务币种，空表示未维护，0 表示零价
+     * 参考采购价币种，见 {@link com.muzhi.minierp.enums.CurrencyEnum}
+     */
+    @TableField("reference_purchase_currency")
+    private String referencePurchaseCurrency;
+
+    /**
+     * 参考售价，与售价币种成对填写，空表示未维护，0 表示零价
      */
     @TableField("reference_sale_price")
     private BigDecimal referenceSalePrice;
 
     /**
-     * 当前人工库存数量，非负，按基本单位精度校验，通过独立操作设置绝对值
+     * 参考售价币种，见 {@link com.muzhi.minierp.enums.CurrencyEnum}
+     */
+    @TableField("reference_sale_currency")
+    private String referenceSaleCurrency;
+
+    /**
+     * 当前人工库存数量，非负，按该 SKU 的数量小数位校验，通过独立操作设置绝对值
      */
     @TableField("stock_quantity")
     private BigDecimal stockQuantity;
@@ -115,7 +132,7 @@ public class ProductSku implements Serializable {
     private String specificationKey;
 
     /**
-     * SKU 状态：ENABLED=启用，DISABLED=停用，停用仍占用规格组合
+     * SKU 状态，见 {@link com.muzhi.minierp.enums.ProductEnum.Status}，停用仍占用规格组合
      */
     @TableField("status")
     private String status;

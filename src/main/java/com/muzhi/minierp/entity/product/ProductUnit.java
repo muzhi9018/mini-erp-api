@@ -76,12 +76,6 @@ public class ProductUnit implements Serializable {
     private String name;
 
     /**
-     * 允许的数量小数位数，范围 0～6，已被 SKU 使用后不能直接修改
-     */
-    @TableField("quantity_scale")
-    private Integer quantityScale;
-
-    /**
      * 展示顺序，同值时按主键排序
      */
     @TableField("sort_order")

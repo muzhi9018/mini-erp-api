@@ -2,4 +2,46 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.muzhi.minierp.mapper.product.ProductSkuMapper">
 
+
+    <select id="selectForUpdate" resultType="com.muzhi.minierp.entity.product.ProductSku">
+        SELECT * FROM product_sku WHERE id = #{id} AND is_deleted = false FOR UPDATE
+    </select>
+
+    <select id="existsByCode" resultType="boolean">
+        SELECT EXISTS (SELECT 1 FROM product_sku WHERE code = #{code})
+    </select>
+
+    <select id="selectSkuPage" resultType="com.muzhi.minierp.vo.product.ProductSkuVO">
+        SELECT s.*, p.name AS product_name, p.code AS product_code, p.version AS product_version,
+            u.name AS unit_name
+        FROM product_sku s
+        JOIN product p ON p.id = s.product_id AND p.is_deleted = false
+        JOIN product_unit u ON u.id = s.unit_id AND u.is_deleted = false
+        WHERE s.is_deleted = false
+        <if test="options">AND p.status = 'ENABLED' AND s.status = 'ENABLED'</if>
+        <if test="query.status != null">AND p.status = #{query.status}</if>
+        <if test="query.skuStatus != null">AND s.status = #{query.skuStatus}</if>
+        <if test="query.productId != null">AND p.id = #{query.productId}</if>
+        <if test="categoryIds != null">
+            AND p.category_id IN
+            <foreach collection="categoryIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+        <if test="query.keyword != null">
+            AND (p.name ILIKE CONCAT('%', #{query.keyword}, '%') OR p.code ILIKE CONCAT('%', #{query.keyword}, '%')
+                OR s.code ILIKE CONCAT('%', #{query.keyword}, '%') OR s.model ILIKE CONCAT('%', #{query.keyword}, '%'))
+        </if>
+        <foreach collection="query.specs" item="filter" nullable="true">
+            AND EXISTS (
+                SELECT 1 FROM product_sku_spec_value selection
+                JOIN product_spec sp ON sp.id = selection.spec_id AND sp.is_deleted = false
+                JOIN product_spec_value value ON value.id = selection.spec_value_id AND value.is_deleted = false
+                WHERE selection.sku_id = s.id AND selection.is_deleted = false AND selection.spec_id = #{filter.specId}
+                <if test="filter.specValueId != null">AND sp.value_type = 'TEXT' AND value.id = #{filter.specValueId}</if>
+                <if test="filter.minimum != null">AND sp.value_type = 'NUMBER' AND value.number_value &gt;= #{filter.minimum}</if>
+                <if test="filter.maximum != null">AND sp.value_type = 'NUMBER' AND value.number_value &lt;= #{filter.maximum}</if>
+            )
+        </foreach>
+        ORDER BY s.sort_order, s.id
+    </select>
+
 </mapper>

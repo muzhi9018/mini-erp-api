@@ -13,13 +13,16 @@
 - 基础包为 `com.muzhi.minierp`，业务按 `system`、`website` 等模块放入对应的 `controller`、`service`、`mapper`、`entity`、`vo` 包。
 - 命名沿用 `XxxController`、`IXxxService`、`XxxServiceImpl`、`XxxMapper`、`XxxVO`。Controller 接收并校验参数，Service 处理业务与事务，Mapper 访问数据库；接口返回 `JsonResult<T>`。
 - HTTP 接口入参和出参必须使用明确类型的实体、VO 或协议模型，包括嵌套字段；禁止使用 `Map`、`JSONObject`、`JSONArray` 等无明确字段结构的类型，也不能用 `Object` 或原始泛型规避。
-- 单个 HTTP 接口的请求结构应固定；不同业务操作需要不同请求结构时拆分接口，直接接收对应的 record 或 VO，不通过操作编码和多态入参动态选择请求类型。
+- 每个 HTTP 接口使用明确的请求类型，按业务操作拆分路由，不通过操作编码或多态入参选择请求类型。多个接口可以复用同一个类型，各自校验必填字段，Service 按操作的字段白名单写入。
 - 依赖注入使用 `@RequiredArgsConstructor` 配合 `private final` 字段。实体/VO 沿用 Lombok；VO 继承实体时使用 `@EqualsAndHashCode(callSuper = true)`。
-- 优先复用已有实体和 VO，不为每个接口、操作随意新增 VO。确需扩展时，VO 尽量继承对应实体，复用原有字段，只声明额外的业务字段（如子节点、关联列表、展示字段），不重复声明或遮蔽实体已有字段；参考 `WebsiteProductVO extends WebsiteProduct`，仅新增 `productI18n`。
+- 先按业务对象复用已有实体或 VO，同一对象的新增、修改、状态变更等操作默认共用模型。仅有必填字段、校验规则或可写字段的差异，不单独创建 `XxxCreateVO`、`XxxUpdateVO` 等操作型模型。
+- 已有模型无法自然表达请求或响应结构，或需要隔离敏感字段、权限或数据语义时，可以新增独立类型。结构相同的操作参数或结果仍应复用，例如多个删除接口共用带 ID 和期望版本的 record。
+- 确需扩展实体时，VO 尽量继承对应实体，只声明子节点、关联列表、展示字段等额外字段，不重复声明或遮蔽实体已有字段。
 
 ## 注释
 
 - 中文注释，类沿用现有 Javadoc 模板及 `@author`、`@since`；字段用多行 Javadoc 简述业务含义，类型/状态字段链接对应枚举。
+- 类和方法上的注释统一使用多行 Javadoc（`/** ... */`），不使用单行 `//` 或普通块注释 `/* ... */`。
 - 接口方法和复杂方法写清用途，按需补充 `@param`、`@return`；实现方法不重复接口注释。
 - 方法内用独占一行的 `// 说明` 解释业务约束或原因，避免逐句解释代码和保留废弃代码。
 

@@ -155,7 +155,7 @@ public class ProductSnapshot implements Serializable {
     private String unitName;
 
     /**
-     * 快照生成时允许的数量小数位数，范围 0～6
+     * 生成快照时来源 SKU 的数量小数位数，范围 0～6
      */
     @TableField("quantity_scale")
     private Integer quantityScale;

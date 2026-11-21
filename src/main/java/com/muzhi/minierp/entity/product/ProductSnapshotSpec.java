@@ -91,7 +91,7 @@ public class ProductSnapshotSpec implements Serializable {
     private String specName;
 
     /**
-     * 快照规格值类型：TEXT=文本，NUMBER=数值
+     * 快照规格值类型，见 {@link com.muzhi.minierp.enums.ProductEnum.SpecValueType}
      */
     @TableField("value_type")
     private String valueType;

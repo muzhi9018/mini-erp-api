@@ -11,7 +11,7 @@ import java.time.OffsetDateTime;
 
 /**
  * <p>
- * 商品图片，同一商品下 SKU 共用，非空图片列表恰好一张主图由应用事务保证
+ * 商品与 SKU 共用的图片关联，按归属分别维护图片和主图
  * </p>
  *
  * @author Mr.Muzhi
@@ -66,19 +66,25 @@ public class ProductImage implements Serializable {
     private Boolean isDeleted;
 
     /**
-     * 所属商品 ID（逻辑关联）
+     * 图片的归属类型，见 {@link com.muzhi.minierp.enums.ProductEnum.ImageType}
      */
-    @TableField("product_id")
-    private Long productId;
+    @TableField("image_type")
+    private String imageType;
 
     /**
-     * 图片附件 ID（逻辑关联），同一商品内未删除记录唯一，移除关联不删除附件对象
+     * 图片归属 ID（逻辑关联），按图片类型存商品 ID 或 SKU ID
+     */
+    @TableField("owner_id")
+    private Long ownerId;
+
+    /**
+     * 图片附件 ID（逻辑关联），同一商品或 SKU 的有效图片不可重复绑定
      */
     @TableField("attachment_id")
     private Long attachmentId;
 
     /**
-     * 是否主图，同一商品最多一张有效主图，切换时先解除旧主图标记
+     * 是否该商品或 SKU 的主图，每个归属最多一张有效主图
      */
     @TableField("is_cover")
     private Boolean isCover;

@@ -19,6 +19,11 @@ public enum OssModelEnum {
 
 
     /**
+     * 内部商品图片
+     */
+    PRODUCT("内部商品", "PRODUCT", "product"),
+
+    /**
      * 官网商品图片
      */
     WEBSITE_PRODUCT("官网商品", "WEBSITE_PRODUCT", "website/product"),

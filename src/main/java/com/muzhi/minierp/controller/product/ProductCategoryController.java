@@ -35,7 +35,7 @@ public class ProductCategoryController {
      * 查询全部有效类目，逐级按展示顺序、ID 排序。
      */
     @GetMapping("/tree")
-    @PreAuthorize("hasAuthority('product:category:query')")
+    @PreAuthorize("hasAuthority('product-manager:product-category:query')")
     public JsonResult<List<ProductCategoryVO>> tree() {
         List<ProductCategoryVO> tree = productCategoryService.tree();
         return JsonResult.success(tree);
@@ -45,7 +45,7 @@ public class ProductCategoryController {
      * 新增类目，未指定父级和排序时分别使用 0。
      */
     @PostMapping("/create")
-    @PreAuthorize("hasAuthority('product:category:create')")
+    @PreAuthorize("hasAuthority('product-manager:product-category:create')")
     public JsonResult<ProductCategory> create(@RequestBody ProductCategory query) {
         this.validateCategory(query);
         String code = StringUtils.trim(query.getCode());
@@ -69,7 +69,7 @@ public class ProductCategoryController {
      * 修改名称、排序和备注，编码、父级及审计字段不接受普通编辑。
      */
     @PostMapping("/update")
-    @PreAuthorize("hasAuthority('product:category:update')")
+    @PreAuthorize("hasAuthority('product-manager:product-category:update')")
     public JsonResult<ProductCategory> update(@RequestBody ProductCategory query) {
         this.validateCategory(query);
         this.validateId(query.getId());
@@ -81,7 +81,7 @@ public class ProductCategoryController {
      * 逻辑删除没有有效子类目和商品的类目。
      */
     @PostMapping("/delete")
-    @PreAuthorize("hasAuthority('product:category:delete')")
+    @PreAuthorize("hasAuthority('product-manager:product-category:delete')")
     public JsonResult<Boolean> delete(@RequestBody ProductCategory query) {
         Assert.isNull(query, "product.category.required", "商品分类信息不能为空");
         this.validateId(query.getId());

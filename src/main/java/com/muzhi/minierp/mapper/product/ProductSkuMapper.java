@@ -3,6 +3,12 @@ package com.muzhi.minierp.mapper.product;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.muzhi.minierp.entity.product.ProductSku;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.muzhi.minierp.vo.product.ProductSkuVO;
+import com.muzhi.minierp.vo.product.ProductQueryVO;
+import org.apache.ibatis.annotations.Param;
+import java.util.List;
+
 /**
  * <p>
  * 内部商品 SKU，库存为人工维护的当前数量，不自动增减或预占 Mapper 接口
@@ -13,4 +19,20 @@ import com.muzhi.minierp.entity.product.ProductSku;
  */
 public interface ProductSkuMapper extends BaseMapper<ProductSku> {
 
+
+    /**
+     * 锁定 SKU，调用前必须先锁所属商品。
+     */
+    ProductSku selectForUpdate(@Param("id") Long id);
+
+    /**
+     * 编码包含已删除记录。
+     */
+    boolean existsByCode(@Param("code") String code);
+
+    /**
+     * 按结构化规格、类目及关键字筛选，选品强制启用状态。
+     */
+    IPage<ProductSkuVO> selectSkuPage(IPage<ProductSkuVO> page, @Param("query") ProductQueryVO query,
+            @Param("categoryIds") List<Long> categoryIds, @Param("options") boolean options);
 }
