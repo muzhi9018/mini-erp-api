@@ -83,7 +83,11 @@ public class CodeGenerator {
         String xmlOutputDirectory = mapperDirectory.resolve(modulePath).toString();
         Map<OutputFile, String> outputPaths = Map.of(OutputFile.xml, xmlOutputDirectory);
 
-        return FastAutoGenerator.create("jdbc:postgresql://192.168.1.199:5432/mini_erp", "root", "postgres@root@602")
+        String jdbcUrl = System.getenv("SPRING_DATASOURCE_URL");
+        String jdbcUsername = System.getenv("SPRING_DATASOURCE_USERNAME");
+        String jdbcPassword = System.getenv("SPRING_DATASOURCE_PASSWORD");
+
+        return FastAutoGenerator.create(jdbcUrl, jdbcUsername, jdbcPassword)
                 .globalConfig(builder -> {
                     builder.author("Mr.Muzhi");
                     builder.outputDir(javaOutputDirectory);
