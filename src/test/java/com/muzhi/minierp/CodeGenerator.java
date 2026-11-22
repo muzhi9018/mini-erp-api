@@ -1,6 +1,7 @@
 package com.muzhi.minierp;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.generator.FastAutoGenerator;
 import com.baomidou.mybatisplus.generator.config.OutputFile;
 import com.baomidou.mybatisplus.generator.config.rules.IColumnType;
@@ -132,6 +133,7 @@ public class CodeGenerator {
                     builder.entityBuilder()
                             .enableLombok()
                             .enableTableFieldAnnotation()
+                            .idType(IdType.ASSIGN_ID)
                             .logicDeleteColumnName("is_deleted")
                             .logicDeletePropertyName("deleted")
                             .addTableFills(
