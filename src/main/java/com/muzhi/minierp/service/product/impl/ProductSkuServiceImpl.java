@@ -190,21 +190,50 @@ public class ProductSkuServiceImpl extends ServiceImpl<ProductSkuMapper, Product
 
     @Override
     public IPage<ProductSkuVO> list(ProductQueryVO query, Integer pageNum, Integer pageSize) {
-        return this.queryPage(query, pageNum, pageSize, false);
+        return this.queryPage(query, pageNum, pageSize, false, false, null);
     }
 
     @Override
     public IPage<ProductOptionVO> options(ProductQueryVO query, Integer pageNum, Integer pageSize) {
-        IPage<ProductSkuVO> page = this.queryPage(query, pageNum, pageSize, true);
-        List<ProductOptionVO> options = BeanConvertUtils.mapList(page.getRecords(), ProductOptionVO.class);
+        IPage<ProductSkuVO> page = this.queryPage(query, pageNum, pageSize, true, false, null);
+        return this.toOptionPage(page, pageNum, pageSize);
+    }
+
+    @Override
+    public IPage<ProductOptionVO> quotationOptions(ProductQuotationQueryVO query, Integer pageNum, Integer pageSize) {
+        String currency = query.getReferenceSaleCurrency();
+        IPage<ProductSkuVO> page = this.queryPage(query, pageNum, pageSize, true, true, currency);
+        return this.toOptionPage(page, pageNum, pageSize);
+    }
+
+    @Override
+    public List<ProductOptionVO> optionsByIds(List<Long> skuIds) {
+        if (skuIds.isEmpty()) {
+            return List.of();
+        }
+        List<ProductSkuVO> skus = super.baseMapper.selectOptionsByIds(skuIds);
+        this.enrich(skus);
+        return this.toOptions(skus);
+    }
+
+    /**
+     * 使用与管理选品相同的规格和展示字段组装报价选品数据。
+     */
+    private List<ProductOptionVO> toOptions(List<ProductSkuVO> skus) {
+        List<ProductOptionVO> options = BeanConvertUtils.mapList(skus, ProductOptionVO.class);
         for (int index = 0; index < options.size(); index++) {
             ProductOptionVO option = options.get(index);
-            ProductSkuVO sku = page.getRecords().get(index);
+            ProductSkuVO sku = skus.get(index);
             option.setSkuId(sku.getId());
             option.setSkuVersion(sku.getVersion());
             List<ProductOptionSpecVO> specs = BeanConvertUtils.mapList(sku.getSpecValues(), ProductOptionSpecVO.class);
             option.setSpecs(specs);
         }
+        return options;
+    }
+
+    private IPage<ProductOptionVO> toOptionPage(IPage<ProductSkuVO> page, Integer pageNum, Integer pageSize) {
+        List<ProductOptionVO> options = this.toOptions(page.getRecords());
         Page<ProductOptionVO> result = new Page<>(pageNum, pageSize, page.getTotal());
         result.setRecords(options);
         return result;
@@ -215,7 +244,7 @@ public class ProductSkuServiceImpl extends ServiceImpl<ProductSkuMapper, Product
         ProductQueryVO query = new ProductQueryVO();
         query.setProductId(productId);
         Page<ProductSkuVO> page = new Page<>(1, -1);
-        IPage<ProductSkuVO> result = super.baseMapper.selectSkuPage(page, query, null, false);
+        IPage<ProductSkuVO> result = super.baseMapper.selectSkuPage(page, query, null, false, false, null);
         this.enrich(result.getRecords());
         return result.getRecords();
     }
@@ -362,7 +391,9 @@ public class ProductSkuServiceImpl extends ServiceImpl<ProductSkuMapper, Product
         return new ProductRequests.SkuResult(sku.getId(), sku.getStockQuantity(), skuVersion, productVersion);
     }
 
-    private IPage<ProductSkuVO> queryPage(ProductQueryVO query, Integer pageNum, Integer pageSize, boolean options) {
+    private IPage<ProductSkuVO> queryPage(
+            ProductQueryVO query, Integer pageNum, Integer pageSize, boolean options, boolean quotation, String currency
+    ) {
         List<Long> categoryIds = null;
         if (query.getCategoryId() != null) {
             categoryIds = productCategoryMapper.selectSubtreeIds(query.getCategoryId());
@@ -373,7 +404,7 @@ public class ProductSkuServiceImpl extends ServiceImpl<ProductSkuMapper, Product
         String keyword = StringUtils.trimToNull(query.getKeyword());
         query.setKeyword(keyword);
         Page<ProductSkuVO> page = new Page<>(pageNum, pageSize);
-        IPage<ProductSkuVO> result = super.baseMapper.selectSkuPage(page, query, categoryIds, options);
+        IPage<ProductSkuVO> result = super.baseMapper.selectSkuPage(page, query, categoryIds, options, quotation, currency);
         this.enrich(result.getRecords());
         return result;
     }

@@ -107,10 +107,22 @@ public class Quotation implements Serializable {
     private OffsetDateTime quotedAt;
 
     /**
-     * 全单售价币种：CNY=人民币，TWD=新台币
+     * 全单售价币种，见 {@link com.muzhi.minierp.enums.CurrencyEnum}
      */
     @TableField("currency")
     private String currency;
+
+    /**
+     * 是否已生成订单
+     */
+    @TableField("order_generated")
+    private Boolean orderGenerated;
+
+    /**
+     * 报价版本
+     */
+    @TableField("version")
+    private Long version;
 
     /**
      * 本单客户名称
@@ -131,9 +143,9 @@ public class Quotation implements Serializable {
     private String contactPhone;
 
     /**
-     * 本单客户联络电子邮件
+     * 本单联系人电子邮件，预留字段
      */
-    @TableField("contact_email")
+    @TableField(value = "contact_email", select = false)
     private String contactEmail;
 
     /**

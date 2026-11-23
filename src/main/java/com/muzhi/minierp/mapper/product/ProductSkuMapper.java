@@ -31,8 +31,14 @@ public interface ProductSkuMapper extends BaseMapper<ProductSku> {
     boolean existsByCode(@Param("code") String code);
 
     /**
+     * 批量加载选品展示资料，保留停用项及未定价项供模板诊断。
+     */
+    List<ProductSkuVO> selectOptionsByIds(@Param("skuIds") List<Long> skuIds);
+
+    /**
      * 按结构化规格、类目及关键字筛选，选品强制启用状态。
      */
     IPage<ProductSkuVO> selectSkuPage(IPage<ProductSkuVO> page, @Param("query") ProductQueryVO query,
-            @Param("categoryIds") List<Long> categoryIds, @Param("options") boolean options);
+            @Param("categoryIds") List<Long> categoryIds, @Param("options") boolean options,
+            @Param("quotation") boolean quotation, @Param("referenceSaleCurrency") String referenceSaleCurrency);
 }

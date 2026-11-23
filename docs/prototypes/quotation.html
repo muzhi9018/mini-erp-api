@@ -60,6 +60,10 @@
 #erp-quote-prototype .qt-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; min-width: 0; }
 #erp-quote-prototype .qt-between { justify-content: space-between; }
 #erp-quote-prototype .qt-panel { min-width: 0; border: 1px solid var(--line); background: var(--paper); border-radius: 12px; }
+#erp-quote-prototype .qt-template-tabs { display: flex; gap: 12px; padding-inline: 16px; border-bottom: 1px solid var(--line); }
+#erp-quote-prototype .qt-template-tabs button { min-height: 44px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); white-space: nowrap; }
+#erp-quote-prototype .qt-template-tabs button:hover { color: var(--blue); }
+#erp-quote-prototype .qt-template-tabs button[aria-selected="true"] { border-bottom-color: var(--blue); color: var(--blue); font-weight: 650; }
 #erp-quote-prototype .qt-pad { padding: 22px; }
 #erp-quote-prototype .qt-section { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 15px; }
 #erp-quote-prototype .qt-sectionbar { padding: 14px 16px; }
@@ -111,13 +115,15 @@
 #erp-quote-prototype .qt-totals .qt-total { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 3px; align-items: baseline; }
 #erp-quote-prototype .qt-total dt { color: var(--ink); font-weight: 650; }
 #erp-quote-prototype .qt-total dd { color: var(--blue); font-size: 24px; line-height: 1.15; letter-spacing: -.03em; }
-#erp-quote-prototype .qt-total small { font-size: 12px; letter-spacing: 0; }
+#erp-quote-prototype .qt-total small { font-size: .85em; letter-spacing: 0; }
 #erp-quote-prototype .qt-total .qt-long-money { font-size: 18px; }
 #erp-quote-prototype .qt-discount { display: grid; grid-template-columns: minmax(118px, 1fr) minmax(74px,.87fr); align-items: start; gap: 8px; }
 #erp-quote-prototype .qt-discount > select { width: 100%; }
 #erp-quote-prototype .qt-discount label { position: relative; display: block; min-width: 0; }
 #erp-quote-prototype .qt-discount label input { width: 100%; padding-right: 31px; }
 #erp-quote-prototype .qt-discount label span { position: absolute; right: 8px; top: 0; line-height: 36px; font-size: 11px; color: var(--muted); pointer-events: none; }
+#erp-quote-prototype .qt-discount .qt-money-input input { padding-inline: 31px 9px; }
+#erp-quote-prototype .qt-discount .qt-money-input span { left: 9px; right: auto; }
 #erp-quote-prototype .qt-template-rate { display: block; max-width: 128px; }
 #erp-quote-prototype .qt-summary-discount { border-block: 1px solid var(--line); padding-block: 13px; margin-block: 14px; display: grid; gap: 6px; }
 #erp-quote-prototype .qt-tablewrap { overflow-x: auto; }
@@ -129,15 +135,17 @@
 #erp-quote-prototype .qt-table tbody tr:last-child td { border-bottom: 0; }
 #erp-quote-prototype .qt-table tbody > tr:hover { background: var(--soft); }
 #erp-quote-prototype .qt-list { min-width: 830px; }
-#erp-quote-prototype .qt-line-table { min-width: 730px; }
-#erp-quote-prototype .qt-edit-line-table { min-width: 1120px; table-layout: fixed; }
-#erp-quote-prototype .qt-edit-index { width: 52px; }
-#erp-quote-prototype .qt-edit-quantity { width: 124px; }
-#erp-quote-prototype .qt-edit-price { width: 112px; }
-#erp-quote-prototype .qt-edit-discount { width: 260px; }
-#erp-quote-prototype .qt-edit-amount { width: 114px; }
+#erp-quote-prototype .qt-quote-line-table { min-width: 1128px; table-layout: fixed; }
+#erp-quote-prototype .qt-edit-line-table { min-width: 1224px; }
+#erp-quote-prototype .qt-line-index-col { width: 52px; }
+#erp-quote-prototype .qt-line-quantity-col { width: 124px; }
+#erp-quote-prototype .qt-line-price-col { width: 112px; }
+#erp-quote-prototype .qt-line-discount-col { width: 260px; }
+#erp-quote-prototype .qt-line-amount-col { width: 224px; }
 #erp-quote-prototype .qt-edit-actions { width: 96px; }
-#erp-quote-prototype .qt-edit-money { white-space: normal; overflow-wrap: anywhere; }
+#erp-quote-prototype :is(.qt-line-price,.qt-line-quantity) { white-space: normal; overflow-wrap: anywhere; }
+#erp-quote-prototype .qt-line-amount strong { display: block; }
+#erp-quote-prototype .qt-line-amount .qt-cell-sub:empty { display: none; }
 #erp-quote-prototype .qt-edit-note { display: block; width: 100%; height: 36px; min-height: 36px; }
 #erp-quote-prototype .qt-table .qt-line > td { vertical-align: top; height: 64px; }
 #erp-quote-prototype .qt-title-button { display: block; color: var(--ink); background: transparent; border: 0; padding: 0; text-align: left; font-weight: 650; overflow-wrap: anywhere; }
@@ -145,12 +153,10 @@
 #erp-quote-prototype .qt-sku { min-width: 150px; overflow-wrap: anywhere; }
 #erp-quote-prototype .qt-sku strong, #erp-quote-prototype .qt-sku span, #erp-quote-prototype .qt-cell-sub { display: block; }
 #erp-quote-prototype .qt-cell-sub { margin-top: 3px; }
-#erp-quote-prototype .qt-unit-price { padding-top: 8px; }
+#erp-quote-prototype .qt-edit-line-table :is(.qt-line-price div,.qt-line-amount strong) { padding-top: 8px; }
 #erp-quote-prototype .qt-qty { width: 86px; text-align: right; }
 #erp-quote-prototype .qt-line-actions { display: flex; justify-content: flex-end; align-items: flex-start; gap: 3px; }
 #erp-quote-prototype .qt-line-actions .qt-link { min-height: 33px; }
-#erp-quote-prototype .qt-paired td { background: var(--soft); }
-#erp-quote-prototype .qt-paired p { white-space: pre-wrap; overflow-wrap: anywhere; }
 #erp-quote-prototype .qt-pager { padding: 11px 15px; border-top: 1px solid var(--line); }
 #erp-quote-prototype .qt-pager .qt-btn { min-height: 30px; }
 #erp-quote-prototype .qt-empty { text-align: center; color: var(--muted); padding: 38px 15px; display: grid; justify-items: center; gap: 8px; }
@@ -201,6 +207,7 @@
 #erp-quote-prototype .qt-sheet-table th { color: #3f536e; background: #eff3f9; font-size: 12px; text-align: left; }
 #erp-quote-prototype .qt-sheet-table .qt-end { text-align: right; }
 #erp-quote-prototype .qt-sheet-table td { font-size: 13px; }
+#erp-quote-prototype .qt-sheet-table .qt-sheet-money { padding-left: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
 #erp-quote-prototype .qt-sheet-table .qt-sheet-note { margin-top: 5px; white-space: pre-wrap; }
 #erp-quote-prototype .qt-sheet .qt-sheet-note { color: #4d607a; overflow-wrap: anywhere; white-space: pre-wrap; }
 #erp-quote-prototype .qt-sheet-bottom { margin-top: 18px; display: grid; grid-template-columns: minmax(0,1fr) 271px; gap: 24px; }
@@ -262,12 +269,17 @@
     const rate = value => ({mode:'rate', value:String(value)});
     const fixed = value => ({mode:'amount', value:String(value)});
     const grouped = number => number.toLocaleString('en-US');
-    const money = cents => cents == null ? '—' : `${grouped(cents / 100n)}.${String(cents % 100n).padStart(2,'0')}`;
-    const priceText = value => {
+    const symbols = {CNY:'¥', TWD:'NT$'};
+    const symbol = ccy => symbols[ccy] || '';
+    const withCurrency = (amount, ccy) => symbol(ccy) ? `${symbol(ccy)} ${amount}` : amount;
+    const money = (cents, ccy) => cents == null ? '—' : withCurrency(`${grouped(cents / 100n)}.${String(cents % 100n).padStart(2,'0')}`,ccy);
+    const priceText = (value, ccy) => {
         if (value == null) return '—';
         const [whole, fraction = ''] = value.split('.');
-        return `${grouped(BigInt(whole))}.${fraction.replace(/0+$/, '').padEnd(2, '0')}`;
+        return withCurrency(`${grouped(BigInt(whole))}.${fraction.replace(/0+$/, '').padEnd(2, '0')}`,ccy);
     };
+    const currencyLine = ccy => ccy ? `<span class="qt-cell-sub qt-muted">${escape(ccy)}</span>` : '';
+    const totalSymbol = (cents, ccy) => cents != null && symbol(ccy) ? `<small>${symbol(ccy)}</small> ` : '';
     const dated = value => value ? value.replace('T',' ').slice(0,16) : '—';
     const seedTime = (day, time) => `2026-11-${day}T${time}`;
     const today = () => {
@@ -344,8 +356,6 @@
     const quoteBy = id => quotes.find(quote => quote.id === id && !quote.deleted);
     const templateBy = id => templates.find(template => template.id === id);
     const currencyOf = draft => draft.lockCurrency || draft.rows[0]?.product.currency || '';
-    const symbols = {CNY:'¥', TWD:'NT$'};
-    const symbol = ccy => symbols[ccy] || '';
 
     function decimal(value, scale, maxWhole = 14, allowTrailing = false) {
         const match = /^(\d+)(?:\.(\d+))?$/.exec(String(value).trim());
@@ -372,7 +382,7 @@
         return fold ? `${fold} 折` : '—';
     }
     const savedDiscount = discount => discount.mode === 'rate' ? rate(foldNumber(discount.value)) : clone(discount);
-    function discountTotal(amount, discount) {
+    function discountTotal(amount, discount, ccy) {
         if (amount == null) return {value:null, error:''};
         if (!discount?.value.trim() || discount.mode === 'none') return {value:amount, error:''};
         if (discount.mode === 'rate') {
@@ -380,7 +390,7 @@
             return fold == null ? {value:null,error:foldError} : {value:round(amount * fold,10000n),error:''};
         }
         const input = decimal(discount.value,2);
-        if (input == null || input > amount) return {value:null, error:`金额须为 0～${money(amount)}，最多两位小数。`};
+        if (input == null || input > amount) return {value:null, error:`金额须为 ${money(0n,ccy)}～${money(amount,ccy)}，最多两位小数。`};
         return {value:input,error:''};
     }
     function calculate(draft) {
@@ -394,12 +404,12 @@
             const raw = decimal(row.qty,6,14,true) * decimal(row.product.price,6);
             const original = round(raw,10000000000n);
             if (original > maxCents) return {rid:row.rid, original:null, value:null, error:'', quantityError:'行原价超出金额范围，请减少数量。'};
-            return {rid:row.rid, original, quantityError:'', ...discountTotal(original,row.discount)};
+            return {rid:row.rid, original, quantityError:'', ...discountTotal(original,row.discount,row.product.currency)};
         });
         const sum = key => lines.some(row => row[key] == null) ? null : lines.reduce((total,row) => total + row[key],0n);
         const original = sum('original');
         const subtotal = sum('value');
-        const final = original > maxCents || subtotal > maxCents ? {value:null,error:'汇总金额超出限额，请减少数量或拆分报价。'} : discountTotal(subtotal,draft.discount);
+        const final = original > maxCents || subtotal > maxCents ? {value:null,error:'汇总金额超出限额，请减少数量或拆分报价。'} : discountTotal(subtotal,draft.discount,currencyOf(draft));
         return {lines, original, subtotal, final:final.value, finalError:final.error};
     }
 
@@ -431,8 +441,8 @@ ${escape(value)}</textarea>` : `<input ${attrs} value="${escape(value)}" ${error
         return `<header class="qt-header qt-gutter"><div class="qt-crumb">${mainCrumb}${icon('chevron-right')}<span>${escape(crumb || '报价管理')}</span></div><div class="qt-headline"><div><div class="qt-head-title"><h1>${escape(title)}</h1>${badge}</div>${subtitle ? `<p>${escape(subtitle)}</p>` : ''}</div><div class="qt-row">${actions}</div></div></header>`;
     }
     function shell(content) {
-        const current = state.view.startsWith('template') ? state.scope : 'list';
-        const links = [['报价单列表','list','files'],['个人模板','personal','bookmark'],['公共模板','public','layers']];
+        const current = state.view.startsWith('template') ? 'templates' : 'list';
+        const links = [['报价单列表','list','files'],['报价模板','templates','layers']];
         const nav = links.map(([label,action,glyph]) => `<button type="button" data-act="${action}" aria-label="${label}" data-tooltip="${label}" data-tooltip-placement="right" ${current === action ? 'aria-current="location"' : ''}>${icon(glyph)}<span class="qt-sidebar-label">${label}</span></button>`).join('');
         return `<div class="qt-shell"><aside class="qt-rail"><nav class="qt-sidebar" aria-label="报价管理菜单"><div class="qt-sidebar-heading">报价管理</div>${nav}</nav></aside><div class="qt-workspace">${content}</div></div>`;
     }
@@ -468,7 +478,8 @@ ${escape(value)}</textarea>` : `<input ${attrs} value="${escape(value)}" ${error
         const pages = pager(records.length,f,'quote');
         const rows = slicePage(records,f).map(quote => {
             const ccy = currencyOf(quote);
-            return `<tr><td><button class="qt-title-button" type="button" data-act="detail" data-id="${quote.id}">${escape(quote.title)}</button><span class="qt-cell-sub qt-mono qt-muted">${escape(quote.number)}</span></td><td>${escape(quote.customer.name) || '<span class="qt-muted">—</span>'}</td><td class="qt-number">${dated(quote.date)}</td><td>${quoteStatus(quote)}</td><td class="qt-end qt-number"><strong>${symbol(ccy)} ${money(calculate(quote).final)}</strong><span class="qt-cell-sub qt-muted">${ccy}</span></td><td>${quoteActions(quote)}</td></tr>`;
+            const total = calculate(quote).final;
+            return `<tr><td><button class="qt-title-button" type="button" data-act="detail" data-id="${quote.id}">${escape(quote.title)}</button><span class="qt-cell-sub qt-mono qt-muted">${escape(quote.number)}</span></td><td>${escape(quote.customer.name) || '<span class="qt-muted">—</span>'}</td><td class="qt-number">${dated(quote.date)}</td><td>${quoteStatus(quote)}</td><td class="qt-end qt-number"><strong>${money(total,ccy)}</strong>${currencyLine(total == null ? '' : ccy)}</td><td>${quoteActions(quote)}</td></tr>`;
         }).join('');
         const headers = ths(['报价标题 / 单号','客户名称','报价时间','转单状态',['报价总额','qt-end'],['操作','qt-end']]);
         return (rows ? table(headers,rows,'qt-list') : empty('没有符合条件的报价单','试试其他关键词或报价日期。')) + pages;
@@ -493,16 +504,32 @@ ${escape(value)}</textarea>` : `<input ${attrs} value="${escape(value)}" ${error
     function discountControl(discount, key, ccy, label) {
         const isFold = discount.mode === 'rate';
         const unit = isFold ? '折' : ccy;
-        return `<div class="qt-discount"><select aria-label="${escape(label)}方式" data-bind="${key}-mode">${options(Object.entries(modes),discount.mode)}</select><label ${discount.mode === 'none' ? 'hidden' : ''}><input type="text" inputmode="decimal" maxlength="${isFold ? 6 : 17}" aria-label="${escape(label)}${modes[discount.mode]}${unit ? `（${unit}）` : ''}" aria-describedby="qt-err-${key}" data-bind="${key}-value" value="${escape(discount.value)}" ${isFold ? 'placeholder="如 9.5"' : ''}><span>${unit}</span></label></div><span id="qt-err-${key}" class="qt-inline-error"></span>`;
+        const affix = isFold ? '折' : symbol(ccy);
+        return `<div class="qt-discount"><select aria-label="${escape(label)}方式" data-bind="${key}-mode">${options(Object.entries(modes),discount.mode)}</select><label${discount.mode === 'none' ? ' hidden' : ''}${!isFold && affix ? ' class="qt-money-input"' : ''}><input type="text" inputmode="decimal" maxlength="${isFold ? 6 : 17}" aria-label="${escape(label)}${modes[discount.mode]}${unit ? `（${unit}）` : ''}" aria-describedby="qt-err-${key}" data-bind="${key}-value" value="${escape(discount.value)}" ${isFold ? 'placeholder="如 9.5"' : ''}>${affix ? `<span aria-hidden="true">${affix}</span>` : ''}</label></div><span id="qt-err-${key}" class="qt-inline-error"></span>`;
     }
     function productLabel(product, historical = false) {
         return `<div class="qt-sku"><strong>${escape(product.name)}</strong><span class="qt-mono qt-muted">${escape(product.id)} · ${escape(product.model)}</span><span class="qt-muted">${escape(product.spec)}${historical ? ' · 原报价快照' : ''}</span></div>`;
     }
     function displayTotals(result, ccy) {
-        const row = (label, cents, attrs = '') => `<div ${attrs}><dt>${label}</dt><dd class="qt-number">${money(cents)}</dd></div>`;
+        const row = (label, cents) => `<div><dt>${label}</dt><dd class="qt-number">${money(cents,ccy)}</dd></div>`;
         const deducted = (before, after) => before == null || after == null ? null : before - after;
         const final = money(result.final);
-        return `<dl class="qt-totals">${row('商品原价合计',result.original)}${row('商品优惠',deducted(result.original,result.subtotal))}${row('整单优惠前',result.subtotal)}${row('整单优惠',deducted(result.subtotal,result.final))}<div class="qt-total"><dt>报价总额</dt><dd class="qt-number${final.length > 13 ? ' qt-long-money' : ''}"><small>${escape(ccy)}</small> ${final}</dd></div></dl>`;
+        return `<dl class="qt-totals">${row('商品原价合计',result.original)}${row('商品优惠',deducted(result.original,result.subtotal))}${row('整单优惠前',result.subtotal)}${row('整单优惠',deducted(result.subtotal,result.final))}<div class="qt-total"><dt>报价总额</dt><dd class="qt-number${final.length > 13 ? ' qt-long-money' : ''}">${totalSymbol(result.final,ccy)}${final}</dd></div></dl>`;
+    }
+    function quoteLineTable(rows, editable = false) {
+        const columns = [['序号','qt-line-index-col'],'商品/SKU',['单价','qt-line-price-col qt-end'],['数量','qt-line-quantity-col'],['优惠','qt-line-discount-col'],['金额','qt-line-amount-col qt-end'],'备注'];
+        if (editable) columns.push(['操作','qt-edit-actions qt-end']);
+        return table(ths(columns),rows,editable ? 'qt-quote-line-table qt-edit-line-table' : 'qt-quote-line-table');
+    }
+    function linePriceCell(product) {
+        const {price,currency} = product;
+        return `<td class="qt-end qt-number qt-line-price"><div>${priceText(price,currency)}</div>${currencyLine(price == null ? '' : currency)}</td>`;
+    }
+    function lineOriginalText(result, ccy) {
+        return result?.original != null && result.value !== result.original ? `原价 ${money(result.original,ccy)}` : '';
+    }
+    function lineAmountCell(ccy, result, rid) {
+        return `<td class="qt-end qt-number qt-line-amount"><strong${rid == null ? '' : ` data-number-row="${rid}"`}>${money(result?.value,ccy)}</strong><span class="qt-cell-sub qt-muted"${rid == null ? '' : ` data-original-row="${rid}"`}>${lineOriginalText(result,ccy)}</span></td>`;
     }
     function rowView(row, index) {
         const {rid, product} = row;
@@ -511,10 +538,10 @@ ${escape(row.note)}</textarea>`;
         return `<tr class="qt-line" data-row="${rid}">
             <td class="qt-muted qt-number">${String(index + 1).padStart(2,'0')}</td>
             <td>${productLabel(product,row.source)}<div class="qt-row" data-conflict-row="${rid}" hidden><span class="qt-inline-error">商品资料已变化</span>${link('刷新此行','refresh-line',rid)}</div></td>
-            <td class="qt-end qt-number qt-edit-money"><div class="qt-unit-price">${priceText(product.price)}</div><span class="qt-cell-sub qt-muted">${product.currency}</span></td>
+            ${linePriceCell(product)}
             <td><input class="qt-qty" aria-label="第 ${index + 1} 行数量" aria-describedby="qt-err-qty-${rid}" type="text" inputmode="decimal" maxlength="26" data-bind="qty-${rid}" value="${escape(row.qty)}"><span class="qt-cell-sub qt-muted">${escape(product.unit)} · ${product.scale ? `最多 ${product.scale} 位小数` : '整数'}</span><span id="qt-err-qty-${rid}" class="qt-inline-error"></span></td>
             <td>${discountControl(row.discount,`line-${rid}`,product.currency,`第 ${index + 1} 行`)}</td>
-            <td class="qt-end qt-number qt-edit-money"><strong class="qt-unit-price" data-number-row="${rid}" style="display:block">—</strong><span class="qt-cell-sub qt-muted" data-original-row="${rid}"></span></td>
+            ${lineAmountCell(product.currency,null,rid)}
             <td>${note}</td>
             <td><div class="qt-line-actions">${button('', 'replace-line',{id:rid,glyph:'repeat-2',look:'icon-btn',aria:`替换第 ${index + 1} 行商品`})}${button('', 'remove-line',{id:rid,glyph:'trash-2',look:'icon-btn',aria:`移除第 ${index + 1} 行`})}</div></td>
         </tr>`;
@@ -530,8 +557,7 @@ ${escape(row.note)}</textarea>`;
         const customers = Object.entries(customerFields).map(([key,label]) => field(label,`type="${key === 'phone' ? 'tel' : 'text'}" data-bind="customer-${key}" maxlength="${customerLengths[key]}"`,draft.customer[key])).join('');
         const fields = panel(`${sectionHeading('报价信息')}<div class="qt-fields">${field('报价标题','type="text" data-bind="draft-title" required maxlength="256"',draft.title,{required:true,errorKey:'title'})}${field('报价时间','type="datetime-local" data-bind="draft-date" required',draft.date,{required:true,errorKey:'date'})}</div>`) + panel(`${sectionHeading('客户资料','<span class="qt-muted">选填 · 客户版可见</span>')}<div class="qt-fields qt-customer-grid">${customers}</div>`);
         const rowData = draft.rows.map(rowView).join('');
-        const lineHeaders = ths([['序号','qt-edit-index'],'商品/SKU',['单价','qt-edit-price qt-end'],['数量','qt-edit-quantity'],['优惠','qt-edit-discount'],['金额','qt-edit-amount qt-end'],'备注',['操作','qt-edit-actions qt-end']]);
-        const lineTable = rowData ? table(lineHeaders,rowData,'qt-edit-line-table') : empty('还没有商品明细','添加同币种 SKU，或套用已有报价模板。');
+        const lineTable = rowData ? quoteLineTable(rowData,true) : empty('还没有商品明细','添加同币种 SKU，或套用已有报价模板。');
         const lineTools = `${ccy ? status(`${ccy} ${edit ? '原单币种' : '报价币种'}`,'blue') : '<span class="qt-muted">首条商品确定币种</span>'}<span class="qt-muted">${draft.rows.length} 行</span>${draft.rows.length ? '<span class="qt-muted" id="qt-note-visibility">备注在客户版可见</span>' : ''}`;
         const lines = `<section class="qt-panel"><div class="qt-row qt-between qt-sectionbar"><div class="qt-row"><h2>商品明细</h2>${lineTools}</div><div class="qt-row">${edit ? '' : button('套用模板','choose-template',{glyph:'layers'})}${button('添加商品','products',{glyph:'plus'})}</div></div>${lineTable}</section>`;
         const saveAs = edit ? '' : `<div class="qt-row" style="margin-top:16px">${button('另存为模板','save-template-dialog',{glyph:'bookmark'})}</div>`;
@@ -558,8 +584,9 @@ ${escape(row.note)}</textarea>`;
             setError(`line-${row.rid}`,result.error,`line-${row.rid}-value`);
             const value = root.querySelector(`[data-number-row="${row.rid}"]`);
             const original = root.querySelector(`[data-original-row="${row.rid}"]`);
-            value.textContent = money(result.value);
-            original.textContent = result.original != null && result.value !== result.original ? `原价 ${money(result.original)}` : '';
+            const ccy = row.product.currency;
+            value.textContent = money(result.value,ccy);
+            original.textContent = lineOriginalText(result,ccy);
             root.querySelector(`[data-conflict-row="${row.rid}"]`).hidden = !draft.conflicts.includes(row.rid);
         });
         setError('order',results.finalError,'order-value');
@@ -637,14 +664,24 @@ ${escape(row.note)}</textarea>`;
         const computed = calculate(quote);
         const actions = `${quote.generated ? '' : button('删除','delete',{id:quote.id,glyph:'trash-2',look:'danger'}) + button('修改报价','edit',{id:quote.id,glyph:'pencil'})}${button('生成新报价','copy',{id:quote.id,glyph:'copy'})}${button('查看客户版','view-paper',{id:quote.id,glyph:'eye',look:'primary'})}`;
         const customers = Object.entries(customerFields).map(([key,label]) => `<div><dt>${label}</dt><dd>${escape(quote.customer[key]) || '—'}</dd></div>`).join('');
-        const rows = quote.rows.map((row,index) => `<tr class="qt-line"><td class="qt-number qt-muted">${String(index + 1).padStart(2,'0')}</td><td>${productLabel(row.product)}</td><td class="qt-number">${escape(row.qty)} ${escape(row.product.unit)}</td><td class="qt-end qt-number">${priceText(row.product.price)}</td><td>${discountText(row.discount,ccy)}</td><td class="qt-end qt-number"><strong>${money(computed.lines[index].value)}</strong></td></tr>${row.note ? `<tr class="qt-paired"><td></td><td colspan="5"><p class="qt-muted">行备注 · ${escape(row.note)}</p></td></tr>` : ''}`).join('');
-        const left = `<div class="qt-stack">${panel(`${sectionHeading('客户资料')}<dl class="qt-facts qt-customer-grid">${customers}</dl>`)}<section class="qt-panel"><div class="qt-row qt-sectionbar"><h2>商品明细</h2><span class="qt-muted">${quote.rows.length} 行 · ${ccy}</span></div>${table(ths(['序号','商品/SKU','数量',['单价','qt-end'],'优惠',['金额','qt-end']]),rows,'qt-line-table')}</section>${quote.note ? panel(sectionHeading('报价备注') + `<p class="qt-prose">${escape(quote.note)}</p>`) : ''}</div>`;
+        const rows = quote.rows.map((row,index) => `<tr class="qt-line">
+            <td class="qt-muted qt-number">${String(index + 1).padStart(2,'0')}</td>
+            <td>${productLabel(row.product)}</td>
+            ${linePriceCell(row.product)}
+            <td class="qt-number qt-line-quantity">${escape(row.qty)} ${escape(row.product.unit)}</td>
+            <td>${discountText(row.discount,ccy,true)}</td>
+            ${lineAmountCell(ccy,computed.lines[index])}
+            <td>${row.note ? `<p class="qt-prose">${escape(row.note)}</p>` : '<span class="qt-muted">—</span>'}</td>
+        </tr>`).join('');
+        const left = `<div class="qt-stack">${panel(`${sectionHeading('客户资料')}<dl class="qt-facts qt-customer-grid">${customers}</dl>`)}<section class="qt-panel"><div class="qt-row qt-sectionbar"><h2>商品明细</h2><span class="qt-muted">${quote.rows.length} 行 · ${ccy}</span></div>${quoteLineTable(rows)}</section>${quote.note ? panel(sectionHeading('报价备注') + `<p class="qt-prose">${escape(quote.note)}</p>`) : ''}</div>`;
         const summary = `<aside class="qt-panel qt-pad qt-summary"><h2>报价汇总</h2><div class="qt-summary-discount"><span class="qt-muted">整单优惠方式</span><strong>${discountText(quote.discount,ccy)}</strong></div>${displayTotals(computed,ccy)}</aside>`;
         return heading(quote.title,`${quote.number} · ${dated(quote.date)}`,actions,{crumb:'报价详情',badge:quoteStatus(quote)}) + work(`${quote.generated ? banner('此报价已生成订单，可查看客户版或生成新报价。') : ''}<div class="qt-editor">${left}${summary}</div>`);
     }
-    const discountText = (discount,ccy) => {
+    const discountText = (discount,ccy,showCode = false) => {
         if (!discount?.value.trim() || discount.mode === 'none') return '—';
-        return discount.mode === 'rate' ? foldText(discount.value) : `${ccy} ${money(decimal(discount.value,2))}`;
+        if (discount.mode === 'rate') return foldText(discount.value);
+        const amount = decimal(discount.value,2);
+        return `${money(amount,ccy)}${currencyLine(showCode && amount != null ? ccy : '')}`;
     };
     function dialogContent(title,body,footer,width = 520) {
         dialog.style.setProperty('--dialog-width',`${width}px`);
@@ -673,7 +710,7 @@ ${escape(row.note)}</textarea>`;
             return;
         }
         const changes = [
-            ['参考售价',priceText(row.product.price),priceText(live.price)],
+            ['参考售价',priceText(row.product.price,row.product.currency),priceText(live.price,live.currency)],
             ['售价币种',row.product.currency,live.currency],
             ['型号规格',`${row.product.model} · ${row.product.spec}`,`${live.model} · ${live.spec}`],
             ['单位 / 数量精度',`${row.product.unit} / ${row.product.scale}`,`${live.unit} / ${live.scale}`]
@@ -696,7 +733,7 @@ ${escape(row.note)}</textarea>`;
         const query = p.query.toLowerCase().trim();
         const result = catalog.filter(product => available(product) && (!p.currency || product.currency === p.currency) && (!p.category || product.category === p.category) && (!p.color || product.color === p.color) && [product.name,product.id,product.model,product.spec].some(text => text.toLowerCase().includes(query)));
         const pages = pager(result.length,p,'picker');
-        const rows = slicePage(result,p).map(product => `<tr><td><label><input type="${p.replace ? 'radio' : 'checkbox'}" name="qt-skus" data-bind="select-sku" value="${product.id}" aria-label="选择 ${product.id} ${escape(product.name)}" ${p.selected.has(product.id) ? 'checked' : ''} ${!p.replace && selectedCurrency && product.currency !== selectedCurrency ? 'disabled' : ''}></label></td><td>${productLabel(product)}</td><td>${escape(product.category)}</td><td>${escape(product.unit)}<span class="qt-cell-sub qt-muted">${product.scale} 位小数</span></td><td class="qt-end qt-number"><strong>${symbol(product.currency)} ${priceText(product.price)}</strong><span class="qt-cell-sub qt-muted">${product.currency}</span></td></tr>`).join('');
+        const rows = slicePage(result,p).map(product => `<tr><td><label><input type="${p.replace ? 'radio' : 'checkbox'}" name="qt-skus" data-bind="select-sku" value="${product.id}" aria-label="选择 ${product.id} ${escape(product.name)}" ${p.selected.has(product.id) ? 'checked' : ''} ${!p.replace && selectedCurrency && product.currency !== selectedCurrency ? 'disabled' : ''}></label></td><td>${productLabel(product)}</td><td>${escape(product.category)}</td><td>${escape(product.unit)}<span class="qt-cell-sub qt-muted">${product.scale} 位小数</span></td><td class="qt-end qt-number"><strong>${priceText(product.price,product.currency)}</strong>${currencyLine(product.currency)}</td></tr>`).join('');
         const target = root.querySelector('#qt-picker-results');
         target.innerHTML = (rows ? table(ths(['选择','商品 / SKU','类目','单位 / 精度',['参考售价','qt-end']]),rows,'qt-picker-table') : empty('没有可报价的 SKU','可调整关键词、类目或规格。')) + pages;
         root.querySelector('#qt-picker-count').textContent = `已选 ${p.selected.size} 项${selectedCurrency ? ` · ${selectedCurrency}` : ''}`;
@@ -753,7 +790,8 @@ ${escape(row.note)}</textarea>`;
     function templateList() {
         const f = state.templateFilters[state.scope];
         const subtitle = state.scope === 'personal' ? '维护自己常用的报价标题、商品组合和折扣。' : '查看或维护 ERP 登录用户可套用的报价模板。';
-        return heading(scopeName[state.scope],subtitle,button('新建模板','template-new',{look:'primary',glyph:'plus'})) + work(`<section class="qt-panel"><div class="qt-filters">${search('搜索模板名称或报价标题','template-query',f.query)}</div><div id="qt-template-results" aria-live="polite">${templateResults()}</div></section>`);
+        const tabs = Object.entries(scopeName).map(([scope,label]) => `<button type="button" role="tab" id="qt-template-tab-${scope}" aria-controls="qt-template-panel" aria-selected="${state.scope === scope}" data-act="template-scope" data-id="${scope}">${label}</button>`).join('');
+        return heading('报价模板',subtitle,button('新建模板','template-new',{look:'primary',glyph:'plus'}),{crumb:'报价模板'}) + work(`<section class="qt-panel"><div class="qt-template-tabs" role="tablist" aria-label="模板范围">${tabs}</div><div id="qt-template-panel" role="tabpanel" aria-labelledby="qt-template-tab-${state.scope}"><div class="qt-filters">${search('搜索模板名称或报价标题','template-query',f.query)}</div><div id="qt-template-results" aria-live="polite">${templateResults()}</div></div></section>`);
     }
     const templateRateError = value => value.trim() && foldValue(value) == null ? foldError : '';
     function templateFoldInput(key,value,label) {
@@ -771,7 +809,7 @@ ${escape(row.note)}</textarea>`;
     function templateDetail() {
         const template = templateBy(state.template);
         const health = templateHealth(template);
-        const actions = `${button('返回模板列表',template.scope)}${button(health.issues ? '修复模板' : '修改模板','template-edit',{id:template.id,glyph:'pencil'})}${button('套用模板','apply-template',{id:template.id,look:'primary',glyph:'layers',disabled:!!health.issues})}`;
+        const actions = `${button('返回模板列表','template-scope',{id:template.scope})}${button(health.issues ? '修复模板' : '修改模板','template-edit',{id:template.id,glyph:'pencil'})}${button('套用模板','apply-template',{id:template.id,look:'primary',glyph:'layers',disabled:!!health.issues})}`;
         const facts = panel(`${sectionHeading('模板资料')}<dl class="qt-facts"><div><dt>报价标题</dt><dd>${escape(template.title)}</dd></div><div><dt>整单折扣</dt><dd>${foldText(template.discount)}</dd></div><div><dt>当前售价币种</dt><dd>${health.ccy || '—'}</dd></div></dl>`);
         const lines = `<section class="qt-panel"><div class="qt-row qt-sectionbar"><h2>商品组合</h2><span class="qt-muted">${template.rows.length} 行</span></div>${table(ths(['序号','商品 / SKU','当前售价币种','行折扣','当前可用性']),templateRowsView(template,false),'qt-list')}</section>`;
         return heading(template.name,`${scopeName[template.scope]} · 更新于 ${dated(template.updated)}`,actions,{crumb:'模板详情',badge:templateStatus(template)}) + work(`${health.issues ? banner('模板暂不可套用。请修复商品行，并保留至少一行同币种的可用 SKU。','warning') : ''}${facts}${lines}`);
@@ -911,16 +949,17 @@ ${escape(row.note)}</textarea>`;
         if (continuation) {
             tr.innerHTML = `<td class="qt-sheet-small qt-number">${number}</td><td colspan="5"><p class="qt-sheet-note"><strong>${paperLabel(quote,'行备注（续）')}</strong>　${escape(note)}</p></td>`;
         } else {
-            tr.innerHTML = `<td class="qt-sheet-small qt-number">${number}</td><td><strong>${escape(product.name)}</strong><div class="qt-sheet-small">${escape(product.model)} · ${escape(product.spec)}</div><div class="qt-sheet-small qt-mono">${escape(product.id)}</div>${note ? `<p class="qt-sheet-note"><strong>${paperLabel(quote,'备注')}</strong>　${escape(note)}</p>` : ''}</td><td class="qt-end">${escape(row.qty)} ${escape(product.unit)}</td><td class="qt-end">${priceText(product.price)}</td><td class="qt-end">${discountText(row.discount,product.currency)}</td><td class="qt-end"><strong>${money(result.value)}</strong></td>`;
+            tr.innerHTML = `<td class="qt-sheet-small qt-number">${number}</td><td><strong>${escape(product.name)}</strong><div class="qt-sheet-small">${escape(product.model)} · ${escape(product.spec)}</div><div class="qt-sheet-small qt-mono">${escape(product.id)}</div>${note ? `<p class="qt-sheet-note"><strong>${paperLabel(quote,'备注')}</strong>　${escape(note)}</p>` : ''}</td><td class="qt-end">${escape(row.qty)} ${escape(product.unit)}</td><td class="qt-end qt-sheet-money">${priceText(product.price,product.currency)}${currencyLine(product.currency)}</td><td class="qt-end${row.discount.mode === 'amount' ? ' qt-sheet-money' : ''}">${discountText(row.discount,product.currency,true)}</td><td class="qt-end qt-sheet-money"><strong>${money(result.value,product.currency)}</strong>${currencyLine(result.value == null ? '' : product.currency)}</td>`;
         }
         return tr;
     }
     function paperTotals(quote,result,note,continued = false,withTotals = true) {
         const t = text => paperLabel(quote,text);
-        const discount = (name,value,detail = '') => value > 0n || detail ? `<div><dt>${name}${detail ? ` · ${detail}` : ''}</dt><dd class="qt-number">${value > 0n ? '−' : ''}${money(value)}</dd></div>` : '';
+        const ccy = currencyOf(quote);
+        const discount = (name,value,detail = '') => value > 0n || detail ? `<div><dt>${name}${detail ? ` · ${detail}` : ''}</dt><dd class="qt-number">${value > 0n ? '−' : ''}${money(value,ccy)}</dd></div>` : '';
         const orderFold = quote.discount.mode === 'rate' && quote.discount.value.trim() ? foldText(quote.discount.value) : '';
         const final = money(result.final);
-        const amountRows = `<dl class="qt-sheet-total"><div><dt>${t('商品原价合计')}</dt><dd class="qt-number">${money(result.original)}</dd></div>${discount(t('商品优惠'),result.original-result.subtotal)}<div><dt>${t('商品小计')}</dt><dd class="qt-number">${money(result.subtotal)}</dd></div>${discount(t('整单优惠'),result.subtotal-result.final,orderFold)}<div class="qt-final"><dt>${t('报价总额')}</dt><dd class="qt-number"><small>${currencyOf(quote)}</small> <strong${final.length > 13 ? ' class="qt-long-money"' : ''}>${final}</strong></dd></div></dl>`;
+        const amountRows = `<dl class="qt-sheet-total"><div><dt>${t('商品原价合计')}</dt><dd class="qt-number">${money(result.original,ccy)}</dd></div>${discount(t('商品优惠'),result.original-result.subtotal)}<div><dt>${t('商品小计')}</dt><dd class="qt-number">${money(result.subtotal,ccy)}</dd></div>${discount(t('整单优惠'),result.subtotal-result.final,orderFold)}<div class="qt-final"><dt>${t('报价总额')}</dt><dd class="qt-number">${totalSymbol(result.final,ccy)}<strong${final.length > 13 ? ' class="qt-long-money"' : ''}>${final}</strong></dd></div></dl>`;
         const el = document.createElement('section');
         el.className = 'qt-sheet-bottom';
         el.innerHTML = `<div>${note ? `<strong>${t('报价备注')}${continued ? t('（续）') : ''}</strong><p class="qt-sheet-note">${escape(note)}</p>` : ''}</div>${withTotals ? amountRows : ''}`;
@@ -1158,6 +1197,14 @@ ${escape(row.note)}</textarea>`;
         const el = event.target;
         if (el.dataset.bind && (el.tagName === 'SELECT' || ['checkbox','radio'].includes(el.type))) bindInput(el);
     });
+    root.addEventListener('keydown',event => {
+        if (!event.target.matches('.qt-template-tabs [role="tab"]')) return;
+        if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return;
+        event.preventDefault();
+        const other = event.target.dataset.id === 'personal' ? 'public' : 'personal';
+        const scope = event.key === 'Home' ? 'personal' : event.key === 'End' ? 'public' : other;
+        root.querySelector(`#qt-template-tab-${scope}`).click();
+    });
     dialog.addEventListener('cancel',() => { state.modal = null; });
     dialog.addEventListener('keydown',event => {
         if (event.key !== 'Enter' || event.target.tagName !== 'INPUT' || !['text','search'].includes(event.target.type)) return;
@@ -1169,8 +1216,12 @@ ${escape(row.note)}</textarea>`;
 
     const actions = {
         list:() => navigateSection('list'),
-        personal:() => navigateSection('templates','personal'),
-        public:() => navigateSection('templates','public'),
+        templates:() => navigateSection('templates','personal'),
+        'template-scope':scope => {
+            const switching = state.view === 'templates';
+            navigateSection('templates',scope);
+            if (switching) root.querySelector(`#qt-template-tab-${scope}`).focus({preventScroll:true});
+        },
         'reset-quotes':() => { state.quoteFilters = {query:'', start:'', end:'', status:'', page:1, size:state.quoteFilters.size}; render(); },
         'quote-page':id => { state.quoteFilters.page += Number(id); refreshResults('#qt-quote-results',quoteResults); },
         'template-page':id => { state.templateFilters[state.scope].page += Number(id); refreshResults('#qt-template-results',templateResults); },
@@ -1225,7 +1276,7 @@ ${escape(row.note)}</textarea>`;
             product.price = `${BigInt(whole) + 10n}.${fraction}`;
             product.skuVersion++;
             product.productVersion++;
-            inform(`${product.id} 的参考售价已变为 ${product.currency} ${priceText(product.price)}。`);
+            inform(`${product.id} 的参考售价已变为 ${priceText(product.price,product.currency)}。`);
         },
         'view-paper':id => { state.paper = {from:'detail',quote:clone(quoteBy(id)),shot:false}; go('paper'); },
         'paper-back':() => { const view = state.paper.from; state.paper = null; go(view); },

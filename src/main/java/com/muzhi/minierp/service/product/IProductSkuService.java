@@ -64,6 +64,16 @@ public interface IProductSkuService extends IService<ProductSku> {
     IPage<ProductOptionVO> options(ProductQueryVO query, Integer pageNum, Integer pageSize);
 
     /**
+     * 报价选品，按售价币种筛选并排除未定价项。
+     */
+    IPage<ProductOptionVO> quotationOptions(ProductQuotationQueryVO query, Integer pageNum, Integer pageSize);
+
+    /**
+     * 按 ID 批量读取当前选品资料，由单据服务决定业务可用性。
+     */
+    List<ProductOptionVO> optionsByIds(List<Long> skuIds);
+
+    /**
      * 查询商品下全部有效 SKU 详情。
      */
     List<ProductSkuVO> listByProduct(Long productId);

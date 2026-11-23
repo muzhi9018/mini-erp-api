@@ -2,4 +2,14 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.muzhi.minierp.mapper.sales.QuotationMapper">
 
+    <select id="lockDailySequence" resultType="int" useCache="false" flushCache="true">
+        SELECT 1 FROM pg_advisory_xact_lock(hashtext('quotation'), CAST(#{numberDate} AS date) - DATE '2000-01-01')
+    </select>
+
+    <select id="selectMaxDailySequence" resultType="int" useCache="false">
+        SELECT MAX(daily_sequence)
+        FROM quotation
+        WHERE number_date = #{numberDate}
+    </select>
+
 </mapper>

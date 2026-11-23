@@ -2398,6 +2398,8 @@ CREATE TABLE quotation (
     title                     varchar(256) DEFAULT '报价单' NOT NULL,
     quoted_at                 timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     currency                  varchar(4) NOT NULL,
+    order_generated           boolean DEFAULT false NOT NULL,
+    version                   bigint DEFAULT 0 NOT NULL,
     customer_name             varchar(256),
     contact_name              varchar(64),
     contact_phone             varchar(32),
@@ -2434,6 +2436,11 @@ ALTER TABLE quotation
     );
 
 ALTER TABLE quotation
+    ADD CONSTRAINT ck_quotation_version CHECK (
+        version >= 0
+    );
+
+ALTER TABLE quotation
     ADD CONSTRAINT ck_quotation_amounts CHECK (
         original_amount >= 0 AND original_amount <> 'NaN'
         AND subtotal_amount BETWEEN 0 AND original_amount
@@ -2462,10 +2469,12 @@ COMMENT ON COLUMN quotation.owner_user_id IS '报价所属系统用户 ID，由�
 COMMENT ON COLUMN quotation.title IS '报价标题，默认报价单';
 COMMENT ON COLUMN quotation.quoted_at IS '报价业务时间，可由用户指定';
 COMMENT ON COLUMN quotation.currency IS '全单售价币种：CNY=人民币，TWD=新台币';
+COMMENT ON COLUMN quotation.order_generated IS '是否已生成订单';
+COMMENT ON COLUMN quotation.version IS '报价版本，由应用在修改、删除及转单时递增';
 COMMENT ON COLUMN quotation.customer_name IS '本单客户名称';
 COMMENT ON COLUMN quotation.contact_name IS '本单客户联系人';
 COMMENT ON COLUMN quotation.contact_phone IS '本单客户联系电话';
-COMMENT ON COLUMN quotation.contact_email IS '本单客户联络电子邮件';
+COMMENT ON COLUMN quotation.contact_email IS '本单联系人电子邮件，预留字段';
 COMMENT ON COLUMN quotation.shipping_address IS '本单收货地址';
 COMMENT ON COLUMN quotation.remark IS '客户版可见的整单备注';
 COMMENT ON COLUMN quotation.issuer_name IS '正式保存时的开单方展示名称';
@@ -2564,6 +2573,7 @@ CREATE TABLE quotation_template (
     update_user   bigint,
     is_deleted    boolean DEFAULT false NOT NULL,
     name          varchar(128) NOT NULL,
+    title         varchar(256) NOT NULL,
     scope         varchar(8) NOT NULL,
     owner_user_id bigint NOT NULL,
     version       bigint DEFAULT 0 NOT NULL,
@@ -2603,6 +2613,7 @@ COMMENT ON COLUMN quotation_template.create_user IS '创建者';
 COMMENT ON COLUMN quotation_template.update_user IS '更新者';
 COMMENT ON COLUMN quotation_template.is_deleted IS '是否删除(false:否; true:是)';
 COMMENT ON COLUMN quotation_template.name IS '模板名称';
+COMMENT ON COLUMN quotation_template.title IS '套用模板时填入报价表单的标题';
 COMMENT ON COLUMN quotation_template.scope IS '模板范围：PERSONAL=个人，PUBLIC=公共';
 COMMENT ON COLUMN quotation_template.owner_user_id IS '个人模板所有者或公共模板创建者的系统用户 ID';
 COMMENT ON COLUMN quotation_template.version IS '模板版本，由应用在修改主表及明细时校验并递增';

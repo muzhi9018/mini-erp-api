@@ -76,7 +76,13 @@ public class QuotationTemplate implements Serializable {
     private String name;
 
     /**
-     * 模板范围：PERSONAL=个人，PUBLIC=公共
+     * 套用模板时填入报价表单的标题
+     */
+    @TableField("title")
+    private String title;
+
+    /**
+     * 模板范围，见 {@link com.muzhi.minierp.enums.QuotationEnum.Scope}
      */
     @TableField("scope")
     private String scope;

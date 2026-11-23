@@ -44,7 +44,7 @@ public class ProductController {
     public JsonResult<IPage<ProductVO>> list(ProductQueryVO query,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "15") Integer pageSize) {
-        this.validateQuery(query, pageNum, pageSize);
+        ProductQueryValidation.validate(query, pageNum, pageSize);
         IPage<ProductVO> result = productService.list(query, pageNum, pageSize);
         return JsonResult.success(result);
     }
@@ -257,7 +257,7 @@ public class ProductController {
     public JsonResult<IPage<ProductSkuVO>> skuList(ProductQueryVO query,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "15") Integer pageSize) {
-        this.validateQuery(query, pageNum, pageSize);
+        ProductQueryValidation.validate(query, pageNum, pageSize);
         IPage<ProductSkuVO> result = productSkuService.list(query, pageNum, pageSize);
         return JsonResult.success(result);
     }
@@ -270,7 +270,7 @@ public class ProductController {
     public JsonResult<IPage<ProductOptionVO>> options(ProductQueryVO query,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "15") Integer pageSize) {
-        this.validateQuery(query, pageNum, pageSize);
+        ProductQueryValidation.validate(query, pageNum, pageSize);
         IPage<ProductOptionVO> result = productSkuService.options(query, pageNum, pageSize);
         return JsonResult.success(result);
     }
@@ -363,7 +363,7 @@ public class ProductController {
         Long id = this.resolveId(query.getId(), query.getSkuId());
         query.setId(id);
         this.validateVersion(query.getExpectedVersion());
-        this.validateNumber(query.getStockQuantity(), true, true);
+        ProductQueryValidation.validateNumber(query.getStockQuantity(), true, true);
         ProductRequests.SkuResult result = productSkuService.setStock(query);
         return JsonResult.success(result);
     }
@@ -424,7 +424,7 @@ public class ProductController {
         if (create) {
             this.validateText(query.getCode(), 64, true);
             this.validateStatus(query.getStatus());
-            this.validateNumber(query.getStockQuantity(), false, true);
+            ProductQueryValidation.validateNumber(query.getStockQuantity(), false, true);
             if (query.getImages() != null) {
                 this.validateImages(query.getImages());
             }
@@ -448,7 +448,7 @@ public class ProductController {
             CurrencyEnum value = CurrencyEnum.ofCode(currency);
             Assert.isNull(value, "product.sku.currency-invalid", "币种必须为 CNY 或 TWD");
         }
-        this.validateNumber(amount, false, true);
+        ProductQueryValidation.validateNumber(amount, false, true);
     }
 
     private void validateSpec(ProductSpecVO query, boolean create) {
@@ -485,7 +485,7 @@ public class ProductController {
         if (hasText) {
             this.validateText(query.getTextValue(), 128, true);
         }
-        this.validateNumber(query.getNumberValue(), false, false);
+        ProductQueryValidation.validateNumber(query.getNumberValue(), false, false);
     }
 
     /**
@@ -504,42 +504,6 @@ public class ProductController {
             }
         }
         Assert.isTrue(covers > 1, "product.image.multiple-covers", "只能指定一张主图");
-    }
-
-    private void validateQuery(ProductQueryVO query, Integer pageNum, Integer pageSize) {
-        Assert.isTrue(pageNum == null || pageNum <= 0, "pagination.page-num-invalid", "当前页必须大于0");
-        Assert.isTrue(pageSize == null || pageSize <= 0, "pagination.page-size-invalid", "每页数量必须大于0");
-        if (query.getCategoryId() != null) {
-            this.validateId(query.getCategoryId());
-        }
-        if (query.getProductId() != null) {
-            this.validateId(query.getProductId());
-        }
-        if (query.getStatus() != null) {
-            this.validateStatus(query.getStatus());
-        }
-        if (query.getSkuStatus() != null) {
-            this.validateStatus(query.getSkuStatus());
-        }
-        if (query.getSpecs() == null) {
-            query.setSpecs(List.of());
-        }
-        Set<Long> specIds = new HashSet<>();
-        for (ProductQueryVO.SpecFilter filter : query.getSpecs()) {
-            Assert.isNull(filter, "product.spec.filter-required", "规格筛选不能为空");
-            this.validateId(filter.getSpecId());
-            Assert.isTrue(!specIds.add(filter.getSpecId()), "product.spec.filter-duplicate", "同一维度不能重复筛选");
-            boolean textFilter = filter.getSpecValueId() != null;
-            boolean rangeFilter = filter.getMinimum() != null || filter.getMaximum() != null;
-            Assert.isTrue(textFilter == rangeFilter, "product.spec.filter-invalid", "请选择候选值或数值区间其中一种筛选方式");
-            if (textFilter) {
-                this.validateId(filter.getSpecValueId());
-            }
-            this.validateNumber(filter.getMinimum(), false, false);
-            this.validateNumber(filter.getMaximum(), false, false);
-            boolean reversed = filter.getMinimum() != null && filter.getMaximum() != null && filter.getMinimum().compareTo(filter.getMaximum()) > 0;
-            Assert.isTrue(reversed, "product.spec.range-invalid", "规格区间下限不能大于上限");
-        }
     }
 
     private void validateVersionedId(ProductRequests.VersionedId query) {
@@ -578,15 +542,4 @@ public class ProductController {
         Assert.isTrue(tooLong, "product.text-too-long", "文本长度不能超过{0}个字符", maximumLength);
     }
 
-    private void validateNumber(BigDecimal number, boolean required, boolean nonnegative) {
-        Assert.isTrue(required && number == null, "product.number-required", "数量不能为空");
-        if (number == null) {
-            return;
-        }
-        BigDecimal normalized = number.stripTrailingZeros();
-        BigDecimal upperExclusive = new BigDecimal("100000000000000");
-        boolean invalid = normalized.scale() > 6 || number.abs().compareTo(upperExclusive) >= 0;
-        Assert.isTrue(invalid, "product.number-precision", "数值最多14位整数和6位小数");
-        Assert.isTrue(nonnegative && number.signum() < 0, "product.number-negative", "数量及价格不能为负数");
-    }
 }

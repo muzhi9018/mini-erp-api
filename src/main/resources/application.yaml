@@ -11,7 +11,7 @@ spring:
     resources:
       add-mappings: false
   messages:
-    basename: i18n/common/messages,i18n/system/messages,i18n/website/messages,i18n/vault/messages,i18n/product/messages
+    basename: i18n/common/messages,i18n/system/messages,i18n/website/messages,i18n/vault/messages,i18n/product/messages,i18n/quotation/messages
     encoding: UTF-8
     fallback-to-system-locale: false
   lifecycle:
@@ -42,4 +42,5 @@ logging:
   level:
     com.muzhi.minierp.mapper: debug
     com.muzhi.minierp.mapper.vault: off
+    com.muzhi.minierp.mapper.sales: off
 

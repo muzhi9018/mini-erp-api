@@ -12,6 +12,7 @@
 - Java 25、Spring Boot、MyBatis-Plus、Lombok、MapStruct Plus；依赖和版本以 `pom.xml` 为准。
 - 基础包为 `com.muzhi.minierp`，业务按 `system`、`website` 等模块放入对应的 `controller`、`service`、`mapper`、`entity`、`vo` 包。
 - 命名沿用 `XxxController`、`IXxxService`、`XxxServiceImpl`、`XxxMapper`、`XxxVO`。Controller 接收并校验参数，Service 处理业务与事务，Mapper 访问数据库；接口返回 `JsonResult<T>`。
+- Controller 和 Service 中不定义非必要的内部类。实体、VO 和独立的业务数据模型放在对应包的独立文件中。
 - HTTP 接口入参和出参必须使用明确类型的实体、VO 或协议模型，包括嵌套字段；禁止使用 `Map`、`JSONObject`、`JSONArray` 等无明确字段结构的类型，也不能用 `Object` 或原始泛型规避。
 - 每个 HTTP 接口使用明确的请求类型，按业务操作拆分路由，不通过操作编码或多态入参选择请求类型。多个接口可以复用同一个类型，各自校验必填字段，Service 按操作的字段白名单写入。
 - 依赖注入使用 `@RequiredArgsConstructor` 配合 `private final` 字段。实体/VO 沿用 Lombok；VO 继承实体时使用 `@EqualsAndHashCode(callSuper = true)`。

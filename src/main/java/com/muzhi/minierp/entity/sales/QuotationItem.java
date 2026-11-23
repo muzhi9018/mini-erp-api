@@ -82,7 +82,7 @@ public class QuotationItem implements Serializable {
     private Long snapshotId;
 
     /**
-     * 保存时的 SKU 售价币种，须与报价主表一致
+     * 保存时的 SKU 售价币种，须与报价主表一致，见 {@link com.muzhi.minierp.enums.CurrencyEnum}
      */
     @TableField("currency")
     private String currency;

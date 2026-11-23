@@ -5,19 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com https://persistent.oaistatic.com/plugins/visualize/; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com https://persistent.oaistatic.com/plugins/visualize/charts/; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
-<title>报价管理 · 交互原型 V9</title>
+<title>报价管理 · 交互原型 V13</title>
 <style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
 
 </head>
 <body>
-<iframe id="codex-visualization" sandbox="allow-scripts" referrerpolicy="no-referrer" title="报价管理 · 交互原型 V9" data-srcdoc="&lt;!doctype html&gt;
+<iframe id="codex-visualization" sandbox="allow-scripts" referrerpolicy="no-referrer" title="报价管理 · 交互原型 V13" data-srcdoc="&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot; data-visualize-standalone&gt;
 &lt;head&gt;
 &lt;meta charset=&quot;utf-8&quot;&gt;
 &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
 &lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
 &lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com https://persistent.oaistatic.com/plugins/visualize/; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com https://persistent.oaistatic.com/plugins/visualize/charts/; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
-&lt;title&gt;报价管理 · 交互原型 V9&lt;/title&gt;
+&lt;title&gt;报价管理 · 交互原型 V13&lt;/title&gt;
 &lt;style&gt;:root {
   color-scheme: light dark;
   background-color: var(
@@ -1951,6 +1951,10 @@ html&gt;body{padding:0}&lt;/style&gt;
 #erp-quote-prototype .qt-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; min-width: 0; }
 #erp-quote-prototype .qt-between { justify-content: space-between; }
 #erp-quote-prototype .qt-panel { min-width: 0; border: 1px solid var(--line); background: var(--paper); border-radius: 12px; }
+#erp-quote-prototype .qt-template-tabs { display: flex; gap: 12px; padding-inline: 16px; border-bottom: 1px solid var(--line); }
+#erp-quote-prototype .qt-template-tabs button { min-height: 44px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); white-space: nowrap; }
+#erp-quote-prototype .qt-template-tabs button:hover { color: var(--blue); }
+#erp-quote-prototype .qt-template-tabs button[aria-selected=&quot;true&quot;] { border-bottom-color: var(--blue); color: var(--blue); font-weight: 650; }
 #erp-quote-prototype .qt-pad { padding: 22px; }
 #erp-quote-prototype .qt-section { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 15px; }
 #erp-quote-prototype .qt-sectionbar { padding: 14px 16px; }
@@ -2002,13 +2006,15 @@ html&gt;body{padding:0}&lt;/style&gt;
 #erp-quote-prototype .qt-totals .qt-total { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 3px; align-items: baseline; }
 #erp-quote-prototype .qt-total dt { color: var(--ink); font-weight: 650; }
 #erp-quote-prototype .qt-total dd { color: var(--blue); font-size: 24px; line-height: 1.15; letter-spacing: -.03em; }
-#erp-quote-prototype .qt-total small { font-size: 12px; letter-spacing: 0; }
+#erp-quote-prototype .qt-total small { font-size: .85em; letter-spacing: 0; }
 #erp-quote-prototype .qt-total .qt-long-money { font-size: 18px; }
 #erp-quote-prototype .qt-discount { display: grid; grid-template-columns: minmax(118px, 1fr) minmax(74px,.87fr); align-items: start; gap: 8px; }
 #erp-quote-prototype .qt-discount &gt; select { width: 100%; }
 #erp-quote-prototype .qt-discount label { position: relative; display: block; min-width: 0; }
 #erp-quote-prototype .qt-discount label input { width: 100%; padding-right: 31px; }
 #erp-quote-prototype .qt-discount label span { position: absolute; right: 8px; top: 0; line-height: 36px; font-size: 11px; color: var(--muted); pointer-events: none; }
+#erp-quote-prototype .qt-discount .qt-money-input input { padding-inline: 31px 9px; }
+#erp-quote-prototype .qt-discount .qt-money-input span { left: 9px; right: auto; }
 #erp-quote-prototype .qt-template-rate { display: block; max-width: 128px; }
 #erp-quote-prototype .qt-summary-discount { border-block: 1px solid var(--line); padding-block: 13px; margin-block: 14px; display: grid; gap: 6px; }
 #erp-quote-prototype .qt-tablewrap { overflow-x: auto; }
@@ -2020,15 +2026,17 @@ html&gt;body{padding:0}&lt;/style&gt;
 #erp-quote-prototype .qt-table tbody tr:last-child td { border-bottom: 0; }
 #erp-quote-prototype .qt-table tbody &gt; tr:hover { background: var(--soft); }
 #erp-quote-prototype .qt-list { min-width: 830px; }
-#erp-quote-prototype .qt-line-table { min-width: 730px; }
-#erp-quote-prototype .qt-edit-line-table { min-width: 1120px; table-layout: fixed; }
-#erp-quote-prototype .qt-edit-index { width: 52px; }
-#erp-quote-prototype .qt-edit-quantity { width: 124px; }
-#erp-quote-prototype .qt-edit-price { width: 112px; }
-#erp-quote-prototype .qt-edit-discount { width: 260px; }
-#erp-quote-prototype .qt-edit-amount { width: 114px; }
+#erp-quote-prototype .qt-quote-line-table { min-width: 1128px; table-layout: fixed; }
+#erp-quote-prototype .qt-edit-line-table { min-width: 1224px; }
+#erp-quote-prototype .qt-line-index-col { width: 52px; }
+#erp-quote-prototype .qt-line-quantity-col { width: 124px; }
+#erp-quote-prototype .qt-line-price-col { width: 112px; }
+#erp-quote-prototype .qt-line-discount-col { width: 260px; }
+#erp-quote-prototype .qt-line-amount-col { width: 224px; }
 #erp-quote-prototype .qt-edit-actions { width: 96px; }
-#erp-quote-prototype .qt-edit-money { white-space: normal; overflow-wrap: anywhere; }
+#erp-quote-prototype :is(.qt-line-price,.qt-line-quantity) { white-space: normal; overflow-wrap: anywhere; }
+#erp-quote-prototype .qt-line-amount strong { display: block; }
+#erp-quote-prototype .qt-line-amount .qt-cell-sub:empty { display: none; }
 #erp-quote-prototype .qt-edit-note { display: block; width: 100%; height: 36px; min-height: 36px; }
 #erp-quote-prototype .qt-table .qt-line &gt; td { vertical-align: top; height: 64px; }
 #erp-quote-prototype .qt-title-button { display: block; color: var(--ink); background: transparent; border: 0; padding: 0; text-align: left; font-weight: 650; overflow-wrap: anywhere; }
@@ -2036,12 +2044,10 @@ html&gt;body{padding:0}&lt;/style&gt;
 #erp-quote-prototype .qt-sku { min-width: 150px; overflow-wrap: anywhere; }
 #erp-quote-prototype .qt-sku strong, #erp-quote-prototype .qt-sku span, #erp-quote-prototype .qt-cell-sub { display: block; }
 #erp-quote-prototype .qt-cell-sub { margin-top: 3px; }
-#erp-quote-prototype .qt-unit-price { padding-top: 8px; }
+#erp-quote-prototype .qt-edit-line-table :is(.qt-line-price div,.qt-line-amount strong) { padding-top: 8px; }
 #erp-quote-prototype .qt-qty { width: 86px; text-align: right; }
 #erp-quote-prototype .qt-line-actions { display: flex; justify-content: flex-end; align-items: flex-start; gap: 3px; }
 #erp-quote-prototype .qt-line-actions .qt-link { min-height: 33px; }
-#erp-quote-prototype .qt-paired td { background: var(--soft); }
-#erp-quote-prototype .qt-paired p { white-space: pre-wrap; overflow-wrap: anywhere; }
 #erp-quote-prototype .qt-pager { padding: 11px 15px; border-top: 1px solid var(--line); }
 #erp-quote-prototype .qt-pager .qt-btn { min-height: 30px; }
 #erp-quote-prototype .qt-empty { text-align: center; color: var(--muted); padding: 38px 15px; display: grid; justify-items: center; gap: 8px; }
@@ -2092,6 +2098,7 @@ html&gt;body{padding:0}&lt;/style&gt;
 #erp-quote-prototype .qt-sheet-table th { color: #3f536e; background: #eff3f9; font-size: 12px; text-align: left; }
 #erp-quote-prototype .qt-sheet-table .qt-end { text-align: right; }
 #erp-quote-prototype .qt-sheet-table td { font-size: 13px; }
+#erp-quote-prototype .qt-sheet-table .qt-sheet-money { padding-left: 0; font-size: 12px; font-variant-numeric: tabular-nums; }
 #erp-quote-prototype .qt-sheet-table .qt-sheet-note { margin-top: 5px; white-space: pre-wrap; }
 #erp-quote-prototype .qt-sheet .qt-sheet-note { color: #4d607a; overflow-wrap: anywhere; white-space: pre-wrap; }
 #erp-quote-prototype .qt-sheet-bottom { margin-top: 18px; display: grid; grid-template-columns: minmax(0,1fr) 271px; gap: 24px; }
@@ -2153,12 +2160,17 @@ html&gt;body{padding:0}&lt;/style&gt;
     const rate = value =&gt; ({mode:&#x27;rate&#x27;, value:String(value)});
     const fixed = value =&gt; ({mode:&#x27;amount&#x27;, value:String(value)});
     const grouped = number =&gt; number.toLocaleString(&#x27;en-US&#x27;);
-    const money = cents =&gt; cents == null ? &#x27;—&#x27; : `${grouped(cents / 100n)}.${String(cents % 100n).padStart(2,&#x27;0&#x27;)}`;
-    const priceText = value =&gt; {
+    const symbols = {CNY:&#x27;¥&#x27;, TWD:&#x27;NT$&#x27;};
+    const symbol = ccy =&gt; symbols[ccy] || &#x27;&#x27;;
+    const withCurrency = (amount, ccy) =&gt; symbol(ccy) ? `${symbol(ccy)} ${amount}` : amount;
+    const money = (cents, ccy) =&gt; cents == null ? &#x27;—&#x27; : withCurrency(`${grouped(cents / 100n)}.${String(cents % 100n).padStart(2,&#x27;0&#x27;)}`,ccy);
+    const priceText = (value, ccy) =&gt; {
         if (value == null) return &#x27;—&#x27;;
         const [whole, fraction = &#x27;&#x27;] = value.split(&#x27;.&#x27;);
-        return `${grouped(BigInt(whole))}.${fraction.replace(/0+$/, &#x27;&#x27;).padEnd(2, &#x27;0&#x27;)}`;
+        return withCurrency(`${grouped(BigInt(whole))}.${fraction.replace(/0+$/, &#x27;&#x27;).padEnd(2, &#x27;0&#x27;)}`,ccy);
     };
+    const currencyLine = ccy =&gt; ccy ? `&lt;span class=&quot;qt-cell-sub qt-muted&quot;&gt;${escape(ccy)}&lt;/span&gt;` : &#x27;&#x27;;
+    const totalSymbol = (cents, ccy) =&gt; cents != null &amp;&amp; symbol(ccy) ? `&lt;small&gt;${symbol(ccy)}&lt;/small&gt; ` : &#x27;&#x27;;
     const dated = value =&gt; value ? value.replace(&#x27;T&#x27;,&#x27; &#x27;).slice(0,16) : &#x27;—&#x27;;
     const seedTime = (day, time) =&gt; `2026-11-${day}T${time}`;
     const today = () =&gt; {
@@ -2235,8 +2247,6 @@ html&gt;body{padding:0}&lt;/style&gt;
     const quoteBy = id =&gt; quotes.find(quote =&gt; quote.id === id &amp;&amp; !quote.deleted);
     const templateBy = id =&gt; templates.find(template =&gt; template.id === id);
     const currencyOf = draft =&gt; draft.lockCurrency || draft.rows[0]?.product.currency || &#x27;&#x27;;
-    const symbols = {CNY:&#x27;¥&#x27;, TWD:&#x27;NT$&#x27;};
-    const symbol = ccy =&gt; symbols[ccy] || &#x27;&#x27;;
 
     function decimal(value, scale, maxWhole = 14, allowTrailing = false) {
         const match = /^(\d+)(?:\.(\d+))?$/.exec(String(value).trim());
@@ -2263,7 +2273,7 @@ html&gt;body{padding:0}&lt;/style&gt;
         return fold ? `${fold} 折` : &#x27;—&#x27;;
     }
     const savedDiscount = discount =&gt; discount.mode === &#x27;rate&#x27; ? rate(foldNumber(discount.value)) : clone(discount);
-    function discountTotal(amount, discount) {
+    function discountTotal(amount, discount, ccy) {
         if (amount == null) return {value:null, error:&#x27;&#x27;};
         if (!discount?.value.trim() || discount.mode === &#x27;none&#x27;) return {value:amount, error:&#x27;&#x27;};
         if (discount.mode === &#x27;rate&#x27;) {
@@ -2271,7 +2281,7 @@ html&gt;body{padding:0}&lt;/style&gt;
             return fold == null ? {value:null,error:foldError} : {value:round(amount * fold,10000n),error:&#x27;&#x27;};
         }
         const input = decimal(discount.value,2);
-        if (input == null || input &gt; amount) return {value:null, error:`金额须为 0～${money(amount)}，最多两位小数。`};
+        if (input == null || input &gt; amount) return {value:null, error:`金额须为 ${money(0n,ccy)}～${money(amount,ccy)}，最多两位小数。`};
         return {value:input,error:&#x27;&#x27;};
     }
     function calculate(draft) {
@@ -2285,12 +2295,12 @@ html&gt;body{padding:0}&lt;/style&gt;
             const raw = decimal(row.qty,6,14,true) * decimal(row.product.price,6);
             const original = round(raw,10000000000n);
             if (original &gt; maxCents) return {rid:row.rid, original:null, value:null, error:&#x27;&#x27;, quantityError:&#x27;行原价超出金额范围，请减少数量。&#x27;};
-            return {rid:row.rid, original, quantityError:&#x27;&#x27;, ...discountTotal(original,row.discount)};
+            return {rid:row.rid, original, quantityError:&#x27;&#x27;, ...discountTotal(original,row.discount,row.product.currency)};
         });
         const sum = key =&gt; lines.some(row =&gt; row[key] == null) ? null : lines.reduce((total,row) =&gt; total + row[key],0n);
         const original = sum(&#x27;original&#x27;);
         const subtotal = sum(&#x27;value&#x27;);
-        const final = original &gt; maxCents || subtotal &gt; maxCents ? {value:null,error:&#x27;汇总金额超出限额，请减少数量或拆分报价。&#x27;} : discountTotal(subtotal,draft.discount);
+        const final = original &gt; maxCents || subtotal &gt; maxCents ? {value:null,error:&#x27;汇总金额超出限额，请减少数量或拆分报价。&#x27;} : discountTotal(subtotal,draft.discount,currencyOf(draft));
         return {lines, original, subtotal, final:final.value, finalError:final.error};
     }
 
@@ -2322,8 +2332,8 @@ ${escape(value)}&lt;/textarea&gt;` : `&lt;input ${attrs} value=&quot;${escape(va
         return `&lt;header class=&quot;qt-header qt-gutter&quot;&gt;&lt;div class=&quot;qt-crumb&quot;&gt;${mainCrumb}${icon(&#x27;chevron-right&#x27;)}&lt;span&gt;${escape(crumb || &#x27;报价管理&#x27;)}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;qt-headline&quot;&gt;&lt;div&gt;&lt;div class=&quot;qt-head-title&quot;&gt;&lt;h1&gt;${escape(title)}&lt;/h1&gt;${badge}&lt;/div&gt;${subtitle ? `&lt;p&gt;${escape(subtitle)}&lt;/p&gt;` : &#x27;&#x27;}&lt;/div&gt;&lt;div class=&quot;qt-row&quot;&gt;${actions}&lt;/div&gt;&lt;/div&gt;&lt;/header&gt;`;
     }
     function shell(content) {
-        const current = state.view.startsWith(&#x27;template&#x27;) ? state.scope : &#x27;list&#x27;;
-        const links = [[&#x27;报价单列表&#x27;,&#x27;list&#x27;,&#x27;files&#x27;],[&#x27;个人模板&#x27;,&#x27;personal&#x27;,&#x27;bookmark&#x27;],[&#x27;公共模板&#x27;,&#x27;public&#x27;,&#x27;layers&#x27;]];
+        const current = state.view.startsWith(&#x27;template&#x27;) ? &#x27;templates&#x27; : &#x27;list&#x27;;
+        const links = [[&#x27;报价单列表&#x27;,&#x27;list&#x27;,&#x27;files&#x27;],[&#x27;报价模板&#x27;,&#x27;templates&#x27;,&#x27;layers&#x27;]];
         const nav = links.map(([label,action,glyph]) =&gt; `&lt;button type=&quot;button&quot; data-act=&quot;${action}&quot; aria-label=&quot;${label}&quot; data-tooltip=&quot;${label}&quot; data-tooltip-placement=&quot;right&quot; ${current === action ? &#x27;aria-current=&quot;location&quot;&#x27; : &#x27;&#x27;}&gt;${icon(glyph)}&lt;span class=&quot;qt-sidebar-label&quot;&gt;${label}&lt;/span&gt;&lt;/button&gt;`).join(&#x27;&#x27;);
         return `&lt;div class=&quot;qt-shell&quot;&gt;&lt;aside class=&quot;qt-rail&quot;&gt;&lt;nav class=&quot;qt-sidebar&quot; aria-label=&quot;报价管理菜单&quot;&gt;&lt;div class=&quot;qt-sidebar-heading&quot;&gt;报价管理&lt;/div&gt;${nav}&lt;/nav&gt;&lt;/aside&gt;&lt;div class=&quot;qt-workspace&quot;&gt;${content}&lt;/div&gt;&lt;/div&gt;`;
     }
@@ -2359,7 +2369,8 @@ ${escape(value)}&lt;/textarea&gt;` : `&lt;input ${attrs} value=&quot;${escape(va
         const pages = pager(records.length,f,&#x27;quote&#x27;);
         const rows = slicePage(records,f).map(quote =&gt; {
             const ccy = currencyOf(quote);
-            return `&lt;tr&gt;&lt;td&gt;&lt;button class=&quot;qt-title-button&quot; type=&quot;button&quot; data-act=&quot;detail&quot; data-id=&quot;${quote.id}&quot;&gt;${escape(quote.title)}&lt;/button&gt;&lt;span class=&quot;qt-cell-sub qt-mono qt-muted&quot;&gt;${escape(quote.number)}&lt;/span&gt;&lt;/td&gt;&lt;td&gt;${escape(quote.customer.name) || &#x27;&lt;span class=&quot;qt-muted&quot;&gt;—&lt;/span&gt;&#x27;}&lt;/td&gt;&lt;td class=&quot;qt-number&quot;&gt;${dated(quote.date)}&lt;/td&gt;&lt;td&gt;${quoteStatus(quote)}&lt;/td&gt;&lt;td class=&quot;qt-end qt-number&quot;&gt;&lt;strong&gt;${symbol(ccy)} ${money(calculate(quote).final)}&lt;/strong&gt;&lt;span class=&quot;qt-cell-sub qt-muted&quot;&gt;${ccy}&lt;/span&gt;&lt;/td&gt;&lt;td&gt;${quoteActions(quote)}&lt;/td&gt;&lt;/tr&gt;`;
+            const total = calculate(quote).final;
+            return `&lt;tr&gt;&lt;td&gt;&lt;button class=&quot;qt-title-button&quot; type=&quot;button&quot; data-act=&quot;detail&quot; data-id=&quot;${quote.id}&quot;&gt;${escape(quote.title)}&lt;/button&gt;&lt;span class=&quot;qt-cell-sub qt-mono qt-muted&quot;&gt;${escape(quote.number)}&lt;/span&gt;&lt;/td&gt;&lt;td&gt;${escape(quote.customer.name) || &#x27;&lt;span class=&quot;qt-muted&quot;&gt;—&lt;/span&gt;&#x27;}&lt;/td&gt;&lt;td class=&quot;qt-number&quot;&gt;${dated(quote.date)}&lt;/td&gt;&lt;td&gt;${quoteStatus(quote)}&lt;/td&gt;&lt;td class=&quot;qt-end qt-number&quot;&gt;&lt;strong&gt;${money(total,ccy)}&lt;/strong&gt;${currencyLine(total == null ? &#x27;&#x27; : ccy)}&lt;/td&gt;&lt;td&gt;${quoteActions(quote)}&lt;/td&gt;&lt;/tr&gt;`;
         }).join(&#x27;&#x27;);
         const headers = ths([&#x27;报价标题 / 单号&#x27;,&#x27;客户名称&#x27;,&#x27;报价时间&#x27;,&#x27;转单状态&#x27;,[&#x27;报价总额&#x27;,&#x27;qt-end&#x27;],[&#x27;操作&#x27;,&#x27;qt-end&#x27;]]);
         return (rows ? table(headers,rows,&#x27;qt-list&#x27;) : empty(&#x27;没有符合条件的报价单&#x27;,&#x27;试试其他关键词或报价日期。&#x27;)) + pages;
@@ -2384,16 +2395,32 @@ ${escape(value)}&lt;/textarea&gt;` : `&lt;input ${attrs} value=&quot;${escape(va
     function discountControl(discount, key, ccy, label) {
         const isFold = discount.mode === &#x27;rate&#x27;;
         const unit = isFold ? &#x27;折&#x27; : ccy;
-        return `&lt;div class=&quot;qt-discount&quot;&gt;&lt;select aria-label=&quot;${escape(label)}方式&quot; data-bind=&quot;${key}-mode&quot;&gt;${options(Object.entries(modes),discount.mode)}&lt;/select&gt;&lt;label ${discount.mode === &#x27;none&#x27; ? &#x27;hidden&#x27; : &#x27;&#x27;}&gt;&lt;input type=&quot;text&quot; inputmode=&quot;decimal&quot; maxlength=&quot;${isFold ? 6 : 17}&quot; aria-label=&quot;${escape(label)}${modes[discount.mode]}${unit ? `（${unit}）` : &#x27;&#x27;}&quot; aria-describedby=&quot;qt-err-${key}&quot; data-bind=&quot;${key}-value&quot; value=&quot;${escape(discount.value)}&quot; ${isFold ? &#x27;placeholder=&quot;如 9.5&quot;&#x27; : &#x27;&#x27;}&gt;&lt;span&gt;${unit}&lt;/span&gt;&lt;/label&gt;&lt;/div&gt;&lt;span id=&quot;qt-err-${key}&quot; class=&quot;qt-inline-error&quot;&gt;&lt;/span&gt;`;
+        const affix = isFold ? &#x27;折&#x27; : symbol(ccy);
+        return `&lt;div class=&quot;qt-discount&quot;&gt;&lt;select aria-label=&quot;${escape(label)}方式&quot; data-bind=&quot;${key}-mode&quot;&gt;${options(Object.entries(modes),discount.mode)}&lt;/select&gt;&lt;label${discount.mode === &#x27;none&#x27; ? &#x27; hidden&#x27; : &#x27;&#x27;}${!isFold &amp;&amp; affix ? &#x27; class=&quot;qt-money-input&quot;&#x27; : &#x27;&#x27;}&gt;&lt;input type=&quot;text&quot; inputmode=&quot;decimal&quot; maxlength=&quot;${isFold ? 6 : 17}&quot; aria-label=&quot;${escape(label)}${modes[discount.mode]}${unit ? `（${unit}）` : &#x27;&#x27;}&quot; aria-describedby=&quot;qt-err-${key}&quot; data-bind=&quot;${key}-value&quot; value=&quot;${escape(discount.value)}&quot; ${isFold ? &#x27;placeholder=&quot;如 9.5&quot;&#x27; : &#x27;&#x27;}&gt;${affix ? `&lt;span aria-hidden=&quot;true&quot;&gt;${affix}&lt;/span&gt;` : &#x27;&#x27;}&lt;/label&gt;&lt;/div&gt;&lt;span id=&quot;qt-err-${key}&quot; class=&quot;qt-inline-error&quot;&gt;&lt;/span&gt;`;
     }
     function productLabel(product, historical = false) {
         return `&lt;div class=&quot;qt-sku&quot;&gt;&lt;strong&gt;${escape(product.name)}&lt;/strong&gt;&lt;span class=&quot;qt-mono qt-muted&quot;&gt;${escape(product.id)} · ${escape(product.model)}&lt;/span&gt;&lt;span class=&quot;qt-muted&quot;&gt;${escape(product.spec)}${historical ? &#x27; · 原报价快照&#x27; : &#x27;&#x27;}&lt;/span&gt;&lt;/div&gt;`;
     }
     function displayTotals(result, ccy) {
-        const row = (label, cents, attrs = &#x27;&#x27;) =&gt; `&lt;div ${attrs}&gt;&lt;dt&gt;${label}&lt;/dt&gt;&lt;dd class=&quot;qt-number&quot;&gt;${money(cents)}&lt;/dd&gt;&lt;/div&gt;`;
+        const row = (label, cents) =&gt; `&lt;div&gt;&lt;dt&gt;${label}&lt;/dt&gt;&lt;dd class=&quot;qt-number&quot;&gt;${money(cents,ccy)}&lt;/dd&gt;&lt;/div&gt;`;
         const deducted = (before, after) =&gt; before == null || after == null ? null : before - after;
         const final = money(result.final);
-        return `&lt;dl class=&quot;qt-totals&quot;&gt;${row(&#x27;商品原价合计&#x27;,result.original)}${row(&#x27;商品优惠&#x27;,deducted(result.original,result.subtotal))}${row(&#x27;整单优惠前&#x27;,result.subtotal)}${row(&#x27;整单优惠&#x27;,deducted(result.subtotal,result.final))}&lt;div class=&quot;qt-total&quot;&gt;&lt;dt&gt;报价总额&lt;/dt&gt;&lt;dd class=&quot;qt-number${final.length &gt; 13 ? &#x27; qt-long-money&#x27; : &#x27;&#x27;}&quot;&gt;&lt;small&gt;${escape(ccy)}&lt;/small&gt; ${final}&lt;/dd&gt;&lt;/div&gt;&lt;/dl&gt;`;
+        return `&lt;dl class=&quot;qt-totals&quot;&gt;${row(&#x27;商品原价合计&#x27;,result.original)}${row(&#x27;商品优惠&#x27;,deducted(result.original,result.subtotal))}${row(&#x27;整单优惠前&#x27;,result.subtotal)}${row(&#x27;整单优惠&#x27;,deducted(result.subtotal,result.final))}&lt;div class=&quot;qt-total&quot;&gt;&lt;dt&gt;报价总额&lt;/dt&gt;&lt;dd class=&quot;qt-number${final.length &gt; 13 ? &#x27; qt-long-money&#x27; : &#x27;&#x27;}&quot;&gt;${totalSymbol(result.final,ccy)}${final}&lt;/dd&gt;&lt;/div&gt;&lt;/dl&gt;`;
+    }
+    function quoteLineTable(rows, editable = false) {
+        const columns = [[&#x27;序号&#x27;,&#x27;qt-line-index-col&#x27;],&#x27;商品/SKU&#x27;,[&#x27;单价&#x27;,&#x27;qt-line-price-col qt-end&#x27;],[&#x27;数量&#x27;,&#x27;qt-line-quantity-col&#x27;],[&#x27;优惠&#x27;,&#x27;qt-line-discount-col&#x27;],[&#x27;金额&#x27;,&#x27;qt-line-amount-col qt-end&#x27;],&#x27;备注&#x27;];
+        if (editable) columns.push([&#x27;操作&#x27;,&#x27;qt-edit-actions qt-end&#x27;]);
+        return table(ths(columns),rows,editable ? &#x27;qt-quote-line-table qt-edit-line-table&#x27; : &#x27;qt-quote-line-table&#x27;);
+    }
+    function linePriceCell(product) {
+        const {price,currency} = product;
+        return `&lt;td class=&quot;qt-end qt-number qt-line-price&quot;&gt;&lt;div&gt;${priceText(price,currency)}&lt;/div&gt;${currencyLine(price == null ? &#x27;&#x27; : currency)}&lt;/td&gt;`;
+    }
+    function lineOriginalText(result, ccy) {
+        return result?.original != null &amp;&amp; result.value !== result.original ? `原价 ${money(result.original,ccy)}` : &#x27;&#x27;;
+    }
+    function lineAmountCell(ccy, result, rid) {
+        return `&lt;td class=&quot;qt-end qt-number qt-line-amount&quot;&gt;&lt;strong${rid == null ? &#x27;&#x27; : ` data-number-row=&quot;${rid}&quot;`}&gt;${money(result?.value,ccy)}&lt;/strong&gt;&lt;span class=&quot;qt-cell-sub qt-muted&quot;${rid == null ? &#x27;&#x27; : ` data-original-row=&quot;${rid}&quot;`}&gt;${lineOriginalText(result,ccy)}&lt;/span&gt;&lt;/td&gt;`;
     }
     function rowView(row, index) {
         const {rid, product} = row;
@@ -2402,10 +2429,10 @@ ${escape(row.note)}&lt;/textarea&gt;`;
         return `&lt;tr class=&quot;qt-line&quot; data-row=&quot;${rid}&quot;&gt;
             &lt;td class=&quot;qt-muted qt-number&quot;&gt;${String(index + 1).padStart(2,&#x27;0&#x27;)}&lt;/td&gt;
             &lt;td&gt;${productLabel(product,row.source)}&lt;div class=&quot;qt-row&quot; data-conflict-row=&quot;${rid}&quot; hidden&gt;&lt;span class=&quot;qt-inline-error&quot;&gt;商品资料已变化&lt;/span&gt;${link(&#x27;刷新此行&#x27;,&#x27;refresh-line&#x27;,rid)}&lt;/div&gt;&lt;/td&gt;
-            &lt;td class=&quot;qt-end qt-number qt-edit-money&quot;&gt;&lt;div class=&quot;qt-unit-price&quot;&gt;${priceText(product.price)}&lt;/div&gt;&lt;span class=&quot;qt-cell-sub qt-muted&quot;&gt;${product.currency}&lt;/span&gt;&lt;/td&gt;
+            ${linePriceCell(product)}
             &lt;td&gt;&lt;input class=&quot;qt-qty&quot; aria-label=&quot;第 ${index + 1} 行数量&quot; aria-describedby=&quot;qt-err-qty-${rid}&quot; type=&quot;text&quot; inputmode=&quot;decimal&quot; maxlength=&quot;26&quot; data-bind=&quot;qty-${rid}&quot; value=&quot;${escape(row.qty)}&quot;&gt;&lt;span class=&quot;qt-cell-sub qt-muted&quot;&gt;${escape(product.unit)} · ${product.scale ? `最多 ${product.scale} 位小数` : &#x27;整数&#x27;}&lt;/span&gt;&lt;span id=&quot;qt-err-qty-${rid}&quot; class=&quot;qt-inline-error&quot;&gt;&lt;/span&gt;&lt;/td&gt;
             &lt;td&gt;${discountControl(row.discount,`line-${rid}`,product.currency,`第 ${index + 1} 行`)}&lt;/td&gt;
-            &lt;td class=&quot;qt-end qt-number qt-edit-money&quot;&gt;&lt;strong class=&quot;qt-unit-price&quot; data-number-row=&quot;${rid}&quot; style=&quot;display:block&quot;&gt;—&lt;/strong&gt;&lt;span class=&quot;qt-cell-sub qt-muted&quot; data-original-row=&quot;${rid}&quot;&gt;&lt;/span&gt;&lt;/td&gt;
+            ${lineAmountCell(product.currency,null,rid)}
             &lt;td&gt;${note}&lt;/td&gt;
             &lt;td&gt;&lt;div class=&quot;qt-line-actions&quot;&gt;${button(&#x27;&#x27;, &#x27;replace-line&#x27;,{id:rid,glyph:&#x27;repeat-2&#x27;,look:&#x27;icon-btn&#x27;,aria:`替换第 ${index + 1} 行商品`})}${button(&#x27;&#x27;, &#x27;remove-line&#x27;,{id:rid,glyph:&#x27;trash-2&#x27;,look:&#x27;icon-btn&#x27;,aria:`移除第 ${index + 1} 行`})}&lt;/div&gt;&lt;/td&gt;
         &lt;/tr&gt;`;
@@ -2421,8 +2448,7 @@ ${escape(row.note)}&lt;/textarea&gt;`;
         const customers = Object.entries(customerFields).map(([key,label]) =&gt; field(label,`type=&quot;${key === &#x27;phone&#x27; ? &#x27;tel&#x27; : &#x27;text&#x27;}&quot; data-bind=&quot;customer-${key}&quot; maxlength=&quot;${customerLengths[key]}&quot;`,draft.customer[key])).join(&#x27;&#x27;);
         const fields = panel(`${sectionHeading(&#x27;报价信息&#x27;)}&lt;div class=&quot;qt-fields&quot;&gt;${field(&#x27;报价标题&#x27;,&#x27;type=&quot;text&quot; data-bind=&quot;draft-title&quot; required maxlength=&quot;256&quot;&#x27;,draft.title,{required:true,errorKey:&#x27;title&#x27;})}${field(&#x27;报价时间&#x27;,&#x27;type=&quot;datetime-local&quot; data-bind=&quot;draft-date&quot; required&#x27;,draft.date,{required:true,errorKey:&#x27;date&#x27;})}&lt;/div&gt;`) + panel(`${sectionHeading(&#x27;客户资料&#x27;,&#x27;&lt;span class=&quot;qt-muted&quot;&gt;选填 · 客户版可见&lt;/span&gt;&#x27;)}&lt;div class=&quot;qt-fields qt-customer-grid&quot;&gt;${customers}&lt;/div&gt;`);
         const rowData = draft.rows.map(rowView).join(&#x27;&#x27;);
-        const lineHeaders = ths([[&#x27;序号&#x27;,&#x27;qt-edit-index&#x27;],&#x27;商品/SKU&#x27;,[&#x27;单价&#x27;,&#x27;qt-edit-price qt-end&#x27;],[&#x27;数量&#x27;,&#x27;qt-edit-quantity&#x27;],[&#x27;优惠&#x27;,&#x27;qt-edit-discount&#x27;],[&#x27;金额&#x27;,&#x27;qt-edit-amount qt-end&#x27;],&#x27;备注&#x27;,[&#x27;操作&#x27;,&#x27;qt-edit-actions qt-end&#x27;]]);
-        const lineTable = rowData ? table(lineHeaders,rowData,&#x27;qt-edit-line-table&#x27;) : empty(&#x27;还没有商品明细&#x27;,&#x27;添加同币种 SKU，或套用已有报价模板。&#x27;);
+        const lineTable = rowData ? quoteLineTable(rowData,true) : empty(&#x27;还没有商品明细&#x27;,&#x27;添加同币种 SKU，或套用已有报价模板。&#x27;);
         const lineTools = `${ccy ? status(`${ccy} ${edit ? &#x27;原单币种&#x27; : &#x27;报价币种&#x27;}`,&#x27;blue&#x27;) : &#x27;&lt;span class=&quot;qt-muted&quot;&gt;首条商品确定币种&lt;/span&gt;&#x27;}&lt;span class=&quot;qt-muted&quot;&gt;${draft.rows.length} 行&lt;/span&gt;${draft.rows.length ? &#x27;&lt;span class=&quot;qt-muted&quot; id=&quot;qt-note-visibility&quot;&gt;备注在客户版可见&lt;/span&gt;&#x27; : &#x27;&#x27;}`;
         const lines = `&lt;section class=&quot;qt-panel&quot;&gt;&lt;div class=&quot;qt-row qt-between qt-sectionbar&quot;&gt;&lt;div class=&quot;qt-row&quot;&gt;&lt;h2&gt;商品明细&lt;/h2&gt;${lineTools}&lt;/div&gt;&lt;div class=&quot;qt-row&quot;&gt;${edit ? &#x27;&#x27; : button(&#x27;套用模板&#x27;,&#x27;choose-template&#x27;,{glyph:&#x27;layers&#x27;})}${button(&#x27;添加商品&#x27;,&#x27;products&#x27;,{glyph:&#x27;plus&#x27;})}&lt;/div&gt;&lt;/div&gt;${lineTable}&lt;/section&gt;`;
         const saveAs = edit ? &#x27;&#x27; : `&lt;div class=&quot;qt-row&quot; style=&quot;margin-top:16px&quot;&gt;${button(&#x27;另存为模板&#x27;,&#x27;save-template-dialog&#x27;,{glyph:&#x27;bookmark&#x27;})}&lt;/div&gt;`;
@@ -2449,8 +2475,9 @@ ${escape(row.note)}&lt;/textarea&gt;`;
             setError(`line-${row.rid}`,result.error,`line-${row.rid}-value`);
             const value = root.querySelector(`[data-number-row=&quot;${row.rid}&quot;]`);
             const original = root.querySelector(`[data-original-row=&quot;${row.rid}&quot;]`);
-            value.textContent = money(result.value);
-            original.textContent = result.original != null &amp;&amp; result.value !== result.original ? `原价 ${money(result.original)}` : &#x27;&#x27;;
+            const ccy = row.product.currency;
+            value.textContent = money(result.value,ccy);
+            original.textContent = lineOriginalText(result,ccy);
             root.querySelector(`[data-conflict-row=&quot;${row.rid}&quot;]`).hidden = !draft.conflicts.includes(row.rid);
         });
         setError(&#x27;order&#x27;,results.finalError,&#x27;order-value&#x27;);
@@ -2528,14 +2555,24 @@ ${escape(row.note)}&lt;/textarea&gt;`;
         const computed = calculate(quote);
         const actions = `${quote.generated ? &#x27;&#x27; : button(&#x27;删除&#x27;,&#x27;delete&#x27;,{id:quote.id,glyph:&#x27;trash-2&#x27;,look:&#x27;danger&#x27;}) + button(&#x27;修改报价&#x27;,&#x27;edit&#x27;,{id:quote.id,glyph:&#x27;pencil&#x27;})}${button(&#x27;生成新报价&#x27;,&#x27;copy&#x27;,{id:quote.id,glyph:&#x27;copy&#x27;})}${button(&#x27;查看客户版&#x27;,&#x27;view-paper&#x27;,{id:quote.id,glyph:&#x27;eye&#x27;,look:&#x27;primary&#x27;})}`;
         const customers = Object.entries(customerFields).map(([key,label]) =&gt; `&lt;div&gt;&lt;dt&gt;${label}&lt;/dt&gt;&lt;dd&gt;${escape(quote.customer[key]) || &#x27;—&#x27;}&lt;/dd&gt;&lt;/div&gt;`).join(&#x27;&#x27;);
-        const rows = quote.rows.map((row,index) =&gt; `&lt;tr class=&quot;qt-line&quot;&gt;&lt;td class=&quot;qt-number qt-muted&quot;&gt;${String(index + 1).padStart(2,&#x27;0&#x27;)}&lt;/td&gt;&lt;td&gt;${productLabel(row.product)}&lt;/td&gt;&lt;td class=&quot;qt-number&quot;&gt;${escape(row.qty)} ${escape(row.product.unit)}&lt;/td&gt;&lt;td class=&quot;qt-end qt-number&quot;&gt;${priceText(row.product.price)}&lt;/td&gt;&lt;td&gt;${discountText(row.discount,ccy)}&lt;/td&gt;&lt;td class=&quot;qt-end qt-number&quot;&gt;&lt;strong&gt;${money(computed.lines[index].value)}&lt;/strong&gt;&lt;/td&gt;&lt;/tr&gt;${row.note ? `&lt;tr class=&quot;qt-paired&quot;&gt;&lt;td&gt;&lt;/td&gt;&lt;td colspan=&quot;5&quot;&gt;&lt;p class=&quot;qt-muted&quot;&gt;行备注 · ${escape(row.note)}&lt;/p&gt;&lt;/td&gt;&lt;/tr&gt;` : &#x27;&#x27;}`).join(&#x27;&#x27;);
-        const left = `&lt;div class=&quot;qt-stack&quot;&gt;${panel(`${sectionHeading(&#x27;客户资料&#x27;)}&lt;dl class=&quot;qt-facts qt-customer-grid&quot;&gt;${customers}&lt;/dl&gt;`)}&lt;section class=&quot;qt-panel&quot;&gt;&lt;div class=&quot;qt-row qt-sectionbar&quot;&gt;&lt;h2&gt;商品明细&lt;/h2&gt;&lt;span class=&quot;qt-muted&quot;&gt;${quote.rows.length} 行 · ${ccy}&lt;/span&gt;&lt;/div&gt;${table(ths([&#x27;序号&#x27;,&#x27;商品/SKU&#x27;,&#x27;数量&#x27;,[&#x27;单价&#x27;,&#x27;qt-end&#x27;],&#x27;优惠&#x27;,[&#x27;金额&#x27;,&#x27;qt-end&#x27;]]),rows,&#x27;qt-line-table&#x27;)}&lt;/section&gt;${quote.note ? panel(sectionHeading(&#x27;报价备注&#x27;) + `&lt;p class=&quot;qt-prose&quot;&gt;${escape(quote.note)}&lt;/p&gt;`) : &#x27;&#x27;}&lt;/div&gt;`;
+        const rows = quote.rows.map((row,index) =&gt; `&lt;tr class=&quot;qt-line&quot;&gt;
+            &lt;td class=&quot;qt-muted qt-number&quot;&gt;${String(index + 1).padStart(2,&#x27;0&#x27;)}&lt;/td&gt;
+            &lt;td&gt;${productLabel(row.product)}&lt;/td&gt;
+            ${linePriceCell(row.product)}
+            &lt;td class=&quot;qt-number qt-line-quantity&quot;&gt;${escape(row.qty)} ${escape(row.product.unit)}&lt;/td&gt;
+            &lt;td&gt;${discountText(row.discount,ccy,true)}&lt;/td&gt;
+            ${lineAmountCell(ccy,computed.lines[index])}
+            &lt;td&gt;${row.note ? `&lt;p class=&quot;qt-prose&quot;&gt;${escape(row.note)}&lt;/p&gt;` : &#x27;&lt;span class=&quot;qt-muted&quot;&gt;—&lt;/span&gt;&#x27;}&lt;/td&gt;
+        &lt;/tr&gt;`).join(&#x27;&#x27;);
+        const left = `&lt;div class=&quot;qt-stack&quot;&gt;${panel(`${sectionHeading(&#x27;客户资料&#x27;)}&lt;dl class=&quot;qt-facts qt-customer-grid&quot;&gt;${customers}&lt;/dl&gt;`)}&lt;section class=&quot;qt-panel&quot;&gt;&lt;div class=&quot;qt-row qt-sectionbar&quot;&gt;&lt;h2&gt;商品明细&lt;/h2&gt;&lt;span class=&quot;qt-muted&quot;&gt;${quote.rows.length} 行 · ${ccy}&lt;/span&gt;&lt;/div&gt;${quoteLineTable(rows)}&lt;/section&gt;${quote.note ? panel(sectionHeading(&#x27;报价备注&#x27;) + `&lt;p class=&quot;qt-prose&quot;&gt;${escape(quote.note)}&lt;/p&gt;`) : &#x27;&#x27;}&lt;/div&gt;`;
         const summary = `&lt;aside class=&quot;qt-panel qt-pad qt-summary&quot;&gt;&lt;h2&gt;报价汇总&lt;/h2&gt;&lt;div class=&quot;qt-summary-discount&quot;&gt;&lt;span class=&quot;qt-muted&quot;&gt;整单优惠方式&lt;/span&gt;&lt;strong&gt;${discountText(quote.discount,ccy)}&lt;/strong&gt;&lt;/div&gt;${displayTotals(computed,ccy)}&lt;/aside&gt;`;
         return heading(quote.title,`${quote.number} · ${dated(quote.date)}`,actions,{crumb:&#x27;报价详情&#x27;,badge:quoteStatus(quote)}) + work(`${quote.generated ? banner(&#x27;此报价已生成订单，可查看客户版或生成新报价。&#x27;) : &#x27;&#x27;}&lt;div class=&quot;qt-editor&quot;&gt;${left}${summary}&lt;/div&gt;`);
     }
-    const discountText = (discount,ccy) =&gt; {
+    const discountText = (discount,ccy,showCode = false) =&gt; {
         if (!discount?.value.trim() || discount.mode === &#x27;none&#x27;) return &#x27;—&#x27;;
-        return discount.mode === &#x27;rate&#x27; ? foldText(discount.value) : `${ccy} ${money(decimal(discount.value,2))}`;
+        if (discount.mode === &#x27;rate&#x27;) return foldText(discount.value);
+        const amount = decimal(discount.value,2);
+        return `${money(amount,ccy)}${currencyLine(showCode &amp;&amp; amount != null ? ccy : &#x27;&#x27;)}`;
     };
     function dialogContent(title,body,footer,width = 520) {
         dialog.style.setProperty(&#x27;--dialog-width&#x27;,`${width}px`);
@@ -2564,7 +2601,7 @@ ${escape(row.note)}&lt;/textarea&gt;`;
             return;
         }
         const changes = [
-            [&#x27;参考售价&#x27;,priceText(row.product.price),priceText(live.price)],
+            [&#x27;参考售价&#x27;,priceText(row.product.price,row.product.currency),priceText(live.price,live.currency)],
             [&#x27;售价币种&#x27;,row.product.currency,live.currency],
             [&#x27;型号规格&#x27;,`${row.product.model} · ${row.product.spec}`,`${live.model} · ${live.spec}`],
             [&#x27;单位 / 数量精度&#x27;,`${row.product.unit} / ${row.product.scale}`,`${live.unit} / ${live.scale}`]
@@ -2587,7 +2624,7 @@ ${escape(row.note)}&lt;/textarea&gt;`;
         const query = p.query.toLowerCase().trim();
         const result = catalog.filter(product =&gt; available(product) &amp;&amp; (!p.currency || product.currency === p.currency) &amp;&amp; (!p.category || product.category === p.category) &amp;&amp; (!p.color || product.color === p.color) &amp;&amp; [product.name,product.id,product.model,product.spec].some(text =&gt; text.toLowerCase().includes(query)));
         const pages = pager(result.length,p,&#x27;picker&#x27;);
-        const rows = slicePage(result,p).map(product =&gt; `&lt;tr&gt;&lt;td&gt;&lt;label&gt;&lt;input type=&quot;${p.replace ? &#x27;radio&#x27; : &#x27;checkbox&#x27;}&quot; name=&quot;qt-skus&quot; data-bind=&quot;select-sku&quot; value=&quot;${product.id}&quot; aria-label=&quot;选择 ${product.id} ${escape(product.name)}&quot; ${p.selected.has(product.id) ? &#x27;checked&#x27; : &#x27;&#x27;} ${!p.replace &amp;&amp; selectedCurrency &amp;&amp; product.currency !== selectedCurrency ? &#x27;disabled&#x27; : &#x27;&#x27;}&gt;&lt;/label&gt;&lt;/td&gt;&lt;td&gt;${productLabel(product)}&lt;/td&gt;&lt;td&gt;${escape(product.category)}&lt;/td&gt;&lt;td&gt;${escape(product.unit)}&lt;span class=&quot;qt-cell-sub qt-muted&quot;&gt;${product.scale} 位小数&lt;/span&gt;&lt;/td&gt;&lt;td class=&quot;qt-end qt-number&quot;&gt;&lt;strong&gt;${symbol(product.currency)} ${priceText(product.price)}&lt;/strong&gt;&lt;span class=&quot;qt-cell-sub qt-muted&quot;&gt;${product.currency}&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;`).join(&#x27;&#x27;);
+        const rows = slicePage(result,p).map(product =&gt; `&lt;tr&gt;&lt;td&gt;&lt;label&gt;&lt;input type=&quot;${p.replace ? &#x27;radio&#x27; : &#x27;checkbox&#x27;}&quot; name=&quot;qt-skus&quot; data-bind=&quot;select-sku&quot; value=&quot;${product.id}&quot; aria-label=&quot;选择 ${product.id} ${escape(product.name)}&quot; ${p.selected.has(product.id) ? &#x27;checked&#x27; : &#x27;&#x27;} ${!p.replace &amp;&amp; selectedCurrency &amp;&amp; product.currency !== selectedCurrency ? &#x27;disabled&#x27; : &#x27;&#x27;}&gt;&lt;/label&gt;&lt;/td&gt;&lt;td&gt;${productLabel(product)}&lt;/td&gt;&lt;td&gt;${escape(product.category)}&lt;/td&gt;&lt;td&gt;${escape(product.unit)}&lt;span class=&quot;qt-cell-sub qt-muted&quot;&gt;${product.scale} 位小数&lt;/span&gt;&lt;/td&gt;&lt;td class=&quot;qt-end qt-number&quot;&gt;&lt;strong&gt;${priceText(product.price,product.currency)}&lt;/strong&gt;${currencyLine(product.currency)}&lt;/td&gt;&lt;/tr&gt;`).join(&#x27;&#x27;);
         const target = root.querySelector(&#x27;#qt-picker-results&#x27;);
         target.innerHTML = (rows ? table(ths([&#x27;选择&#x27;,&#x27;商品 / SKU&#x27;,&#x27;类目&#x27;,&#x27;单位 / 精度&#x27;,[&#x27;参考售价&#x27;,&#x27;qt-end&#x27;]]),rows,&#x27;qt-picker-table&#x27;) : empty(&#x27;没有可报价的 SKU&#x27;,&#x27;可调整关键词、类目或规格。&#x27;)) + pages;
         root.querySelector(&#x27;#qt-picker-count&#x27;).textContent = `已选 ${p.selected.size} 项${selectedCurrency ? ` · ${selectedCurrency}` : &#x27;&#x27;}`;
@@ -2644,7 +2681,8 @@ ${escape(row.note)}&lt;/textarea&gt;`;
     function templateList() {
         const f = state.templateFilters[state.scope];
         const subtitle = state.scope === &#x27;personal&#x27; ? &#x27;维护自己常用的报价标题、商品组合和折扣。&#x27; : &#x27;查看或维护 ERP 登录用户可套用的报价模板。&#x27;;
-        return heading(scopeName[state.scope],subtitle,button(&#x27;新建模板&#x27;,&#x27;template-new&#x27;,{look:&#x27;primary&#x27;,glyph:&#x27;plus&#x27;})) + work(`&lt;section class=&quot;qt-panel&quot;&gt;&lt;div class=&quot;qt-filters&quot;&gt;${search(&#x27;搜索模板名称或报价标题&#x27;,&#x27;template-query&#x27;,f.query)}&lt;/div&gt;&lt;div id=&quot;qt-template-results&quot; aria-live=&quot;polite&quot;&gt;${templateResults()}&lt;/div&gt;&lt;/section&gt;`);
+        const tabs = Object.entries(scopeName).map(([scope,label]) =&gt; `&lt;button type=&quot;button&quot; role=&quot;tab&quot; id=&quot;qt-template-tab-${scope}&quot; aria-controls=&quot;qt-template-panel&quot; aria-selected=&quot;${state.scope === scope}&quot; data-act=&quot;template-scope&quot; data-id=&quot;${scope}&quot;&gt;${label}&lt;/button&gt;`).join(&#x27;&#x27;);
+        return heading(&#x27;报价模板&#x27;,subtitle,button(&#x27;新建模板&#x27;,&#x27;template-new&#x27;,{look:&#x27;primary&#x27;,glyph:&#x27;plus&#x27;}),{crumb:&#x27;报价模板&#x27;}) + work(`&lt;section class=&quot;qt-panel&quot;&gt;&lt;div class=&quot;qt-template-tabs&quot; role=&quot;tablist&quot; aria-label=&quot;模板范围&quot;&gt;${tabs}&lt;/div&gt;&lt;div id=&quot;qt-template-panel&quot; role=&quot;tabpanel&quot; aria-labelledby=&quot;qt-template-tab-${state.scope}&quot;&gt;&lt;div class=&quot;qt-filters&quot;&gt;${search(&#x27;搜索模板名称或报价标题&#x27;,&#x27;template-query&#x27;,f.query)}&lt;/div&gt;&lt;div id=&quot;qt-template-results&quot; aria-live=&quot;polite&quot;&gt;${templateResults()}&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;`);
     }
     const templateRateError = value =&gt; value.trim() &amp;&amp; foldValue(value) == null ? foldError : &#x27;&#x27;;
     function templateFoldInput(key,value,label) {
@@ -2662,7 +2700,7 @@ ${escape(row.note)}&lt;/textarea&gt;`;
     function templateDetail() {
         const template = templateBy(state.template);
         const health = templateHealth(template);
-        const actions = `${button(&#x27;返回模板列表&#x27;,template.scope)}${button(health.issues ? &#x27;修复模板&#x27; : &#x27;修改模板&#x27;,&#x27;template-edit&#x27;,{id:template.id,glyph:&#x27;pencil&#x27;})}${button(&#x27;套用模板&#x27;,&#x27;apply-template&#x27;,{id:template.id,look:&#x27;primary&#x27;,glyph:&#x27;layers&#x27;,disabled:!!health.issues})}`;
+        const actions = `${button(&#x27;返回模板列表&#x27;,&#x27;template-scope&#x27;,{id:template.scope})}${button(health.issues ? &#x27;修复模板&#x27; : &#x27;修改模板&#x27;,&#x27;template-edit&#x27;,{id:template.id,glyph:&#x27;pencil&#x27;})}${button(&#x27;套用模板&#x27;,&#x27;apply-template&#x27;,{id:template.id,look:&#x27;primary&#x27;,glyph:&#x27;layers&#x27;,disabled:!!health.issues})}`;
         const facts = panel(`${sectionHeading(&#x27;模板资料&#x27;)}&lt;dl class=&quot;qt-facts&quot;&gt;&lt;div&gt;&lt;dt&gt;报价标题&lt;/dt&gt;&lt;dd&gt;${escape(template.title)}&lt;/dd&gt;&lt;/div&gt;&lt;div&gt;&lt;dt&gt;整单折扣&lt;/dt&gt;&lt;dd&gt;${foldText(template.discount)}&lt;/dd&gt;&lt;/div&gt;&lt;div&gt;&lt;dt&gt;当前售价币种&lt;/dt&gt;&lt;dd&gt;${health.ccy || &#x27;—&#x27;}&lt;/dd&gt;&lt;/div&gt;&lt;/dl&gt;`);
         const lines = `&lt;section class=&quot;qt-panel&quot;&gt;&lt;div class=&quot;qt-row qt-sectionbar&quot;&gt;&lt;h2&gt;商品组合&lt;/h2&gt;&lt;span class=&quot;qt-muted&quot;&gt;${template.rows.length} 行&lt;/span&gt;&lt;/div&gt;${table(ths([&#x27;序号&#x27;,&#x27;商品 / SKU&#x27;,&#x27;当前售价币种&#x27;,&#x27;行折扣&#x27;,&#x27;当前可用性&#x27;]),templateRowsView(template,false),&#x27;qt-list&#x27;)}&lt;/section&gt;`;
         return heading(template.name,`${scopeName[template.scope]} · 更新于 ${dated(template.updated)}`,actions,{crumb:&#x27;模板详情&#x27;,badge:templateStatus(template)}) + work(`${health.issues ? banner(&#x27;模板暂不可套用。请修复商品行，并保留至少一行同币种的可用 SKU。&#x27;,&#x27;warning&#x27;) : &#x27;&#x27;}${facts}${lines}`);
@@ -2802,16 +2840,17 @@ ${escape(row.note)}&lt;/textarea&gt;`;
         if (continuation) {
             tr.innerHTML = `&lt;td class=&quot;qt-sheet-small qt-number&quot;&gt;${number}&lt;/td&gt;&lt;td colspan=&quot;5&quot;&gt;&lt;p class=&quot;qt-sheet-note&quot;&gt;&lt;strong&gt;${paperLabel(quote,&#x27;行备注（续）&#x27;)}&lt;/strong&gt;　${escape(note)}&lt;/p&gt;&lt;/td&gt;`;
         } else {
-            tr.innerHTML = `&lt;td class=&quot;qt-sheet-small qt-number&quot;&gt;${number}&lt;/td&gt;&lt;td&gt;&lt;strong&gt;${escape(product.name)}&lt;/strong&gt;&lt;div class=&quot;qt-sheet-small&quot;&gt;${escape(product.model)} · ${escape(product.spec)}&lt;/div&gt;&lt;div class=&quot;qt-sheet-small qt-mono&quot;&gt;${escape(product.id)}&lt;/div&gt;${note ? `&lt;p class=&quot;qt-sheet-note&quot;&gt;&lt;strong&gt;${paperLabel(quote,&#x27;备注&#x27;)}&lt;/strong&gt;　${escape(note)}&lt;/p&gt;` : &#x27;&#x27;}&lt;/td&gt;&lt;td class=&quot;qt-end&quot;&gt;${escape(row.qty)} ${escape(product.unit)}&lt;/td&gt;&lt;td class=&quot;qt-end&quot;&gt;${priceText(product.price)}&lt;/td&gt;&lt;td class=&quot;qt-end&quot;&gt;${discountText(row.discount,product.currency)}&lt;/td&gt;&lt;td class=&quot;qt-end&quot;&gt;&lt;strong&gt;${money(result.value)}&lt;/strong&gt;&lt;/td&gt;`;
+            tr.innerHTML = `&lt;td class=&quot;qt-sheet-small qt-number&quot;&gt;${number}&lt;/td&gt;&lt;td&gt;&lt;strong&gt;${escape(product.name)}&lt;/strong&gt;&lt;div class=&quot;qt-sheet-small&quot;&gt;${escape(product.model)} · ${escape(product.spec)}&lt;/div&gt;&lt;div class=&quot;qt-sheet-small qt-mono&quot;&gt;${escape(product.id)}&lt;/div&gt;${note ? `&lt;p class=&quot;qt-sheet-note&quot;&gt;&lt;strong&gt;${paperLabel(quote,&#x27;备注&#x27;)}&lt;/strong&gt;　${escape(note)}&lt;/p&gt;` : &#x27;&#x27;}&lt;/td&gt;&lt;td class=&quot;qt-end&quot;&gt;${escape(row.qty)} ${escape(product.unit)}&lt;/td&gt;&lt;td class=&quot;qt-end qt-sheet-money&quot;&gt;${priceText(product.price,product.currency)}${currencyLine(product.currency)}&lt;/td&gt;&lt;td class=&quot;qt-end${row.discount.mode === &#x27;amount&#x27; ? &#x27; qt-sheet-money&#x27; : &#x27;&#x27;}&quot;&gt;${discountText(row.discount,product.currency,true)}&lt;/td&gt;&lt;td class=&quot;qt-end qt-sheet-money&quot;&gt;&lt;strong&gt;${money(result.value,product.currency)}&lt;/strong&gt;${currencyLine(result.value == null ? &#x27;&#x27; : product.currency)}&lt;/td&gt;`;
         }
         return tr;
     }
     function paperTotals(quote,result,note,continued = false,withTotals = true) {
         const t = text =&gt; paperLabel(quote,text);
-        const discount = (name,value,detail = &#x27;&#x27;) =&gt; value &gt; 0n || detail ? `&lt;div&gt;&lt;dt&gt;${name}${detail ? ` · ${detail}` : &#x27;&#x27;}&lt;/dt&gt;&lt;dd class=&quot;qt-number&quot;&gt;${value &gt; 0n ? &#x27;−&#x27; : &#x27;&#x27;}${money(value)}&lt;/dd&gt;&lt;/div&gt;` : &#x27;&#x27;;
+        const ccy = currencyOf(quote);
+        const discount = (name,value,detail = &#x27;&#x27;) =&gt; value &gt; 0n || detail ? `&lt;div&gt;&lt;dt&gt;${name}${detail ? ` · ${detail}` : &#x27;&#x27;}&lt;/dt&gt;&lt;dd class=&quot;qt-number&quot;&gt;${value &gt; 0n ? &#x27;−&#x27; : &#x27;&#x27;}${money(value,ccy)}&lt;/dd&gt;&lt;/div&gt;` : &#x27;&#x27;;
         const orderFold = quote.discount.mode === &#x27;rate&#x27; &amp;&amp; quote.discount.value.trim() ? foldText(quote.discount.value) : &#x27;&#x27;;
         const final = money(result.final);
-        const amountRows = `&lt;dl class=&quot;qt-sheet-total&quot;&gt;&lt;div&gt;&lt;dt&gt;${t(&#x27;商品原价合计&#x27;)}&lt;/dt&gt;&lt;dd class=&quot;qt-number&quot;&gt;${money(result.original)}&lt;/dd&gt;&lt;/div&gt;${discount(t(&#x27;商品优惠&#x27;),result.original-result.subtotal)}&lt;div&gt;&lt;dt&gt;${t(&#x27;商品小计&#x27;)}&lt;/dt&gt;&lt;dd class=&quot;qt-number&quot;&gt;${money(result.subtotal)}&lt;/dd&gt;&lt;/div&gt;${discount(t(&#x27;整单优惠&#x27;),result.subtotal-result.final,orderFold)}&lt;div class=&quot;qt-final&quot;&gt;&lt;dt&gt;${t(&#x27;报价总额&#x27;)}&lt;/dt&gt;&lt;dd class=&quot;qt-number&quot;&gt;&lt;small&gt;${currencyOf(quote)}&lt;/small&gt; &lt;strong${final.length &gt; 13 ? &#x27; class=&quot;qt-long-money&quot;&#x27; : &#x27;&#x27;}&gt;${final}&lt;/strong&gt;&lt;/dd&gt;&lt;/div&gt;&lt;/dl&gt;`;
+        const amountRows = `&lt;dl class=&quot;qt-sheet-total&quot;&gt;&lt;div&gt;&lt;dt&gt;${t(&#x27;商品原价合计&#x27;)}&lt;/dt&gt;&lt;dd class=&quot;qt-number&quot;&gt;${money(result.original,ccy)}&lt;/dd&gt;&lt;/div&gt;${discount(t(&#x27;商品优惠&#x27;),result.original-result.subtotal)}&lt;div&gt;&lt;dt&gt;${t(&#x27;商品小计&#x27;)}&lt;/dt&gt;&lt;dd class=&quot;qt-number&quot;&gt;${money(result.subtotal,ccy)}&lt;/dd&gt;&lt;/div&gt;${discount(t(&#x27;整单优惠&#x27;),result.subtotal-result.final,orderFold)}&lt;div class=&quot;qt-final&quot;&gt;&lt;dt&gt;${t(&#x27;报价总额&#x27;)}&lt;/dt&gt;&lt;dd class=&quot;qt-number&quot;&gt;${totalSymbol(result.final,ccy)}&lt;strong${final.length &gt; 13 ? &#x27; class=&quot;qt-long-money&quot;&#x27; : &#x27;&#x27;}&gt;${final}&lt;/strong&gt;&lt;/dd&gt;&lt;/div&gt;&lt;/dl&gt;`;
         const el = document.createElement(&#x27;section&#x27;);
         el.className = &#x27;qt-sheet-bottom&#x27;;
         el.innerHTML = `&lt;div&gt;${note ? `&lt;strong&gt;${t(&#x27;报价备注&#x27;)}${continued ? t(&#x27;（续）&#x27;) : &#x27;&#x27;}&lt;/strong&gt;&lt;p class=&quot;qt-sheet-note&quot;&gt;${escape(note)}&lt;/p&gt;` : &#x27;&#x27;}&lt;/div&gt;${withTotals ? amountRows : &#x27;&#x27;}`;
@@ -3049,6 +3088,14 @@ ${escape(row.note)}&lt;/textarea&gt;`;
         const el = event.target;
         if (el.dataset.bind &amp;&amp; (el.tagName === &#x27;SELECT&#x27; || [&#x27;checkbox&#x27;,&#x27;radio&#x27;].includes(el.type))) bindInput(el);
     });
+    root.addEventListener(&#x27;keydown&#x27;,event =&gt; {
+        if (!event.target.matches(&#x27;.qt-template-tabs [role=&quot;tab&quot;]&#x27;)) return;
+        if (![&#x27;ArrowLeft&#x27;,&#x27;ArrowRight&#x27;,&#x27;Home&#x27;,&#x27;End&#x27;].includes(event.key)) return;
+        event.preventDefault();
+        const other = event.target.dataset.id === &#x27;personal&#x27; ? &#x27;public&#x27; : &#x27;personal&#x27;;
+        const scope = event.key === &#x27;Home&#x27; ? &#x27;personal&#x27; : event.key === &#x27;End&#x27; ? &#x27;public&#x27; : other;
+        root.querySelector(`#qt-template-tab-${scope}`).click();
+    });
     dialog.addEventListener(&#x27;cancel&#x27;,() =&gt; { state.modal = null; });
     dialog.addEventListener(&#x27;keydown&#x27;,event =&gt; {
         if (event.key !== &#x27;Enter&#x27; || event.target.tagName !== &#x27;INPUT&#x27; || ![&#x27;text&#x27;,&#x27;search&#x27;].includes(event.target.type)) return;
@@ -3060,8 +3107,12 @@ ${escape(row.note)}&lt;/textarea&gt;`;
 
     const actions = {
         list:() =&gt; navigateSection(&#x27;list&#x27;),
-        personal:() =&gt; navigateSection(&#x27;templates&#x27;,&#x27;personal&#x27;),
-        public:() =&gt; navigateSection(&#x27;templates&#x27;,&#x27;public&#x27;),
+        templates:() =&gt; navigateSection(&#x27;templates&#x27;,&#x27;personal&#x27;),
+        &#x27;template-scope&#x27;:scope =&gt; {
+            const switching = state.view === &#x27;templates&#x27;;
+            navigateSection(&#x27;templates&#x27;,scope);
+            if (switching) root.querySelector(`#qt-template-tab-${scope}`).focus({preventScroll:true});
+        },
         &#x27;reset-quotes&#x27;:() =&gt; { state.quoteFilters = {query:&#x27;&#x27;, start:&#x27;&#x27;, end:&#x27;&#x27;, status:&#x27;&#x27;, page:1, size:state.quoteFilters.size}; render(); },
         &#x27;quote-page&#x27;:id =&gt; { state.quoteFilters.page += Number(id); refreshResults(&#x27;#qt-quote-results&#x27;,quoteResults); },
         &#x27;template-page&#x27;:id =&gt; { state.templateFilters[state.scope].page += Number(id); refreshResults(&#x27;#qt-template-results&#x27;,templateResults); },
@@ -3116,7 +3167,7 @@ ${escape(row.note)}&lt;/textarea&gt;`;
             product.price = `${BigInt(whole) + 10n}.${fraction}`;
             product.skuVersion++;
             product.productVersion++;
-            inform(`${product.id} 的参考售价已变为 ${product.currency} ${priceText(product.price)}。`);
+            inform(`${product.id} 的参考售价已变为 ${priceText(product.price,product.currency)}。`);
         },
         &#x27;view-paper&#x27;:id =&gt; { state.paper = {from:&#x27;detail&#x27;,quote:clone(quoteBy(id)),shot:false}; go(&#x27;paper&#x27;); },
         &#x27;paper-back&#x27;:() =&gt; { const view = state.paper.from; state.paper = null; go(view); },
