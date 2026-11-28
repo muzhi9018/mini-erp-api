@@ -1,6 +1,8 @@
 package com.muzhi.minierp.vo.product;
 
+import com.muzhi.minierp.entity.product.ProductSnapshotSpec;
 import io.github.linpeilie.annotations.AutoMapper;
+import io.github.linpeilie.annotations.AutoMappers;
 import lombok.Data;
 import java.math.BigDecimal;
 
@@ -13,7 +15,10 @@ import java.math.BigDecimal;
  * @since 2026-11-19
  */
 @Data
-@AutoMapper(target = ProductSkuSpecValueVO.class)
+@AutoMappers({
+        @AutoMapper(target = ProductSkuSpecValueVO.class),
+        @AutoMapper(target = ProductSnapshotSpec.class, convertGenerate = false)
+})
 public class ProductOptionSpecVO {
 
     /**

@@ -45,24 +45,24 @@ public class QuotationController {
 
     @PostMapping("/preview")
     @PreAuthorize("hasAuthority('sales-manager:quotation:create')")
-    public JsonResult<QuotationDocumentVO> preview(@RequestBody QuotationFormVO form) {
+    public JsonResult<QuotationVO> preview(@RequestBody QuotationVO form) {
         this.validateForm(form, false);
-        QuotationDocumentVO result = quotationService.preview(form);
+        QuotationVO result = quotationService.preview(form);
         return JsonResult.success(result);
     }
 
     @PostMapping("/create")
     @PreAuthorize("hasAuthority('sales-manager:quotation:create')")
-    public JsonResult<QuotationSummaryVO> create(@RequestBody QuotationFormVO form) {
+    public JsonResult<QuotationVO> create(@RequestBody QuotationVO form) {
         this.validateForm(form, false);
-        QuotationSummaryVO result = quotationService.create(form);
+        QuotationVO result = quotationService.create(form);
         return JsonResult.success(result);
     }
 
     @GetMapping("/list")
     @PreAuthorize("hasAuthority('sales-manager:quotation:query')")
-    public JsonResult<IPage<QuotationSummaryVO>> list(
-            QuotationQueryVO query,
+    public JsonResult<IPage<QuotationVO>> list(
+            QuotationVO query,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "15") Integer pageSize
     ) {
@@ -75,49 +75,50 @@ public class QuotationController {
         LocalDate to = query.getQuotedTo();
         boolean invalid = (from != null && to != null && from.isAfter(to)) || LocalDate.MAX.equals(to);
         Assert.isTrue(invalid, "quotation.date-range-invalid", "报价日期范围无效");
-        IPage<QuotationSummaryVO> result = quotationService.list(query, pageNum, pageSize);
+        IPage<QuotationVO> result = quotationService.list(query, pageNum, pageSize);
         return JsonResult.success(result);
     }
 
     @GetMapping("/detail")
     @PreAuthorize("hasAuthority('sales-manager:quotation:query')")
-    public JsonResult<QuotationDetailVO> detail(@RequestParam Long id) {
+    public JsonResult<QuotationVO> detail(@RequestParam Long id) {
         QuotationController.validateId(id);
-        QuotationDetailVO result = quotationService.detail(id);
+        QuotationVO result = quotationService.detail(id);
         return JsonResult.success(result);
     }
 
     @PostMapping("/update/preview")
     @PreAuthorize("hasAuthority('sales-manager:quotation:update')")
-    public JsonResult<QuotationDocumentVO> previewUpdate(@RequestBody QuotationFormVO form) {
+    public JsonResult<QuotationVO> previewUpdate(@RequestBody QuotationVO form) {
         this.validateForm(form, true);
-        QuotationDocumentVO result = quotationService.previewUpdate(form);
+        QuotationVO result = quotationService.previewUpdate(form);
         return JsonResult.success(result);
     }
 
     @PostMapping("/update")
     @PreAuthorize("hasAuthority('sales-manager:quotation:update')")
-    public JsonResult<QuotationDetailVO> update(@RequestBody QuotationFormVO form) {
+    public JsonResult<QuotationVO> update(@RequestBody QuotationVO form) {
         this.validateForm(form, true);
-        QuotationDetailVO result = quotationService.update(form);
+        QuotationVO result = quotationService.update(form);
         return JsonResult.success(result);
     }
 
     @PostMapping("/delete")
     @PreAuthorize("hasAuthority('sales-manager:quotation:delete')")
-    public JsonResult<Void> delete(@RequestBody QuotationVersionedId reference) {
-        QuotationController.validateVersionedId(reference);
+    public JsonResult<Void> delete(@RequestBody QuotationVO reference) {
+        Assert.isNull(reference, "quotation.reference-required", "请提交业务 ID 和期望版本");
+        QuotationController.validateVersionedId(reference.getId(), reference.getVersion());
         quotationService.delete(reference);
         return JsonResult.success();
     }
 
     @PostMapping("/copy")
     @PreAuthorize("hasAuthority('sales-manager:quotation:query') and hasAuthority('sales-manager:quotation:create')")
-    public JsonResult<QuotationDetailVO> copy(@RequestBody QuotationCopyRequest request) {
+    public JsonResult<QuotationVO> copy(@RequestBody QuotationVO request) {
         Assert.isNull(request, "quotation.copy-choice-required", "请选择是否清空客户资料");
-        Assert.isNull(request.clearCustomer(), "quotation.copy-choice-required", "请选择是否清空客户资料");
-        QuotationController.validateId(request.id());
-        QuotationDetailVO result = quotationService.copy(request);
+        Assert.isNull(request.getClearCustomer(), "quotation.copy-choice-required", "请选择是否清空客户资料");
+        QuotationController.validateId(request.getId());
+        QuotationVO result = quotationService.copy(request);
         return JsonResult.success(result);
     }
 
@@ -125,10 +126,9 @@ public class QuotationController {
         Assert.isTrue(id == null || id <= 0, "quotation.id-invalid", "业务 ID 必须大于 0");
     }
 
-    static void validateVersionedId(QuotationVersionedId reference) {
-        Assert.isNull(reference, "quotation.reference-required", "请提交业务 ID 和期望版本");
-        QuotationController.validateId(reference.id());
-        QuotationController.validateVersion(reference.expectedVersion());
+    static void validateVersionedId(Long id, Long version) {
+        QuotationController.validateId(id);
+        QuotationController.validateVersion(version);
     }
 
     static void validateVersion(Long version) {
@@ -153,40 +153,42 @@ public class QuotationController {
     /**
      * 检查报价行来源、数量存储精度和两级优惠字段。
      */
-    private void validateForm(QuotationFormVO form, boolean editing) {
+    private void validateForm(QuotationVO form, boolean editing) {
         Assert.isNull(form, "quotation.form-required", "请提交报价表单");
-        if (editing || form.reference() != null) {
-            QuotationController.validateVersionedId(form.reference());
-        }
         if (editing) {
-            Assert.isNull(form.quotedAt(), "quotation.quoted-at-required", "报价时间不能为空");
+            QuotationController.validateVersionedId(form.getId(), form.getVersion());
+            Assert.isNull(form.getQuotedAt(), "quotation.quoted-at-required", "报价时间不能为空");
+        } else if (form.getSourceId() != null || form.getSourceVersion() != null) {
+            QuotationController.validateVersionedId(form.getSourceId(), form.getSourceVersion());
         }
-        QuotationController.validateTitle(form.title(), editing);
-        this.validateCustomer(form.customer());
-        QuotationController.validateText(form.remark(), 1024, 0);
-        this.validateDiscount(form.discount(), 0);
-        List<QuotationFormVO.Item> items = form.items();
+        QuotationController.validateTitle(form.getTitle(), editing);
+        QuotationController.validateText(form.getCustomerName(), 256, 0);
+        QuotationController.validateText(form.getContactName(), 64, 0);
+        QuotationController.validateText(form.getContactPhone(), 32, 0);
+        QuotationController.validateText(form.getShippingAddress(), 512, 0);
+        QuotationController.validateText(form.getRemark(), 1024, 0);
+        this.validateDiscount(form.getDiscountRate(), form.getDiscountedAmount(), 0);
+        List<QuotationItemVO> items = form.getItems();
         Assert.isEmpty(items, "quotation.items-required", "报价至少需要一行商品");
         Set<Long> retainedIds = new HashSet<>();
         for (int index = 0; index < items.size(); index++) {
             int position = index + 1;
-            QuotationFormVO.Item item = items.get(index);
+            QuotationItemVO item = items.get(index);
             Assert.isNull(item, "quotation.line-invalid", "第 {0} 行的选品信息无效", position);
-            if (item.sourceItemId() != null) {
-                boolean invalid = form.reference() == null || item.sourceItemId() <= 0 || item.skuId() != null
-                        || item.productVersion() != null || item.skuVersion() != null;
+            if (item.getId() != null) {
+                boolean invalid = (!editing && form.getSourceId() == null) || item.getId() <= 0;
                 Assert.isTrue(invalid, "quotation.line-invalid", "第 {0} 行的选品信息无效", position);
-                Assert.isTrue(editing && !retainedIds.add(item.sourceItemId()), "quotation.line-source-duplicate",
+                Assert.isTrue(editing && !retainedIds.add(item.getId()), "quotation.line-source-duplicate",
                         "第 {0} 行重复使用了同一原报价明细", position);
             } else {
-                boolean invalid = item.skuId() == null || item.skuId() <= 0
-                        || item.productVersion() == null || item.productVersion() < 0
-                        || item.skuVersion() == null || item.skuVersion() < 0;
+                boolean invalid = item.getSkuId() == null || item.getSkuId() <= 0
+                        || item.getProductVersion() == null || item.getProductVersion() < 0
+                        || item.getSkuVersion() == null || item.getSkuVersion() < 0;
                 Assert.isTrue(invalid, "quotation.line-invalid", "第 {0} 行的选品信息无效", position);
             }
-            this.validateQuantity(item.quantity(), position);
-            this.validateDiscount(item.discount(), position);
-            QuotationController.validateText(item.remark(), 1024, position);
+            this.validateQuantity(item.getQuantity(), position);
+            this.validateDiscount(item.getDiscountRate(), item.getDiscountedAmount(), position);
+            QuotationController.validateText(item.getRemark(), 1024, position);
         }
     }
 
@@ -195,15 +197,6 @@ public class QuotationController {
         Assert.isTrue(invalid, "quotation.title-required", "报价标题不能为空");
         if (title != null) {
             QuotationController.validateText(title.strip(), 256, 0);
-        }
-    }
-
-    private void validateCustomer(QuotationCustomerVO customer) {
-        if (customer != null) {
-            QuotationController.validateText(customer.getCustomerName(), 256, 0);
-            QuotationController.validateText(customer.getContactName(), 64, 0);
-            QuotationController.validateText(customer.getContactPhone(), 32, 0);
-            QuotationController.validateText(customer.getShippingAddress(), 512, 0);
         }
     }
 
@@ -227,12 +220,7 @@ public class QuotationController {
         Assert.isTrue(invalid, "quotation.quantity-invalid", "第 {0} 行的数量必须大于 0，最多 14 位整数和 6 位小数", position);
     }
 
-    private void validateDiscount(QuotationFormVO.Discount discount, int position) {
-        if (discount == null) {
-            return;
-        }
-        BigDecimal rate = discount.discountRate();
-        BigDecimal amount = discount.discountedAmount();
+    private void validateDiscount(BigDecimal rate, BigDecimal amount, int position) {
         boolean conflicting = rate != null && amount != null;
         BigDecimal upperExclusive = new BigDecimal("100000000000000");
         boolean invalidAmount = amount != null && (amount.signum() < 0

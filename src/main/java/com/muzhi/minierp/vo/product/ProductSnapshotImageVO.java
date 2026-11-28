@@ -2,6 +2,7 @@ package com.muzhi.minierp.vo.product;
 
 import com.muzhi.minierp.entity.product.ProductSnapshotImage;
 import io.github.linpeilie.annotations.AutoMapper;
+import io.github.linpeilie.annotations.AutoMappers;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -15,7 +16,10 @@ import lombok.EqualsAndHashCode;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@AutoMapper(target = ProductSnapshotImage.class)
+@AutoMappers({
+        @AutoMapper(target = ProductSnapshotImage.class),
+        @AutoMapper(target = ProductImageVO.class, convertGenerate = false)
+})
 public class ProductSnapshotImageVO extends ProductSnapshotImage {
 
     /**

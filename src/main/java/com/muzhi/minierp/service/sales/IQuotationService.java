@@ -18,40 +18,40 @@ public interface IQuotationService extends IService<Quotation> {
     /**
      * 预览新增或复制草稿，不写入报价与快照。
      */
-    QuotationDocumentVO preview(QuotationFormVO form);
+    QuotationVO preview(QuotationVO form);
 
     /**
      * 原子保存新报价、商品快照和明细，并取得正式单号。
      */
-    QuotationSummaryVO create(QuotationFormVO form);
+    QuotationVO create(QuotationVO form);
 
     /**
      * 按登录用户分页查询其报价。
      */
-    IPage<QuotationSummaryVO> list(QuotationQueryVO query, Integer pageNum, Integer pageSize);
+    IPage<QuotationVO> list(QuotationVO query, Integer pageNum, Integer pageSize);
 
     /**
-     * 读取正式报价和冻结的商品资料。
+     * 读取报价主表及附带冻结商品资料的明细列表。
      */
-    QuotationDetailVO detail(Long id);
+    QuotationVO detail(Long id);
 
     /**
      * 预览修改后的报价，沿用原币种、开单方和编号。
      */
-    QuotationDocumentVO previewUpdate(QuotationFormVO form);
+    QuotationVO previewUpdate(QuotationVO form);
 
     /**
      * 锁定报价后，按期望版本更新可写字段和明细。
      */
-    QuotationDetailVO update(QuotationFormVO form);
+    QuotationVO update(QuotationVO form);
 
     /**
      * 逻辑删除未转单的报价，保留已发单号及历史明细。
      */
-    void delete(QuotationVersionedId reference);
+    void delete(QuotationVO reference);
 
     /**
-     * 生成可再次编辑的表单，按请求清除原客户资料。
+     * 生成带原报价引用的平铺复制草稿，按请求清除原客户资料。
      */
-    QuotationDetailVO copy(QuotationCopyRequest request);
+    QuotationVO copy(QuotationVO request);
 }

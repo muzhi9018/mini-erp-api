@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.muzhi.minierp.enums.QuotationEnum.Scope;
 import com.muzhi.minierp.vo.sales.QuotationTemplateVO;
-import com.muzhi.minierp.vo.sales.QuotationVersionedId;
+import com.muzhi.minierp.vo.sales.QuotationVO;
 
 /**
  * <p>
@@ -40,10 +40,10 @@ public interface IQuotationTemplateService extends IService<QuotationTemplate> {
     /**
      * 按范围和期望版本逻辑删除当前用户创建的模板及其有效明细。
      */
-    void delete(Scope scope, QuotationVersionedId reference);
+    void delete(Scope scope, QuotationTemplateVO reference);
 
     /**
      * 根据实时选品资料生成报价编辑页的套用值。
      */
-    QuotationTemplateVO apply(Scope scope, Long id);
+    QuotationVO apply(Scope scope, Long id);
 }

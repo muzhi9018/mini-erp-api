@@ -12,8 +12,10 @@ import com.muzhi.minierp.mapper.product.ProductMapper;
 import com.muzhi.minierp.mapper.product.ProductSkuMapper;
 import com.muzhi.minierp.mapper.sales.QuotationItemMapper;
 import com.muzhi.minierp.model.sales.QuotationSkuSelection;
+import com.muzhi.minierp.service.product.IProductImageService;
 import com.muzhi.minierp.service.product.IProductSkuService;
 import com.muzhi.minierp.service.sales.IQuotationItemService;
+import com.muzhi.minierp.vo.product.ProductImageVO;
 import com.muzhi.minierp.vo.product.ProductOptionVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -43,6 +45,8 @@ public class QuotationItemServiceImpl extends ServiceImpl<QuotationItemMapper, Q
 
     private final IProductSkuService productSkuService;
 
+    private final IProductImageService productImageService;
+
     @Override
     public Map<Long, QuotationSkuSelection> loadSkuSelections(List<Long> skuIds, boolean forWrite) {
         List<Long> ids = skuIds.stream().distinct().toList();
@@ -70,6 +74,13 @@ public class QuotationItemServiceImpl extends ServiceImpl<QuotationItemMapper, Q
         }
 
         List<ProductOptionVO> options = productSkuService.optionsByIds(ids);
+        Map<Long, List<ProductImageVO>> imagesByProduct = new HashMap<>();
+        for (ProductOptionVO option : options) {
+            if (option.getImages().isEmpty()) {
+                List<ProductImageVO> images = imagesByProduct.computeIfAbsent(option.getProductId(), productImageService::listByProduct);
+                option.setImages(images);
+            }
+        }
         Map<Long, ProductOptionVO> optionsById = options.stream()
                 .collect(Collectors.toMap(ProductOptionVO::getSkuId, Function.identity()));
         Map<Long, QuotationSkuSelection> result = new HashMap<>();

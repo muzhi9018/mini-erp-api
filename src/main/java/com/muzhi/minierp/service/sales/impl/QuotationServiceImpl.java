@@ -9,23 +9,29 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.muzhi.minierp.config.QuotationIssuerProperties;
 import com.muzhi.minierp.entity.product.ProductSnapshot;
+import com.muzhi.minierp.entity.product.ProductSnapshotImage;
+import com.muzhi.minierp.entity.product.ProductSnapshotSpec;
 import com.muzhi.minierp.entity.sales.Quotation;
 import com.muzhi.minierp.entity.sales.QuotationItem;
 import com.muzhi.minierp.enums.CurrencyEnum;
+import com.muzhi.minierp.enums.ProductEnum;
+import com.muzhi.minierp.mapper.product.ProductSnapshotImageMapper;
 import com.muzhi.minierp.mapper.product.ProductSnapshotMapper;
+import com.muzhi.minierp.mapper.product.ProductSnapshotSpecMapper;
 import com.muzhi.minierp.mapper.sales.QuotationItemMapper;
 import com.muzhi.minierp.mapper.sales.QuotationMapper;
 import com.muzhi.minierp.model.LoginUser;
-import com.muzhi.minierp.model.sales.QuotationCalculation;
-import com.muzhi.minierp.model.sales.QuotationLine;
 import com.muzhi.minierp.model.sales.QuotationSkuSelection;
 import com.muzhi.minierp.security.SecurityUtils;
 import com.muzhi.minierp.service.product.IProductSnapshotService;
 import com.muzhi.minierp.service.sales.IQuotationItemService;
 import com.muzhi.minierp.service.sales.IQuotationService;
+import com.muzhi.minierp.service.system.IAttachmentService;
 import com.muzhi.minierp.util.Assert;
 import com.muzhi.minierp.util.BeanConvertUtils;
+import com.muzhi.minierp.vo.product.ProductOptionSpecVO;
 import com.muzhi.minierp.vo.product.ProductOptionVO;
+import com.muzhi.minierp.vo.product.ProductSnapshotImageVO;
 import com.muzhi.minierp.vo.sales.*;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -42,6 +48,7 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -69,6 +76,12 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
 
     private final ProductSnapshotMapper snapshotMapper;
 
+    private final ProductSnapshotImageMapper snapshotImageMapper;
+
+    private final ProductSnapshotSpecMapper snapshotSpecMapper;
+
+    private final IAttachmentService attachmentService;
+
     private final IProductSnapshotService snapshotService;
 
     private final IQuotationItemService quotationItemService;
@@ -77,19 +90,21 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
 
     @Override
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
-    public QuotationDocumentVO preview(QuotationFormVO form) {
-        Quotation source = this.copySource(form.reference(), false);
-        QuotationCalculation result = this.calculate(form, source, false, false);
-        return this.document(result.header(), result.lines());
+    public QuotationVO preview(QuotationVO form) {
+        Quotation source = this.copySource(form, false);
+        QuotationVO result = this.calculate(form, source, false, false);
+        QuotationVO preview = this.detail(result);
+        preview.setSourceId(form.getSourceId());
+        preview.setSourceVersion(form.getSourceVersion());
+        return preview;
     }
 
     @Override
     @Retryable(includes = PessimisticLockingFailureException.class, maxRetries = 1, delay = 50)
     @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
-    public QuotationSummaryVO create(QuotationFormVO form) {
-        Quotation source = this.copySource(form.reference(), true);
-        QuotationCalculation result = this.calculate(form, source, false, true);
-        Quotation header = result.header();
+    public QuotationVO create(QuotationVO form) {
+        Quotation source = this.copySource(form, true);
+        QuotationVO header = this.calculate(form, source, false, true);
         LocalDate numberDate = LocalDate.now(BUSINESS_ZONE);
         super.baseMapper.lockDailySequence(numberDate);
         Integer maximum = super.baseMapper.selectMaxDailySequence(numberDate);
@@ -105,16 +120,12 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
         header.setOrderGenerated(false);
         header.setVersion(0L);
         super.baseMapper.insert(header);
-        for (QuotationLine line : result.lines()) {
-            QuotationItem item = line.item();
+        for (QuotationItemVO item : header.getItems()) {
             item.setId(IdWorker.getId());
             item.setQuotationId(header.getId());
             itemMapper.insert(item);
         }
-        QuotationSummaryVO reference = new QuotationSummaryVO();
-        reference.setId(header.getId());
-        reference.setQuoteNumber(quoteNumber);
-        return reference;
+        return this.detail(header);
     }
 
     /**
@@ -140,7 +151,7 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
     }
 
     @Override
-    public IPage<QuotationSummaryVO> list(QuotationQueryVO query, Integer pageNum, Integer pageSize) {
+    public IPage<QuotationVO> list(QuotationVO query, Integer pageNum, Integer pageSize) {
         LambdaQueryWrapper<Quotation> criteria = Wrappers.lambdaQuery();
         Long ownerId = this.currentUserId();
         criteria.eq(Quotation::getOwnerUserId, ownerId);
@@ -169,36 +180,32 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
         criteria.orderByDesc(Quotation::getQuotedAt, Quotation::getId);
         Page<Quotation> page = new Page<>(pageNum, pageSize);
         Page<Quotation> result = super.baseMapper.selectPage(page, criteria);
-        return result.convert(quote -> {
-            QuotationSummaryVO summary = BeanConvertUtils.convert(quote, QuotationSummaryVO.class);
-            summary.setQuotedAt(this.businessTime(summary.getQuotedAt()));
-            summary.setTotalAmount(this.roundAmount(summary.getTotalAmount()));
-            return summary;
-        });
+        return result.convert(this::quotationView);
     }
 
     @Override
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
-    public QuotationDetailVO detail(Long id) {
+    public QuotationVO detail(Long id) {
         Quotation header = this.owned(id, false);
-        List<QuotationLine> lines = this.readLines(id);
-        return this.detail(header, lines);
+        QuotationVO result = this.quotationView(header);
+        List<QuotationItemVO> items = this.readItems(id);
+        result.setItems(items);
+        return this.detail(result);
     }
 
     @Override
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
-    public QuotationDocumentVO previewUpdate(QuotationFormVO form) {
-        Quotation source = this.editable(form.reference(), false);
-        QuotationCalculation result = this.calculate(form, source, true, false);
-        return this.document(result.header(), result.lines());
+    public QuotationVO previewUpdate(QuotationVO form) {
+        Quotation source = this.editable(form, false);
+        QuotationVO result = this.calculate(form, source, true, false);
+        return this.detail(result);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
-    public QuotationDetailVO update(QuotationFormVO form) {
-        Quotation source = this.editable(form.reference(), true);
-        QuotationCalculation result = this.calculate(form, source, true, true);
-        Quotation header = result.header();
+    public QuotationVO update(QuotationVO form) {
+        Quotation source = this.editable(form, true);
+        QuotationVO header = this.calculate(form, source, true, true);
         header.setVersion(Math.incrementExact(source.getVersion()));
         LambdaUpdateWrapper<Quotation> update = Wrappers.lambdaUpdate();
         update.eq(Quotation::getId, source.getId());
@@ -218,14 +225,13 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
         Quotation audit = new Quotation();
         super.baseMapper.update(audit, update);
 
-        List<QuotationLine> lines = result.lines();
-        this.replaceItems(header.getId(), lines);
-        return this.detail(header, lines);
+        this.replaceItems(header.getId(), header.getItems());
+        return this.detail(header);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
-    public void delete(QuotationVersionedId reference) {
+    public void delete(QuotationVO reference) {
         Quotation source = this.editable(reference, true);
         Long nextVersion = Math.incrementExact(source.getVersion());
         LambdaUpdateWrapper<Quotation> update = Wrappers.lambdaUpdate();
@@ -238,20 +244,25 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
 
     @Override
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
-    public QuotationDetailVO copy(QuotationCopyRequest request) {
-        Quotation source = this.owned(request.id(), false);
-        List<QuotationLine> lines = this.readLines(source.getId());
-        if (Boolean.TRUE.equals(request.clearCustomer())) {
+    public QuotationVO copy(QuotationVO request) {
+        Quotation source = this.owned(request.getId(), false);
+        List<QuotationItemVO> items = this.readItems(source.getId());
+        if (Boolean.TRUE.equals(request.getClearCustomer())) {
             source.setCustomerName(null);
             source.setContactName(null);
             source.setContactPhone(null);
             source.setShippingAddress(null);
         }
-        source.setQuoteNumber(null);
-        QuotationFormVO form = this.form(source, lines);
-        QuotationDocumentVO document = this.document(source, lines);
-        List<Long> skuIds = this.skuIds(lines);
-        return new QuotationDetailVO(null, null, null, form, document, skuIds);
+        QuotationVO result = this.quotationView(source);
+        result.setItems(items);
+        this.detail(result);
+        result.setSourceId(source.getId());
+        result.setSourceVersion(source.getVersion());
+        result.setId(null);
+        result.setVersion(null);
+        result.setOrderGenerated(null);
+        result.setQuoteNumber(null);
+        return result;
     }
 
     /**
@@ -276,8 +287,8 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
         return user.getId();
     }
 
-    private Quotation copySource(QuotationVersionedId reference, boolean forWrite) {
-        if (reference == null) {
+    private Quotation copySource(QuotationVO reference, boolean forWrite) {
+        if (reference.getSourceId() == null) {
             return null;
         }
         LoginUser user = SecurityUtils.getCurrentUser();
@@ -286,58 +297,59 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
         if (!canRead) {
             throw new AccessDeniedException("quotation.read-source-denied");
         }
-        Quotation source = this.owned(reference.id(), forWrite);
-        this.checkVersion(source, reference);
+        Quotation source = this.owned(reference.getSourceId(), forWrite);
+        this.checkVersion(source, reference.getSourceVersion());
         return source;
     }
 
-    private Quotation editable(QuotationVersionedId reference, boolean forWrite) {
-        Quotation quotation = this.owned(reference.id(), forWrite);
+    private Quotation editable(QuotationVO reference, boolean forWrite) {
+        Quotation quotation = this.owned(reference.getId(), forWrite);
         Assert.isTrue(Boolean.TRUE.equals(quotation.getOrderGenerated()), "quotation.order-generated", "已生成订单的报价不能修改或删除");
-        this.checkVersion(quotation, reference);
+        this.checkVersion(quotation, reference.getVersion());
         return quotation;
     }
 
-    private void checkVersion(Quotation source, QuotationVersionedId reference) {
-        boolean conflict = !Objects.equals(source.getVersion(), reference.expectedVersion());
+    private void checkVersion(Quotation source, Long version) {
+        boolean conflict = !Objects.equals(source.getVersion(), version);
         Assert.isTrue(conflict, "quotation.version-conflict", "报价已更新，请重新读取后确认");
     }
 
     /**
      * 新选商品先批量核验，沿用行只使用原快照和单价。
      */
-    private QuotationCalculation calculate(QuotationFormVO form, Quotation source, boolean editing, boolean forWrite) {
-        Map<Long, QuotationLine> originals = Map.of();
-        if (source != null && form.items().stream().anyMatch(item -> item.sourceItemId() != null)) {
-            List<QuotationLine> lines = this.readLines(source.getId());
-            originals = lines.stream().collect(Collectors.toMap(line -> line.item().getId(), Function.identity()));
+    private QuotationVO calculate(QuotationVO form, Quotation source, boolean editing, boolean forWrite) {
+        Map<Long, QuotationItemVO> originals = Map.of();
+        if (source != null && form.getItems().stream().anyMatch(item -> item.getId() != null)) {
+            List<QuotationItemVO> items = this.readItems(source.getId());
+            originals = items.stream().collect(Collectors.toMap(QuotationItemVO::getId, Function.identity()));
         }
-        List<Long> newSkuIds = form.items().stream().map(QuotationFormVO.Item::skuId).filter(Objects::nonNull).toList();
+        List<Long> newSkuIds = form.getItems().stream()
+                .filter(item -> item.getId() == null)
+                .map(QuotationItemVO::getSkuId)
+                .filter(Objects::nonNull)
+                .toList();
         Map<Long, QuotationSkuSelection> selections = quotationItemService.loadSkuSelections(newSkuIds, forWrite);
-        List<QuotationLine> lines = new ArrayList<>();
+        List<QuotationItemVO> items = new ArrayList<>();
         String currency = editing ? source.getCurrency() : null;
         BigDecimal originalAmount = BigDecimal.ZERO;
         BigDecimal subtotal = BigDecimal.ZERO;
-        for (QuotationFormVO.Item input : form.items()) {
-            int position = lines.size() + 1;
-            QuotationLine line;
-            if (input.sourceItemId() != null) {
-                QuotationLine original = originals.get(input.sourceItemId());
+        for (QuotationItemVO input : form.getItems()) {
+            int position = items.size() + 1;
+            QuotationItemVO item;
+            if (input.getId() != null) {
+                QuotationItemVO original = originals.get(input.getId());
                 Assert.isNull(original, "quotation.source-item-not-found", "第 {0} 行引用的原报价明细不存在", position);
-                QuotationItem originalItem = original.item();
-                BigDecimal unitPrice = originalItem.getUnitPrice();
-                String lineCurrency = originalItem.getCurrency();
-                QuotationItem pricedItem = this.priceLine(input, original.quantityScale(), unitPrice, lineCurrency, position);
-                pricedItem.setSnapshotId(originalItem.getSnapshotId());
-                if (editing) {
-                    pricedItem.setId(originalItem.getId());
+                // 同一历史行允许复制到多个位置，各位置独立重新计价。
+                item = BeanConvertUtils.convert(original, QuotationItemVO.class);
+                this.priceLine(input, item, position);
+                // 预览保留来源明细 ID，正式新建时重新生成主键。
+                if (editing || !forWrite) {
+                    item.setId(original.getId());
                 }
-                line = original.withItem(pricedItem);
             } else {
-                QuotationSkuSelection selection = selections.get(input.skuId());
-                line = this.priceSelectedLine(input, selection, position);
+                QuotationSkuSelection selection = selections.get(input.getSkuId());
+                item = this.priceSelectedItem(input, selection, position);
             }
-            QuotationItem item = line.item();
             if (currency == null) {
                 currency = item.getCurrency();
             }
@@ -345,12 +357,12 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
                     "第 {0} 行的币种必须与报价币种一致", position);
             originalAmount = originalAmount.add(item.getOriginalAmount());
             subtotal = subtotal.add(item.getLineAmount());
-            lines.add(line);
+            items.add(item);
         }
         this.checkAmountRange(originalAmount);
-        BigDecimal total = this.afterDiscount(subtotal, form.discount(), 0);
+        BigDecimal total = this.afterDiscount(subtotal, form.getDiscountRate(), form.getDiscountedAmount(), 0);
         if (forWrite) {
-            this.freezeSelectedItems(form.items(), lines);
+            this.freezeSelectedItems(form.getItems(), items);
         }
 
         Quotation header = this.header(form, source, editing);
@@ -358,64 +370,61 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
         header.setOriginalAmount(originalAmount);
         header.setSubtotalAmount(subtotal);
         header.setTotalAmount(total);
-        return new QuotationCalculation(header, lines);
+        QuotationVO result = this.quotationView(header);
+        result.setItems(items);
+        return result;
     }
 
-    private QuotationLine priceSelectedLine(QuotationFormVO.Item input, QuotationSkuSelection selection, int position) {
+    private QuotationItemVO priceSelectedItem(QuotationItemVO input, QuotationSkuSelection selection, int position) {
         boolean unavailable = selection == null || !selection.issues().isEmpty();
         Assert.isTrue(unavailable, "quotation.sku-unavailable",
                 "第 {0} 行的商品或 SKU 不可用，请刷新或替换", position);
 
         ProductOptionVO option = selection.option();
-        boolean changed = !Objects.equals(input.productVersion(), option.getProductVersion())
-                || !Objects.equals(input.skuVersion(), option.getSkuVersion());
+        boolean changed = !Objects.equals(input.getProductVersion(), option.getProductVersion())
+                || !Objects.equals(input.getSkuVersion(), option.getSkuVersion());
         Assert.isTrue(changed, "quotation.sku-version-conflict",
                 "第 {0} 行的商品资料已变更，请刷新该行", position);
 
-        BigDecimal unitPrice = option.getReferenceSalePrice();
-        String currency = option.getReferenceSaleCurrency();
-        QuotationItem item = this.priceLine(input, option.getQuantityScale(), unitPrice, currency, position);
-        return QuotationLine.fromOption(item, option);
+        QuotationItemVO item = QuotationItemVO.fromOption(option);
+        this.priceLine(input, item, position);
+        return item;
     }
 
-    private QuotationItem priceLine(
-            QuotationFormVO.Item input, int quantityScale, BigDecimal unitPrice, String currency, int position
-    ) {
-        BigDecimal quantity = input.quantity().stripTrailingZeros();
+    private void priceLine(QuotationItemVO input, QuotationItemVO item, int position) {
+        BigDecimal quantity = input.getQuantity().stripTrailingZeros();
+        int quantityScale = item.getQuantityScale();
         Assert.isTrue(quantity.scale() > quantityScale, "quotation.quantity-scale",
                 "第 {0} 行的数量最多支持 {1} 位小数", position, quantityScale);
-        BigDecimal unrounded = unitPrice.multiply(quantity);
+        BigDecimal unrounded = item.getUnitPrice().multiply(quantity);
         BigDecimal original = this.roundAmount(unrounded);
         this.checkAmountRange(original);
-        BigDecimal amount = this.afterDiscount(original, input.discount(), position);
+        BigDecimal amount = this.afterDiscount(original, input.getDiscountRate(), input.getDiscountedAmount(), position);
 
-        QuotationItem item = new QuotationItem();
+        item.setId(null);
+        item.setQuotationId(null);
+        item.setGmtCreate(null);
+        item.setGmtModified(null);
+        item.setCreateUser(null);
+        item.setUpdateUser(null);
+        item.setIsDeleted(null);
         item.setSortOrder(position - 1);
-        item.setCurrency(currency);
-        item.setUnitPrice(unitPrice);
         item.setQuantity(quantity);
         item.setOriginalAmount(original);
         item.setLineAmount(amount);
-        item.setRemark(input.remark());
-        if (input.discount() != null) {
-            item.setDiscountRate(input.discount().discountRate());
-            item.setDiscountedAmount(input.discount().discountedAmount());
-        }
-        return item;
+        item.setRemark(input.getRemark());
+        item.setDiscountRate(input.getDiscountRate());
+        item.setDiscountedAmount(input.getDiscountedAmount());
     }
 
     /**
      * 计算优惠后的金额，位置为 0 时表示整单。
      */
-    private BigDecimal afterDiscount(BigDecimal before, QuotationFormVO.Discount discount, int position) {
-        if (discount == null) {
-            return before;
-        }
-        if (discount.discountRate() != null) {
-            BigDecimal discounted = before.multiply(discount.discountRate()).movePointLeft(2);
+    private BigDecimal afterDiscount(BigDecimal before, BigDecimal rate, BigDecimal fixed, int position) {
+        if (rate != null) {
+            BigDecimal discounted = before.multiply(rate).movePointLeft(2);
             return this.roundAmount(discounted);
         }
-        BigDecimal fixed = discount.discountedAmount();
         if (fixed == null) {
             return before;
         }
@@ -441,37 +450,45 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
         Assert.isTrue(amount.compareTo(upperExclusive) >= 0, "quotation.amount-overflow", "报价金额超出可保存范围");
     }
 
-    private String decimalText(BigDecimal value) {
-        return value == null ? null : value.stripTrailingZeros().toPlainString();
-    }
-
-    private String moneyText(BigDecimal value) {
-        return this.roundAmount(value).toPlainString();
-    }
-
     /**
      * 所有新选商品已按固定顺序取得行锁，重复 SKU 共用快照。
      */
-    private void freezeSelectedItems(List<QuotationFormVO.Item> inputs, List<QuotationLine> lines) {
+    private void freezeSelectedItems(List<QuotationItemVO> inputs, List<QuotationItemVO> items) {
         Map<Long, ProductSnapshot> snapshots = new HashMap<>();
         for (int index = 0; index < inputs.size(); index++) {
-            QuotationFormVO.Item input = inputs.get(index);
-            if (input.skuId() == null) {
+            QuotationItemVO input = inputs.get(index);
+            if (input.getId() != null) {
                 continue;
             }
-            ProductSnapshot snapshot = snapshots.get(input.skuId());
+            ProductSnapshot snapshot = snapshots.get(input.getSkuId());
             if (snapshot == null) {
-                snapshot = snapshotService.getOrCreate(input.skuId(), input.productVersion(), input.skuVersion());
-                snapshots.put(input.skuId(), snapshot);
+                snapshot = snapshotService.getOrCreate(input.getSkuId(), input.getProductVersion(), input.getSkuVersion());
+                snapshots.put(input.getSkuId(), snapshot);
             }
-            QuotationItem item = lines.get(index).item();
-            item.setSnapshotId(snapshot.getId());
-            QuotationLine frozenLine = QuotationLine.fromSnapshot(item, snapshot);
-            lines.set(index, frozenLine);
+            QuotationItemVO item = items.get(index);
+            this.applySnapshot(item, snapshot);
         }
     }
 
-    private Quotation header(QuotationFormVO form, Quotation source, boolean editing) {
+    /**
+     * 使用已校验的快照填充来源和展示字段，成交数据由计价流程保留。
+     */
+    private void applySnapshot(QuotationItemVO item, ProductSnapshot snapshot) {
+        item.setSnapshotId(snapshot.getId());
+        item.setSkuId(snapshot.getSourceSkuId());
+        item.setSkuCode(snapshot.getSkuCode());
+        item.setProductName(snapshot.getProductName());
+        item.setModel(snapshot.getModel());
+        item.setSpecificationText(snapshot.getSpecificationText());
+        item.setUnitName(snapshot.getUnitName());
+        item.setQuantityScale(snapshot.getQuantityScale());
+        item.setProductVersion(snapshot.getVersion());
+        item.setSkuVersion(snapshot.getSourceSkuVersion());
+        item.setImages(List.of());
+        item.setSpecs(List.of());
+    }
+
+    private Quotation header(QuotationVO form, Quotation source, boolean editing) {
         Quotation header = new Quotation();
         if (editing) {
             header.setId(source.getId());
@@ -479,34 +496,29 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
             header.setOrderGenerated(source.getOrderGenerated());
             header.setVersion(source.getVersion());
         }
-        header.setTitle(form.title() == null ? "报价单" : form.title().strip());
-        OffsetDateTime quotedAt = form.quotedAt();
+        header.setTitle(form.getTitle() == null ? "报价单" : form.getTitle().strip());
+        OffsetDateTime quotedAt = form.getQuotedAt();
         if (quotedAt == null) {
             quotedAt = OffsetDateTime.now(BUSINESS_ZONE);
         }
         header.setQuotedAt(quotedAt);
         header.setIssuerName(source == null ? issuerProperties.getName() : source.getIssuerName());
         header.setIssuerContact(source == null ? issuerProperties.getContact() : source.getIssuerContact());
-        header.setRemark(form.remark());
-        QuotationCustomerVO customer = form.customer();
-        if (customer != null) {
-            header.setCustomerName(customer.getCustomerName());
-            header.setContactName(customer.getContactName());
-            header.setContactPhone(customer.getContactPhone());
-            header.setShippingAddress(customer.getShippingAddress());
-        }
-        if (form.discount() != null) {
-            header.setDiscountRate(form.discount().discountRate());
-            header.setDiscountedAmount(form.discount().discountedAmount());
-        }
+        header.setRemark(form.getRemark());
+        header.setCustomerName(form.getCustomerName());
+        header.setContactName(form.getContactName());
+        header.setContactPhone(form.getContactPhone());
+        header.setShippingAddress(form.getShippingAddress());
+        header.setDiscountRate(form.getDiscountRate());
+        header.setDiscountedAmount(form.getDiscountedAmount());
         return header;
     }
 
     /**
      * 更新保留行的业务字段，按提交顺序新增与移除其他行。
      */
-    private void replaceItems(Long quotationId, List<QuotationLine> lines) {
-        List<Long> retainedIds = lines.stream().map(line -> line.item().getId()).filter(Objects::nonNull).toList();
+    private void replaceItems(Long quotationId, List<QuotationItemVO> items) {
+        List<Long> retainedIds = items.stream().map(QuotationItemVO::getId).filter(Objects::nonNull).toList();
         LambdaUpdateWrapper<QuotationItem> removed = Wrappers.lambdaUpdate();
         removed.eq(QuotationItem::getQuotationId, quotationId);
         removed.notIn(!retainedIds.isEmpty(), QuotationItem::getId, retainedIds);
@@ -514,8 +526,7 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
         QuotationItem audit = new QuotationItem();
         itemMapper.update(audit, removed);
 
-        for (QuotationLine line : lines) {
-            QuotationItem item = line.item();
+        for (QuotationItemVO item : items) {
             if (item.getId() == null) {
                 item.setId(IdWorker.getId());
                 item.setQuotationId(quotationId);
@@ -540,94 +551,137 @@ public class QuotationServiceImpl extends ServiceImpl<QuotationMapper, Quotation
     /**
      * 历史数据直接批量读取已保存的商品快照。
      */
-    private List<QuotationLine> readLines(Long quotationId) {
+    private List<QuotationItemVO> readItems(Long quotationId) {
         LambdaQueryWrapper<QuotationItem> query = Wrappers.lambdaQuery();
         query.eq(QuotationItem::getQuotationId, quotationId);
         query.orderByAsc(QuotationItem::getSortOrder, QuotationItem::getId);
-        List<QuotationItem> items = itemMapper.selectList(query);
-        if (items.isEmpty()) {
+        List<QuotationItem> entities = itemMapper.selectList(query);
+        if (entities.isEmpty()) {
             return List.of();
         }
 
-        List<Long> ids = items.stream().map(QuotationItem::getSnapshotId).distinct().toList();
+        List<Long> ids = entities.stream().map(QuotationItem::getSnapshotId).distinct().toList();
         List<ProductSnapshot> snapshots = snapshotMapper.selectByIds(ids);
         Map<Long, ProductSnapshot> byId = snapshots.stream().collect(Collectors.toMap(ProductSnapshot::getId, Function.identity()));
-        List<QuotationLine> lines = new ArrayList<>();
-        for (QuotationItem item : items) {
+        List<QuotationItemVO> items = BeanConvertUtils.mapList(entities, QuotationItemVO.class);
+        for (QuotationItemVO item : items) {
             ProductSnapshot snapshot = byId.get(item.getSnapshotId());
             Assert.isNull(snapshot, "quotation.snapshot-missing", "原商品快照不存在");
-            QuotationLine line = QuotationLine.fromSnapshot(item, snapshot);
-            lines.add(line);
+            this.applySnapshot(item, snapshot);
         }
-        return lines;
+        return items;
     }
 
-    private QuotationDetailVO detail(Quotation header, List<QuotationLine> lines) {
-        QuotationFormVO form = this.form(header, lines);
-        QuotationDocumentVO document = this.document(header, lines);
-        List<Long> skuIds = this.skuIds(lines);
-        return new QuotationDetailVO(header.getId(), header.getVersion(), header.getOrderGenerated(), form, document, skuIds);
+    private QuotationVO quotationView(Quotation header) {
+        QuotationVO result = BeanConvertUtils.convert(header, QuotationVO.class);
+        OffsetDateTime quotedAt = this.businessTime(header.getQuotedAt());
+        result.setQuotedAt(quotedAt);
+        result.setIssuerLogoUrl(issuerProperties.getLogoUrl());
+        BigDecimal originalAmount = this.roundAmount(header.getOriginalAmount());
+        BigDecimal subtotalAmount = this.roundAmount(header.getSubtotalAmount());
+        BigDecimal totalAmount = this.roundAmount(header.getTotalAmount());
+        result.setOriginalAmount(originalAmount);
+        result.setSubtotalAmount(subtotalAmount);
+        result.setTotalAmount(totalAmount);
+        if (header.getDiscountedAmount() != null) {
+            BigDecimal discountedAmount = this.roundAmount(header.getDiscountedAmount());
+            result.setDiscountedAmount(discountedAmount);
+        }
+        return result;
     }
 
-    private List<Long> skuIds(List<QuotationLine> lines) {
-        return lines.stream().map(QuotationLine::skuId).toList();
-    }
-
-    private QuotationFormVO form(Quotation header, List<QuotationLine> lines) {
-        List<QuotationFormVO.Item> items = new ArrayList<>();
-        for (QuotationLine line : lines) {
-            QuotationItem item = line.item();
-            QuotationFormVO.Discount discount = this.discount(item.getDiscountRate(), item.getDiscountedAmount());
+    private QuotationVO detail(QuotationVO result) {
+        List<QuotationItemVO> items = result.getItems();
+        Map<Long, List<ProductSnapshotImageVO>> imagesBySnapshot = this.snapshotImages(items);
+        Map<Long, List<ProductOptionSpecVO>> specsBySnapshot = this.snapshotSpecs(items);
+        for (QuotationItemVO item : items) {
+            item.setQuotationId(result.getId());
             BigDecimal quantity = item.getQuantity().stripTrailingZeros();
-            items.add(new QuotationFormVO.Item(item.getId(), null, null, null, quantity, discount, item.getRemark()));
+            BigDecimal unitPrice = item.getUnitPrice().stripTrailingZeros();
+            BigDecimal originalAmount = this.roundAmount(item.getOriginalAmount());
+            BigDecimal lineAmount = this.roundAmount(item.getLineAmount());
+            item.setQuantity(quantity);
+            item.setUnitPrice(unitPrice);
+            item.setOriginalAmount(originalAmount);
+            item.setLineAmount(lineAmount);
+            if (item.getDiscountedAmount() != null) {
+                BigDecimal discountedAmount = this.roundAmount(item.getDiscountedAmount());
+                item.setDiscountedAmount(discountedAmount);
+            }
+            if (item.getSnapshotId() != null) {
+                List<ProductSnapshotImageVO> images = imagesBySnapshot.getOrDefault(item.getSnapshotId(), List.of());
+                item.setImages(images);
+                item.setSpecs(specsBySnapshot.getOrDefault(item.getSnapshotId(), List.of()));
+            }
+            String productImageUrl = item.getImages().stream()
+                    .filter(image -> Boolean.TRUE.equals(image.getIsCover()))
+                    .min(Comparator.comparing(image -> !ProductEnum.ImageType.SKU.getCode().equals(image.getImageSource())))
+                    .map(ProductSnapshotImageVO::getUrl)
+                    .orElse(null);
+            item.setProductImageUrl(productImageUrl);
         }
-        QuotationVersionedId reference = new QuotationVersionedId(header.getId(), header.getVersion());
-        QuotationCustomerVO customer = BeanConvertUtils.convert(header, QuotationCustomerVO.class);
-        QuotationFormVO.Discount discount = this.discount(header.getDiscountRate(), header.getDiscountedAmount());
-        OffsetDateTime quotedAt = this.businessTime(header.getQuotedAt());
-        return new QuotationFormVO(reference, header.getTitle(), quotedAt, customer, header.getRemark(), discount, items);
+        return result;
     }
 
-    private QuotationDocumentVO document(Quotation header, List<QuotationLine> lines) {
-        QuotationDocumentVO.Issuer issuer = new QuotationDocumentVO.Issuer(
-                header.getIssuerName(), header.getIssuerContact(), issuerProperties.getLogoUrl()
-        );
-        QuotationCustomerVO customer = BeanConvertUtils.convert(header, QuotationCustomerVO.class);
-        QuotationFormVO.Discount discount = this.discount(header.getDiscountRate(), header.getDiscountedAmount());
-        BigDecimal lineDiscount = header.getOriginalAmount().subtract(header.getSubtotalAmount());
-        BigDecimal orderDiscount = header.getSubtotalAmount().subtract(header.getTotalAmount());
-        QuotationDocumentVO.Totals totals = new QuotationDocumentVO.Totals(
-                this.moneyText(header.getOriginalAmount()), this.moneyText(lineDiscount),
-                this.moneyText(header.getSubtotalAmount()), this.moneyText(orderDiscount),
-                this.moneyText(header.getTotalAmount())
-        );
-        List<QuotationDocumentVO.Item> items = lines.stream().map(this::documentItem).toList();
-        OffsetDateTime quotedAt = this.businessTime(header.getQuotedAt());
-        return new QuotationDocumentVO(header.getQuoteNumber(), header.getTitle(), quotedAt, header.getCurrency(),
-                issuer, customer, header.getRemark(), discount, totals, items);
+    /**
+     * 批量读取冻结规格，复用选品规格视图并保留快照顺序、名称、值和单位。
+     */
+    private Map<Long, List<ProductOptionSpecVO>> snapshotSpecs(List<QuotationItemVO> items) {
+        List<Long> snapshotIds = items.stream().map(QuotationItemVO::getSnapshotId)
+                .filter(Objects::nonNull).distinct().toList();
+        if (snapshotIds.isEmpty()) {
+            return Map.of();
+        }
+
+        LambdaQueryWrapper<ProductSnapshotSpec> query = Wrappers.lambdaQuery();
+        query.in(ProductSnapshotSpec::getSnapshotId, snapshotIds);
+        query.orderByAsc(ProductSnapshotSpec::getSnapshotId, ProductSnapshotSpec::getSortOrder, ProductSnapshotSpec::getId);
+        List<ProductSnapshotSpec> specs = snapshotSpecMapper.selectList(query);
+        List<ProductOptionSpecVO> views = BeanConvertUtils.mapList(specs, ProductOptionSpecVO.class);
+        Map<Long, List<ProductOptionSpecVO>> specsBySnapshot = new HashMap<>();
+        for (int index = 0; index < specs.size(); index++) {
+            ProductSnapshotSpec spec = specs.get(index);
+            ProductOptionSpecVO view = views.get(index);
+            view.setSpecId(spec.getSourceSpecId());
+            view.setSpecValueId(spec.getSourceSpecValueId());
+            specsBySnapshot.computeIfAbsent(spec.getSnapshotId(), id -> new ArrayList<>()).add(view);
+        }
+        return specsBySnapshot;
     }
 
-    private QuotationDocumentVO.Item documentItem(QuotationLine line) {
-        QuotationItem item = line.item();
-        QuotationFormVO.Discount discount = this.discount(item.getDiscountRate(), item.getDiscountedAmount());
-        BigDecimal discountAmount = item.getOriginalAmount().subtract(item.getLineAmount());
-        return new QuotationDocumentVO.Item(
-                line.skuCode(), line.productName(), line.model(), line.specificationText(), line.unitName(), line.quantityScale(),
-                this.decimalText(item.getQuantity()), this.decimalText(item.getUnitPrice()), discount,
-                this.moneyText(item.getOriginalAmount()), this.moneyText(discountAmount),
-                this.moneyText(item.getLineAmount()), item.getRemark()
+    /**
+     * 批量读取冻结图片并重新生成授权地址，避免历史报价受当前商品图片变化影响。
+     */
+    private Map<Long, List<ProductSnapshotImageVO>> snapshotImages(List<QuotationItemVO> items) {
+        List<Long> snapshotIds = items.stream().map(QuotationItemVO::getSnapshotId)
+                .filter(Objects::nonNull).distinct().toList();
+        if (snapshotIds.isEmpty()) {
+            return Map.of();
+        }
+
+        LambdaQueryWrapper<ProductSnapshotImage> query = Wrappers.lambdaQuery();
+        query.in(ProductSnapshotImage::getSnapshotId, snapshotIds);
+        query.orderByAsc(
+                ProductSnapshotImage::getImageSource,
+                ProductSnapshotImage::getSortOrder,
+                ProductSnapshotImage::getId
         );
+        List<ProductSnapshotImage> images = snapshotImageMapper.selectList(query);
+        List<ProductSnapshotImageVO> views = BeanConvertUtils.mapList(images, ProductSnapshotImageVO.class);
+        List<Long> attachmentIds = images.stream().map(ProductSnapshotImage::getAttachmentId).distinct().toList();
+        Map<Long, String> urls = attachmentService.getAuthorizedUrls(attachmentIds);
+        Map<Long, List<ProductSnapshotImageVO>> imagesBySnapshot = new HashMap<>();
+        for (int index = 0; index < images.size(); index++) {
+            ProductSnapshotImage image = images.get(index);
+            ProductSnapshotImageVO view = views.get(index);
+            view.setUrl(urls.get(image.getAttachmentId()));
+            imagesBySnapshot.computeIfAbsent(image.getSnapshotId(), id -> new ArrayList<>()).add(view);
+        }
+        return imagesBySnapshot;
     }
 
     private OffsetDateTime businessTime(OffsetDateTime quotedAt) {
         return quotedAt.atZoneSameInstant(BUSINESS_ZONE).toOffsetDateTime();
     }
 
-    private QuotationFormVO.Discount discount(BigDecimal rate, BigDecimal amount) {
-        if (rate == null && amount == null) {
-            return null;
-        }
-        BigDecimal scaledAmount = amount == null ? null : this.roundAmount(amount);
-        return new QuotationFormVO.Discount(rate, scaledAmount);
-    }
 }

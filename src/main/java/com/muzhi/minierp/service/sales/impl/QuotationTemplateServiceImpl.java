@@ -21,7 +21,9 @@ import com.muzhi.minierp.util.Assert;
 import com.muzhi.minierp.util.BeanConvertUtils;
 import com.muzhi.minierp.vo.product.ProductOptionVO;
 import com.muzhi.minierp.vo.sales.QuotationTemplateVO;
-import com.muzhi.minierp.vo.sales.QuotationVersionedId;
+import com.muzhi.minierp.vo.sales.QuotationVO;
+import com.muzhi.minierp.vo.sales.QuotationItemVO;
+import com.muzhi.minierp.vo.sales.QuotationTemplateItemVO;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.access.AccessDeniedException;
@@ -76,7 +78,7 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
         Map<Long, QuotationSkuSelection> selections = this.selectItems(items, false);
         return result.convert(template -> {
             List<QuotationTemplateItem> templateItems = byTemplate.getOrDefault(template.getId(), List.of());
-            List<QuotationTemplateVO.Item> details = this.inspectItems(templateItems, selections);
+            List<QuotationTemplateItemVO> details = this.inspectItems(templateItems, selections);
             return this.summary(template, details, userId);
         });
     }
@@ -85,7 +87,7 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public QuotationTemplateVO detail(Scope scope, Long id) {
         QuotationTemplate template = this.find(scope, id, false);
-        List<QuotationTemplateVO.Item> details = this.inspectTemplate(id);
+        List<QuotationTemplateItemVO> details = this.inspectTemplate(id);
         return this.detail(template, details);
     }
 
@@ -94,7 +96,7 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
     public QuotationTemplateVO create(Scope scope, QuotationTemplateVO form) {
         Long id = IdWorker.getId();
         List<QuotationTemplateItem> items = this.formItems(id, form.getItems());
-        List<QuotationTemplateVO.Item> details = this.inspectForWrite(items);
+        List<QuotationTemplateItemVO> details = this.inspectForWrite(items);
 
         QuotationTemplate template = new QuotationTemplate();
         template.setId(id);
@@ -116,9 +118,9 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
     @Transactional(rollbackFor = Exception.class)
     public QuotationTemplateVO update(Scope scope, QuotationTemplateVO form) {
         QuotationTemplate template = this.find(scope, form.getId(), true);
-        this.checkVersion(template, form.getExpectedVersion());
+        this.checkVersion(template, form.getVersion());
         List<QuotationTemplateItem> items = this.formItems(template.getId(), form.getItems());
-        List<QuotationTemplateVO.Item> details = this.inspectForWrite(items);
+        List<QuotationTemplateItemVO> details = this.inspectForWrite(items);
 
         Long nextVersion = Math.incrementExact(template.getVersion());
         LambdaUpdateWrapper<QuotationTemplate> update = Wrappers.lambdaUpdate();
@@ -138,14 +140,14 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void delete(Scope scope, QuotationVersionedId reference) {
+    public void delete(Scope scope, QuotationTemplateVO reference) {
         Long userId = this.currentUserId();
         LambdaQueryWrapper<QuotationTemplate> query = this.visible(scope, userId, true);
-        query.eq(QuotationTemplate::getId, reference.id());
+        query.eq(QuotationTemplate::getId, reference.getId());
         query.last("FOR UPDATE");
         QuotationTemplate template = super.baseMapper.selectOne(query);
         Assert.isNull(template, "quotation.template.not-found", "报价模板不存在或已删除");
-        this.checkVersion(template, reference.expectedVersion());
+        this.checkVersion(template, reference.getVersion());
 
         Long nextVersion = Math.incrementExact(template.getVersion());
         LambdaUpdateWrapper<QuotationTemplate> remove = Wrappers.lambdaUpdate();
@@ -159,26 +161,26 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
 
     @Override
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
-    public QuotationTemplateVO apply(Scope scope, Long id) {
+    public QuotationVO apply(Scope scope, Long id) {
         QuotationTemplate template = this.find(scope, id, false);
-        List<QuotationTemplateVO.Item> details = this.inspectTemplate(id);
+        List<QuotationTemplateItemVO> details = this.inspectTemplate(id);
         boolean unavailable = details.isEmpty() || this.countIssues(details) > 0;
         Assert.isTrue(unavailable, "quotation.template.unusable", "当前模板有不可用的商品明细，请修复后再套用");
-        List<QuotationTemplateVO.Item> items = new ArrayList<>();
-        for (QuotationTemplateVO.Item item : details) {
-            QuotationTemplateVO.Item appliedItem = new QuotationTemplateVO.Item();
-            appliedItem.setProduct(item.getProduct());
-            appliedItem.setQuantity("1");
+        List<QuotationItemVO> items = new ArrayList<>();
+        for (QuotationTemplateItemVO item : details) {
+            QuotationItemVO appliedItem = QuotationItemVO.fromOption(item.getProduct());
+            appliedItem.setQuantity(BigDecimal.ONE);
             appliedItem.setDiscountRate(item.getDiscountRate());
             appliedItem.setRemark(item.getRemark());
             items.add(appliedItem);
         }
 
-        QuotationTemplateVO applied = new QuotationTemplateVO();
+        QuotationVO applied = new QuotationVO();
         applied.setTitle(template.getTitle());
         BigDecimal discountRate = this.displayDiscountRate(template.getDiscountRate());
         applied.setDiscountRate(discountRate);
         applied.setRemark(template.getRemark());
+        applied.setCurrency(items.getFirst().getCurrency());
         applied.setItems(items);
         return applied;
     }
@@ -231,9 +233,9 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
         itemMapper.update(audit, remove);
     }
 
-    private List<QuotationTemplateItem> formItems(Long templateId, List<QuotationTemplateVO.Item> inputs) {
+    private List<QuotationTemplateItem> formItems(Long templateId, List<QuotationTemplateItemVO> inputs) {
         List<QuotationTemplateItem> items = new ArrayList<>();
-        for (QuotationTemplateVO.Item input : inputs) {
+        for (QuotationTemplateItemVO input : inputs) {
             QuotationTemplateItem item = new QuotationTemplateItem();
             item.setId(IdWorker.getId());
             item.setTemplateId(templateId);
@@ -261,17 +263,17 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
         return quotationItemService.loadSkuSelections(skuIds, forWrite);
     }
 
-    private List<QuotationTemplateVO.Item> inspectTemplate(Long id) {
+    private List<QuotationTemplateItemVO> inspectTemplate(Long id) {
         List<Long> ids = List.of(id);
         List<QuotationTemplateItem> items = this.readItems(ids);
         Map<Long, QuotationSkuSelection> selections = this.selectItems(items, false);
         return this.inspectItems(items, selections);
     }
 
-    private List<QuotationTemplateVO.Item> inspectForWrite(List<QuotationTemplateItem> items) {
+    private List<QuotationTemplateItemVO> inspectForWrite(List<QuotationTemplateItem> items) {
         Map<Long, QuotationSkuSelection> selections = this.selectItems(items, true);
-        List<QuotationTemplateVO.Item> details = this.inspectItems(items, selections);
-        for (QuotationTemplateVO.Item item : details) {
+        List<QuotationTemplateItemVO> details = this.inspectItems(items, selections);
+        for (QuotationTemplateItemVO item : details) {
             int position = item.getSortOrder() + 1;
             Assert.isTrue(item.getIssues().contains(CURRENCY_CONFLICT), "quotation.template.currency-conflict",
                     "第 {0} 行的售价币种与其他模板明细不一致", position);
@@ -284,7 +286,7 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
     /**
      * 每个模板单独检测币种分化，返回全部受影响行的实时资料。
      */
-    private List<QuotationTemplateVO.Item> inspectItems(
+    private List<QuotationTemplateItemVO> inspectItems(
             List<QuotationTemplateItem> items, Map<Long, QuotationSkuSelection> selections
     ) {
         Set<String> currencies = new HashSet<>();
@@ -295,7 +297,7 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
             }
         }
 
-        List<QuotationTemplateVO.Item> details = new ArrayList<>();
+        List<QuotationTemplateItemVO> details = new ArrayList<>();
         for (QuotationTemplateItem item : items) {
             QuotationSkuSelection selection = selections.get(item.getSkuId());
             List<String> issues = new ArrayList<>();
@@ -311,7 +313,7 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
                 option = selection.option();
                 currency = selection.referenceSaleCurrency();
             }
-            QuotationTemplateVO.Item detail = BeanConvertUtils.convert(item, QuotationTemplateVO.Item.class);
+            QuotationTemplateItemVO detail = BeanConvertUtils.convert(item, QuotationTemplateItemVO.class);
             BigDecimal discountRate = this.displayDiscountRate(item.getDiscountRate());
             detail.setDiscountRate(discountRate);
             detail.setReferenceSaleCurrency(currency);
@@ -322,7 +324,7 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
         return details;
     }
 
-    private QuotationTemplateVO summary(QuotationTemplate template, List<QuotationTemplateVO.Item> items, Long userId) {
+    private QuotationTemplateVO summary(QuotationTemplate template, List<QuotationTemplateItemVO> items, Long userId) {
         QuotationTemplateVO summary = BeanConvertUtils.convert(template, QuotationTemplateVO.class);
         boolean ownedByCurrentUser = Objects.equals(template.getOwnerUserId(), userId);
         summary.setOwnedByCurrentUser(ownedByCurrentUser);
@@ -332,7 +334,7 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
         return summary;
     }
 
-    private QuotationTemplateVO detail(QuotationTemplate template, List<QuotationTemplateVO.Item> items) {
+    private QuotationTemplateVO detail(QuotationTemplate template, List<QuotationTemplateItemVO> items) {
         Long userId = this.currentUserId();
         QuotationTemplateVO detail = this.summary(template, items, userId);
         BigDecimal discountRate = this.displayDiscountRate(template.getDiscountRate());
@@ -342,7 +344,7 @@ public class QuotationTemplateServiceImpl extends ServiceImpl<QuotationTemplateM
         return detail;
     }
 
-    private int countIssues(List<QuotationTemplateVO.Item> items) {
+    private int countIssues(List<QuotationTemplateItemVO> items) {
         long count = items.stream().filter(item -> !item.getIssues().isEmpty()).count();
         return (int) count;
     }

@@ -9,7 +9,8 @@ import com.muzhi.minierp.util.Assert;
 import com.muzhi.minierp.vo.product.ProductOptionVO;
 import com.muzhi.minierp.vo.product.ProductQuotationQueryVO;
 import com.muzhi.minierp.vo.sales.QuotationTemplateVO;
-import com.muzhi.minierp.vo.sales.QuotationVersionedId;
+import com.muzhi.minierp.vo.sales.QuotationVO;
+import com.muzhi.minierp.vo.sales.QuotationTemplateItemVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -65,15 +66,16 @@ public class QuotationTemplateController {
 
     @PostMapping("/personal/delete")
     @PreAuthorize("hasAuthority('sales-manager:quotation-template:personal:delete')")
-    public JsonResult<Void> personalDelete(@RequestBody QuotationVersionedId reference) {
-        QuotationController.validateVersionedId(reference);
+    public JsonResult<Void> personalDelete(@RequestBody QuotationTemplateVO reference) {
+        Assert.isNull(reference, "quotation.reference-required", "请提交业务 ID 和期望版本");
+        QuotationController.validateVersionedId(reference.getId(), reference.getVersion());
         templateService.delete(Scope.PERSONAL, reference);
         return JsonResult.success();
     }
 
     @PostMapping("/personal/apply")
     @PreAuthorize("hasAuthority('sales-manager:quotation-template:personal:query') and hasAuthority('sales-manager:quotation:create')")
-    public JsonResult<QuotationTemplateVO> personalApply(@RequestBody QuotationTemplateVO request) {
+    public JsonResult<QuotationVO> personalApply(@RequestBody QuotationTemplateVO request) {
         return this.apply(Scope.PERSONAL, request);
     }
 
@@ -114,15 +116,16 @@ public class QuotationTemplateController {
 
     @PostMapping("/public/delete")
     @PreAuthorize("hasAuthority('sales-manager:quotation-template:public:delete')")
-    public JsonResult<Void> publicDelete(@RequestBody QuotationVersionedId reference) {
-        QuotationController.validateVersionedId(reference);
+    public JsonResult<Void> publicDelete(@RequestBody QuotationTemplateVO reference) {
+        Assert.isNull(reference, "quotation.reference-required", "请提交业务 ID 和期望版本");
+        QuotationController.validateVersionedId(reference.getId(), reference.getVersion());
         templateService.delete(Scope.PUBLIC, reference);
         return JsonResult.success();
     }
 
     @PostMapping("/public/apply")
     @PreAuthorize("hasAuthority('sales-manager:quotation:create')")
-    public JsonResult<QuotationTemplateVO> publicApply(@RequestBody QuotationTemplateVO request) {
+    public JsonResult<QuotationVO> publicApply(@RequestBody QuotationTemplateVO request) {
         return this.apply(Scope.PUBLIC, request);
     }
 
@@ -151,10 +154,10 @@ public class QuotationTemplateController {
         return JsonResult.success(result);
     }
 
-    private JsonResult<QuotationTemplateVO> apply(Scope scope, QuotationTemplateVO request) {
+    private JsonResult<QuotationVO> apply(Scope scope, QuotationTemplateVO request) {
         Assert.isNull(request, "quotation.id-invalid", "业务 ID 必须大于 0");
         QuotationController.validateId(request.getId());
-        QuotationTemplateVO result = templateService.apply(scope, request.getId());
+        QuotationVO result = templateService.apply(scope, request.getId());
         return JsonResult.success(result);
     }
 
@@ -165,18 +168,18 @@ public class QuotationTemplateController {
         Assert.isNull(form, "quotation.template.form-required", "请提交报价模板表单");
         if (editing) {
             QuotationController.validateId(form.getId());
-            QuotationController.validateVersion(form.getExpectedVersion());
+            QuotationController.validateVersion(form.getVersion());
         }
         Assert.isTrue(form.getName() == null || form.getName().isBlank(), "quotation.template.name-required", "模板名称不能为空");
         QuotationController.validateText(form.getName().strip(), 128, 0);
         QuotationController.validateTitle(form.getTitle(), true);
         QuotationController.validateText(form.getRemark(), 1024, 0);
         QuotationController.validateDiscountRate(form.getDiscountRate(), 0);
-        List<QuotationTemplateVO.Item> items = form.getItems();
+        List<QuotationTemplateItemVO> items = form.getItems();
         Assert.isEmpty(items, "quotation.items-required", "报价至少需要一行商品");
         for (int index = 0; index < items.size(); index++) {
             int position = index + 1;
-            QuotationTemplateVO.Item item = items.get(index);
+            QuotationTemplateItemVO item = items.get(index);
             boolean invalid = item == null || item.getSkuId() == null || item.getSkuId() <= 0;
             Assert.isTrue(invalid, "quotation.line-invalid", "第 {0} 行的选品信息无效", position);
             QuotationController.validateDiscountRate(item.getDiscountRate(), position);
